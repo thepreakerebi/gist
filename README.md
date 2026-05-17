@@ -62,12 +62,29 @@ curl -X POST http://127.0.0.1:8000/v1/ingestions \
 
 This endpoint is intended for local development and controlled backend usage. Public deployments should use upload/object-storage based ingestion instead of accepting arbitrary filesystem paths.
 
+## Compress a Local Video End-to-End
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
+  -H "content-type: application/json" \
+  -d '{
+    "video_path": "/absolute/path/to/video.mp4",
+    "output_root": ".gist/ingestions",
+    "query": "when does the speaker mention pricing?",
+    "preset": "balanced",
+    "sample_count": 128,
+    "audio_window_seconds": 1.0
+  }'
+```
+
+The current end-to-end path uses deterministic timestamp candidates. CLIP, CLAP, and Whisper adapters will replace this baseline candidate layer without changing the compression API contract.
+
 ## Architecture
 
 ```text
 raw video/audio
   -> media ingestion (ffprobe metadata, sampled frames, audio windows)
-  -> candidate extraction adapters (CLIP/CLAP/Whisper later)
+  -> baseline candidate generation (CLIP/CLAP/Whisper adapters later)
   -> Gist-core selector
   -> compressed timestamped evidence
   -> video LLM / omni-LLM gateway
@@ -82,6 +99,7 @@ raw video/audio
 - FFmpeg-backed media ingestion utilities
 - structured ingestion manifests with sampled frames and audio windows
 - local ingestion API endpoint for development workflows
+- one-call local video compression pipeline
 
 ## Development Principles
 
