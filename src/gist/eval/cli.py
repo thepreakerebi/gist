@@ -4,7 +4,7 @@ from pathlib import Path
 from gist.core.presets import CompressionPreset
 from gist.core.token_estimation import TokenEstimatorProfile
 from gist.eval.dataset import load_jsonl_dataset
-from gist.eval.reporting import render_markdown_report
+from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
 from gist.eval.schemas import EvalSettings
 
@@ -15,6 +15,7 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--output-root", type=Path, default=Path(".gist/eval"))
     parser.add_argument("--markdown-output", type=Path)
+    parser.add_argument("--html-output", type=Path)
     parser.add_argument("--preset", choices=[preset.value for preset in CompressionPreset], default="balanced")
     parser.add_argument(
         "--token-estimator",
@@ -45,6 +46,9 @@ def run(argv: list[str] | None = None) -> None:
     if args.markdown_output:
         args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
         args.markdown_output.write_text(render_markdown_report(report))
+    if args.html_output:
+        args.html_output.parent.mkdir(parents=True, exist_ok=True)
+        args.html_output.write_text(render_html_report(report))
 
 
 def main() -> None:

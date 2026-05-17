@@ -1,3 +1,5 @@
+from html import escape
+
 from gist.eval.schemas import EvalReport
 
 
@@ -45,3 +47,84 @@ def render_markdown_report(report: EvalReport) -> str:
             )
         lines.append("")
     return "\n".join(lines).strip() + "\n"
+
+
+def render_html_report(report: EvalReport) -> str:
+    summary_rows = "\n".join(
+        "<tr>"
+        f"<td>{escape(name)}</td>"
+        f"<td>{summary.avg_reduction_percent:.2f}%</td>"
+        f"<td>{summary.avg_token_reduction_percent:.2f}%</td>"
+        f"<td>{summary.avg_timestamp_hit_rate:.2f}</td>"
+        f"<td>{summary.avg_latency_ms:.2f} ms</td>"
+        "</tr>"
+        for name, summary in report.summary.variants.items()
+    )
+    examples = "\n".join(_render_example(result) for result in report.results)
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Gist Evaluation Report</title>
+  <style>
+    body {{ font-family: ui-sans-serif, system-ui, sans-serif; margin: 32px; color: #172026; }}
+    h1, h2, h3 {{ color: #0f2f2f; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 16px 0 28px; }}
+    th, td {{ border: 1px solid #d7dfdf; padding: 8px 10px; text-align: left; vertical-align: top; }}
+    th {{ background: #edf5f3; }}
+    .evidence {{ background: #f8fbfa; border: 1px solid #d7dfdf; padding: 10px; margin: 8px 0; }}
+    .muted {{ color: #5f6f6f; }}
+    code {{ background: #eef3f2; padding: 2px 4px; border-radius: 4px; }}
+  </style>
+</head>
+<body>
+  <h1>Gist Evaluation Report</h1>
+  <p class="muted">Examples: {report.summary.examples}</p>
+  <h2>Summary</h2>
+  <table>
+    <thead>
+      <tr><th>Variant</th><th>Candidate Reduction</th><th>Token Reduction</th><th>Timestamp Hit Rate</th><th>Latency</th></tr>
+    </thead>
+    <tbody>{summary_rows}</tbody>
+  </table>
+  <h2>Examples</h2>
+  {examples}
+</body>
+</html>
+"""
+
+
+def _render_example(result) -> str:
+    variant_sections = "\n".join(
+        f"""
+        <h4>{escape(variant.name)}</h4>
+        <p class="muted">Selected {variant.response.metrics.selected_candidates} evidence items;
+        token reduction {variant.response.metrics.estimated_token_reduction_percent:.2f}%;
+        timestamp hit rate {variant.timestamp_hit_rate:.2f};
+        latency {variant.latency_ms:.2f} ms.</p>
+        {_render_evidence(variant.response.selected)}
+        """
+        for variant in result.variants
+    )
+    return f"""
+    <section>
+      <h3>{escape(result.id)}</h3>
+      <p><strong>Query:</strong> {escape(result.query)}</p>
+      {variant_sections}
+    </section>
+    """
+
+
+def _render_evidence(selected) -> str:
+    if not selected:
+        return "<p class='muted'>No evidence selected.</p>"
+    return "\n".join(
+        f"""
+        <div class="evidence">
+          <div><strong>{escape(item.modality.value)}</strong> at <code>{item.timestamp_seconds:.2f}s</code></div>
+          <div>{escape(item.text)}</div>
+          <div class="muted">{escape(item.reason)}</div>
+        </div>
+        """
+        for item in selected
+    )

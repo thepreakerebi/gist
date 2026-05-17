@@ -7,6 +7,7 @@ def test_eval_cli_writes_json_and_markdown_reports(tmp_path) -> None:
     dataset = tmp_path / "eval.jsonl"
     output = tmp_path / "report.json"
     markdown = tmp_path / "report.md"
+    html = tmp_path / "report.html"
     dataset.write_text(
         json.dumps(
             {
@@ -33,6 +34,8 @@ def test_eval_cli_writes_json_and_markdown_reports(tmp_path) -> None:
             str(tmp_path / "eval-cache"),
             "--markdown-output",
             str(markdown),
+            "--html-output",
+            str(html),
             "--preset",
             "aggressive",
         ]
@@ -40,6 +43,7 @@ def test_eval_cli_writes_json_and_markdown_reports(tmp_path) -> None:
 
     assert output.exists()
     assert markdown.exists()
+    assert html.exists()
     payload = json.loads(output.read_text())
     assert payload["summary"]["examples"] == 1
     assert len(payload["variants"]) == 5

@@ -1,7 +1,7 @@
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate
 from gist.eval.baselines import uniform_baseline
-from gist.eval.reporting import render_markdown_report
+from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
 from gist.eval.schemas import EvalExample, EvalSettings
 
@@ -132,3 +132,19 @@ def test_render_markdown_report_includes_summary() -> None:
     assert "# Gist Evaluation Report" in markdown
     assert "case-1" in markdown
     assert "Variant" in markdown
+
+
+def test_render_html_report_includes_evidence() -> None:
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="pricing",
+        duration_seconds=60,
+        visual_candidates=[Candidate(id="v-1", timestamp_seconds=10, text="pricing slide")],
+    )
+    report = EvalRunner().run([example], EvalSettings())
+
+    html = render_html_report(report)
+
+    assert "<html" in html
+    assert "pricing slide" in html

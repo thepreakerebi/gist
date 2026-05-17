@@ -147,6 +147,7 @@ gist-eval \
   --output reports/eval.json \
   --output-root .gist/eval \
   --markdown-output reports/eval.md \
+  --html-output reports/eval.html \
   --preset aggressive
 ```
 
@@ -180,6 +181,7 @@ For real-video evaluation, provide `video_path` instead of prebuilt candidates:
 Real-video examples use the local video pipeline, so `--output-root` stores extracted frames, audio windows, and reusable cache artifacts.
 
 The report compares Gist variants against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
+Use `--html-output` for a self-contained evidence inspection report.
 
 ## Token Estimates
 
@@ -228,6 +230,7 @@ raw video/audio
 - real-video evaluation through the local ingestion pipeline
 - proxy token-savings estimates for compression and evaluation reports
 - gated slow integration tests for CLIP, Whisper, and CLAP adapters
+- HTML evidence reports for evaluation output
 
 ## Development Principles
 
