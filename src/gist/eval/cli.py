@@ -16,16 +16,22 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--preset", choices=[preset.value for preset in CompressionPreset], default="balanced")
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument(
+        "--single-config",
+        action="store_true",
+        help="Run only the configured preset/options instead of the default variant sweep.",
+    )
     args = parser.parse_args(argv)
 
     examples = load_jsonl_dataset(args.dataset)
-    report = EvalRunner().run(
-        examples,
-        EvalSettings(
+    settings = EvalSettings(
             preset=CompressionPreset(args.preset),
             decompose_query=args.decompose_query,
             adaptive_budget=args.adaptive_budget,
-        ),
+        )
+    report = EvalRunner().run(
+        examples,
+        settings=settings if args.single_config else None,
     )
     report.write_json(args.output)
     if args.markdown_output:

@@ -42,14 +42,28 @@ def test_eval_runner_builds_report_summary() -> None:
         ],
     )
 
-    report = EvalRunner().run(
-        [example],
-        EvalSettings(preset=CompressionPreset.AGGRESSIVE),
-    )
+    report = EvalRunner().run([example], EvalSettings(preset=CompressionPreset.AGGRESSIVE))
 
     assert report.summary.examples == 1
-    assert report.summary.avg_gist_timestamp_hit_rate == 1
+    assert report.summary.variants["gist_configured"].avg_timestamp_hit_rate == 1
     assert report.results[0].baselines[0].name == "uniform"
+    assert report.results[0].variants[0].name == "gist_configured"
+
+
+def test_eval_runner_runs_default_variant_sweep() -> None:
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="pricing",
+        duration_seconds=60,
+        visual_candidates=[Candidate(id="v-1", timestamp_seconds=10, text="pricing slide")],
+    )
+
+    report = EvalRunner().run([example])
+
+    assert len(report.variants) == 5
+    assert "gist_decomposed_adaptive" in report.summary.variants
+    assert len(report.results[0].variants) == 5
 
 
 def test_render_markdown_report_includes_summary() -> None:
@@ -66,4 +80,4 @@ def test_render_markdown_report_includes_summary() -> None:
 
     assert "# Gist Evaluation Report" in markdown
     assert "case-1" in markdown
-
+    assert "Variant" in markdown

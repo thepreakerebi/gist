@@ -24,6 +24,13 @@ class EvalSettings(BaseModel):
     adaptive_budget: bool = False
 
 
+class EvalVariant(BaseModel):
+    name: Annotated[str, Field(min_length=1)]
+    preset: CompressionPreset = CompressionPreset.BALANCED
+    decompose_query: bool = False
+    adaptive_budget: bool = False
+
+
 class BaselineResult(BaseModel):
     name: str
     selected: list[SelectedCandidate]
@@ -33,24 +40,35 @@ class BaselineResult(BaseModel):
     modality_coverage: dict[Modality, int]
 
 
+class GistVariantResult(BaseModel):
+    name: str
+    settings: EvalVariant
+    response: CompressionResponse
+    timestamp_hit_rate: float
+    latency_ms: float
+
+
 class EvalExampleResult(BaseModel):
     id: str
     query: str
-    gist: CompressionResponse
-    gist_timestamp_hit_rate: float
+    variants: list[GistVariantResult]
     baselines: list[BaselineResult]
-    latency_ms: float
 
 
 class EvalSummary(BaseModel):
     examples: int
-    avg_gist_reduction_percent: float
-    avg_gist_timestamp_hit_rate: float
+    variants: dict[str, "EvalVariantSummary"]
+
+
+class EvalVariantSummary(BaseModel):
+    avg_reduction_percent: float
+    avg_timestamp_hit_rate: float
     avg_latency_ms: float
 
 
 class EvalReport(BaseModel):
-    settings: EvalSettings
+    settings: EvalSettings | None = None
+    variants: list[EvalVariant]
     summary: EvalSummary
     results: list[EvalExampleResult]
 

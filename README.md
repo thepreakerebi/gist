@@ -140,10 +140,18 @@ gist-eval \
   --dataset data/eval/demo.jsonl \
   --output reports/eval.json \
   --markdown-output reports/eval.md \
-  --preset aggressive \
-  --decompose-query \
-  --adaptive-budget
+  --preset aggressive
 ```
+
+By default, `gist-eval` compares several variants:
+
+- `gist_fixed_balanced`
+- `gist_fixed_aggressive`
+- `gist_decomposed`
+- `gist_adaptive`
+- `gist_decomposed_adaptive`
+
+Use `--single-config` with `--preset`, `--decompose-query`, and `--adaptive-budget` to run only one configured variant.
 
 The dataset format is one JSON object per line with:
 
@@ -156,7 +164,7 @@ The dataset format is one JSON object per line with:
 - `visual_candidates`
 - `audio_candidates`
 
-The report compares Gist against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
+The report compares Gist variants against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
 
 ## Architecture
 
@@ -186,7 +194,7 @@ raw video/audio
 - explainable selected-evidence metadata
 - rule-based query decomposition for compound questions
 - adaptive budget routing for difficult queries
-- JSONL evaluation harness with uniform baseline comparison
+- JSONL evaluation harness with multi-variant comparison
 
 ## Development Principles
 
