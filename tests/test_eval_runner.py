@@ -46,6 +46,9 @@ def test_eval_runner_builds_report_summary() -> None:
 
     assert report.summary.examples == 1
     assert report.summary.variants["gist_configured"].avg_timestamp_hit_rate == 1
+    assert "avg_token_reduction_percent" in report.summary.variants[
+        "gist_configured"
+    ].model_dump()
     assert report.results[0].baselines[0].name == "uniform"
     assert report.results[0].variants[0].name == "gist_configured"
 

@@ -65,6 +65,11 @@ class CompressionMetrics(BaseModel):
     budget_preset_used: CompressionPreset
     budget_expanded: bool = False
     expansion_reason: str | None = None
+    estimated_baseline_tokens: int = 0
+    estimated_compressed_tokens: int = 0
+    estimated_saved_tokens: int = 0
+    estimated_token_reduction_ratio: float = 0.0
+    estimated_token_reduction_percent: float = 0.0
 
 
 class CompressionResponse(BaseModel):

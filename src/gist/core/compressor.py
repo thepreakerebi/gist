@@ -15,6 +15,7 @@ from gist.core.schemas import (
     SelectedCandidate,
 )
 from gist.core.scoring import lexical_relevance, temporal_similarity, z_scores
+from gist.core.token_estimation import estimate_tokens
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +105,11 @@ class GistCompressor:
         reduction_ratio = 1.0 if input_count == 0 else selected_count / input_count
         reduction_percent = (1.0 - reduction_ratio) * 100
         dropped_count = max(input_count - selected_count, 0)
+        token_estimate = estimate_tokens(
+            input_visual_candidates=len(request.visual_candidates),
+            input_audio_candidates=len(request.audio_candidates),
+            selected_modalities=[selection.candidate.modality for selection in selections],
+        )
 
         return CompressionResponse(
             video_id=request.video_id,
@@ -144,6 +150,11 @@ class GistCompressor:
                 budget_preset_used=preset,
                 budget_expanded=budget_expanded,
                 expansion_reason=expansion_reason,
+                estimated_baseline_tokens=token_estimate.baseline_tokens,
+                estimated_compressed_tokens=token_estimate.compressed_tokens,
+                estimated_saved_tokens=token_estimate.saved_tokens,
+                estimated_token_reduction_ratio=token_estimate.reduction_ratio,
+                estimated_token_reduction_percent=token_estimate.reduction_percent,
             ),
         )
 

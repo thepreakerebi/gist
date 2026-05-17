@@ -43,6 +43,7 @@ def test_eval_cli_writes_json_and_markdown_reports(tmp_path) -> None:
     payload = json.loads(output.read_text())
     assert payload["summary"]["examples"] == 1
     assert len(payload["variants"]) == 5
+    assert "avg_token_reduction_percent" in next(iter(payload["summary"]["variants"].values()))
 
 
 def test_eval_cli_supports_single_config_mode(tmp_path) -> None:

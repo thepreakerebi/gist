@@ -68,6 +68,7 @@ class EvalSummary(BaseModel):
 
 class EvalVariantSummary(BaseModel):
     avg_reduction_percent: float
+    avg_token_reduction_percent: float
     avg_timestamp_hit_rate: float
     avg_latency_ms: float
 

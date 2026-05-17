@@ -134,6 +134,11 @@ def _summarize(results: list[EvalExampleResult]) -> EvalSummary:
                 for result in variant_results
             )
             / len(variant_results),
+            avg_token_reduction_percent=sum(
+                result.response.metrics.estimated_token_reduction_percent
+                for result in variant_results
+            )
+            / len(variant_results),
             avg_timestamp_hit_rate=sum(
                 result.timestamp_hit_rate for result in variant_results
             )

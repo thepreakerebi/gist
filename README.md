@@ -175,6 +175,15 @@ Real-video examples use the local video pipeline, so `--output-root` stores extr
 
 The report compares Gist variants against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
 
+## Token Estimates
+
+Gist reports proxy token savings in compression and evaluation outputs:
+
+- visual candidate: `258` estimated tokens
+- audio candidate: `32` estimated tokens
+
+These defaults are conservative model-agnostic proxies inspired by current video-LLM pricing/tokenization patterns. They are not provider billing guarantees. Provider-specific token estimators can replace this layer later.
+
 ## Architecture
 
 ```text
@@ -205,6 +214,7 @@ raw video/audio
 - adaptive budget routing for difficult queries
 - JSONL evaluation harness with multi-variant comparison
 - real-video evaluation through the local ingestion pipeline
+- proxy token-savings estimates for compression and evaluation reports
 
 ## Development Principles
 

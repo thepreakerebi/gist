@@ -33,6 +33,9 @@ def test_compressor_selects_query_relevant_audio_and_visual_candidates() -> None
     assert response.metrics.budget_mode == "fixed"
     assert response.metrics.budget_preset_used == CompressionPreset.AGGRESSIVE
     assert response.metrics.budget_expanded is False
+    assert response.metrics.estimated_baseline_tokens > 0
+    assert response.metrics.estimated_compressed_tokens > 0
+    assert response.metrics.estimated_saved_tokens == 0
     assert all(item.reason for item in response.selected)
     assert {item.source_score_type for item in response.selected} == {"lexical_overlap"}
 
@@ -59,6 +62,7 @@ def test_aggressive_preset_caps_selected_candidates() -> None:
     assert response.metrics.estimated_candidate_reduction_ratio == 0.3
     assert response.metrics.estimated_candidate_reduction_percent == 70
     assert response.metrics.dropped_candidates == 14
+    assert response.metrics.estimated_token_reduction_percent > 0
 
 
 def test_cross_modal_selection_keeps_modality_metadata() -> None:

@@ -9,12 +9,13 @@ def render_markdown_report(report: EvalReport) -> str:
         "",
         f"- Examples: {report.summary.examples}",
         "",
-        "| Variant | Avg Reduction | Avg Timestamp Hit Rate | Avg Latency |",
-        "|---|---:|---:|---:|",
+        "| Variant | Avg Candidate Reduction | Avg Token Reduction | Avg Timestamp Hit Rate | Avg Latency |",
+        "|---|---:|---:|---:|---:|",
     ]
     for name, summary in report.summary.variants.items():
         lines.append(
             f"| {name} | {summary.avg_reduction_percent:.2f}% | "
+            f"{summary.avg_token_reduction_percent:.2f}% | "
             f"{summary.avg_timestamp_hit_rate:.2f} | {summary.avg_latency_ms:.2f} ms |"
         )
     lines.extend(
@@ -31,14 +32,15 @@ def render_markdown_report(report: EvalReport) -> str:
                 "",
                 f"- Query: {result.query}",
                 "",
-                "| Variant | Selected | Reduction | Timestamp Hit Rate | Latency |",
-                "|---|---:|---:|---:|---:|",
+                "| Variant | Selected | Candidate Reduction | Token Reduction | Timestamp Hit Rate | Latency |",
+                "|---|---:|---:|---:|---:|---:|",
             ]
         )
         for variant in result.variants:
             lines.append(
                 f"| {variant.name} | {variant.response.metrics.selected_candidates} | "
                 f"{variant.response.metrics.estimated_candidate_reduction_percent:.2f}% | "
+                f"{variant.response.metrics.estimated_token_reduction_percent:.2f}% | "
                 f"{variant.timestamp_hit_rate:.2f} | {variant.latency_ms:.2f} ms |"
             )
         lines.append("")
