@@ -131,6 +131,33 @@ Compression responses include evidence-level metadata for debugging and evaluati
 - `query_aspects`: decomposed query aspects used for scoring when enabled
 - `budget_mode`, `budget_preset_used`, and `budget_expanded`: adaptive-budget routing metadata
 
+## Evaluation
+
+Run the lightweight JSONL evaluation harness:
+
+```bash
+gist-eval \
+  --dataset data/eval/demo.jsonl \
+  --output reports/eval.json \
+  --markdown-output reports/eval.md \
+  --preset aggressive \
+  --decompose-query \
+  --adaptive-budget
+```
+
+The dataset format is one JSON object per line with:
+
+- `id`
+- `video_id`
+- `query`
+- `duration_seconds`
+- `relevant_timestamps`
+- `timestamp_tolerance_seconds`
+- `visual_candidates`
+- `audio_candidates`
+
+The report compares Gist against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
+
 ## Architecture
 
 ```text
@@ -159,6 +186,7 @@ raw video/audio
 - explainable selected-evidence metadata
 - rule-based query decomposition for compound questions
 - adaptive budget routing for difficult queries
+- JSONL evaluation harness with uniform baseline comparison
 
 ## Development Principles
 

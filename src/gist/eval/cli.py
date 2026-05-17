@@ -1,0 +1,41 @@
+import argparse
+from pathlib import Path
+
+from gist.core.presets import CompressionPreset
+from gist.eval.dataset import load_jsonl_dataset
+from gist.eval.reporting import render_markdown_report
+from gist.eval.runner import EvalRunner
+from gist.eval.schemas import EvalSettings
+
+
+def run(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Evaluate Gist compression on a JSONL dataset.")
+    parser.add_argument("--dataset", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--markdown-output", type=Path)
+    parser.add_argument("--preset", choices=[preset.value for preset in CompressionPreset], default="balanced")
+    parser.add_argument("--decompose-query", action="store_true")
+    parser.add_argument("--adaptive-budget", action="store_true")
+    args = parser.parse_args(argv)
+
+    examples = load_jsonl_dataset(args.dataset)
+    report = EvalRunner().run(
+        examples,
+        EvalSettings(
+            preset=CompressionPreset(args.preset),
+            decompose_query=args.decompose_query,
+            adaptive_budget=args.adaptive_budget,
+        ),
+    )
+    report.write_json(args.output)
+    if args.markdown_output:
+        args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
+        args.markdown_output.write_text(render_markdown_report(report))
+
+
+def main() -> None:
+    run()
+
+
+if __name__ == "__main__":
+    main()
