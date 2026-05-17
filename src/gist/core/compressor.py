@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 
 from gist.core.presets import PRESETS
+from gist.core.decomposition import (
+    QueryAspect,
+    QueryAspectModality,
+    RuleBasedQueryDecomposer,
+)
 from gist.core.schemas import (
     Candidate,
     CompressionMetrics,
@@ -21,6 +26,7 @@ class ScoredCandidate:
     relevance_score: float
     normalized_score: float
     source_score_type: str
+    aspect: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,9 +38,13 @@ class Selection:
 
 
 class GistCompressor:
+    def __init__(self) -> None:
+        self.query_decomposer = RuleBasedQueryDecomposer()
+
     def compress(self, request: CompressionRequest) -> CompressionResponse:
         config = PRESETS[request.preset]
-        scored = self._score_candidates(request)
+        query_aspects = self._query_aspects_for(request)
+        scored = self._score_candidates(request, query_aspects)
         selections = self._select_with_mmr(
             candidates=scored,
             max_items=config.max_items,
@@ -52,6 +62,7 @@ class GistCompressor:
             video_id=request.video_id,
             query=request.query,
             preset=request.preset,
+            query_aspects=query_aspects,
             selected=[
                 SelectedCandidate(
                     id=selection.candidate.id,
@@ -85,10 +96,28 @@ class GistCompressor:
             ),
         )
 
-    def _score_candidates(self, request: CompressionRequest) -> list[ScoredCandidate]:
-        visual = self._score_modality(request.query, request.visual_candidates, Modality.VISUAL)
-        audio = self._score_modality(request.query, request.audio_candidates, Modality.AUDIO)
-        return visual + audio
+    def _query_aspects_for(self, request: CompressionRequest) -> list[QueryAspect]:
+        if request.decompose_query:
+            return self.query_decomposer.decompose(request.query)
+        return [QueryAspect(text=request.query)]
+
+    def _score_candidates(
+        self,
+        request: CompressionRequest,
+        query_aspects: list[QueryAspect],
+    ) -> list[ScoredCandidate]:
+        visual: list[ScoredCandidate] = []
+        audio: list[ScoredCandidate] = []
+        for aspect in query_aspects:
+            if aspect.modality in {QueryAspectModality.VISUAL, QueryAspectModality.BOTH}:
+                visual.extend(
+                    self._score_modality(aspect.text, request.visual_candidates, Modality.VISUAL)
+                )
+            if aspect.modality in {QueryAspectModality.AUDIO, QueryAspectModality.BOTH}:
+                audio.extend(
+                    self._score_modality(aspect.text, request.audio_candidates, Modality.AUDIO)
+                )
+        return self._collapse_duplicate_scores(visual + audio)
 
     def _score_modality(
         self,
@@ -110,6 +139,7 @@ class GistCompressor:
                 source_score_type="model_saliency"
                 if candidate.saliency_score is not None
                 else "lexical_overlap",
+                aspect=query,
             )
             for candidate, raw_score, normalized_score in zip(
                 candidates,
@@ -118,6 +148,17 @@ class GistCompressor:
                 strict=True,
             )
         ]
+
+    def _collapse_duplicate_scores(
+        self,
+        candidates: list[ScoredCandidate],
+    ) -> list[ScoredCandidate]:
+        best_by_id: dict[str, ScoredCandidate] = {}
+        for candidate in candidates:
+            current = best_by_id.get(candidate.id)
+            if current is None or candidate.normalized_score > current.normalized_score:
+                best_by_id[candidate.id] = candidate
+        return list(best_by_id.values())
 
     def _select_with_mmr(
         self,
@@ -187,7 +228,7 @@ class GistCompressor:
         if not selected:
             return (
                 f"Selected first because it had the strongest normalized "
-                f"{item.modality} relevance signal."
+                f"{item.modality} relevance signal for aspect '{item.aspect}'."
             )
 
         previous = [selection.candidate for selection in selected]
@@ -197,5 +238,6 @@ class GistCompressor:
         )
         return (
             f"Selected for query relevance while preserving temporal diversity; "
-            f"nearest selected evidence is {nearest_delta:.2f}s away."
+            f"nearest selected evidence is {nearest_delta:.2f}s away; "
+            f"matched aspect '{item.aspect}'."
         )

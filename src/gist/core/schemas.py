@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from gist.core.decomposition import QueryAspect
 from gist.core.presets import CompressionPreset
 
 
@@ -38,6 +39,7 @@ class CompressionRequest(BaseModel):
     query: Annotated[str, Field(min_length=1)]
     duration_seconds: Annotated[float, Field(gt=0)]
     preset: CompressionPreset = CompressionPreset.BALANCED
+    decompose_query: bool = False
     visual_candidates: list[Candidate] = Field(default_factory=list)
     audio_candidates: list[Candidate] = Field(default_factory=list)
 
@@ -64,5 +66,6 @@ class CompressionResponse(BaseModel):
     video_id: str
     query: str
     preset: CompressionPreset
+    query_aspects: list[QueryAspect] = Field(default_factory=list)
     selected: list[SelectedCandidate]
     metrics: CompressionMetrics

@@ -21,6 +21,7 @@ class LocalVideoCompressionRequest(MediaIngestionRequest):
     preset: CompressionPreset = CompressionPreset.BALANCED
     visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE
     audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE
+    decompose_query: bool = False
 
 
 class LocalVideoCompressionResponse(BaseModel):

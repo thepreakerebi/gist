@@ -41,6 +41,7 @@ class LocalCompressionPipeline:
         audio_window_seconds: float = 1.0,
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+        decompose_query: bool = False,
     ) -> tuple[IngestedVideo, CompressionResponse]:
         ingestion_key = ingestion_cache_key(
             video_path=video_path,
@@ -77,6 +78,7 @@ class LocalCompressionPipeline:
                 query=query,
                 duration_seconds=ingested.metadata.duration_seconds,
                 preset=preset,
+                decompose_query=decompose_query,
                 visual_candidates=candidates.visual,
                 audio_candidates=candidates.audio,
             )

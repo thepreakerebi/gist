@@ -50,6 +50,7 @@ def test_local_video_compression_endpoint_runs_end_to_end(tmp_path: Path) -> Non
             "preset": "balanced",
             "visual_scorer": "baseline",
             "audio_scorer": "baseline",
+            "decompose_query": True,
             "sample_count": 2,
             "audio_window_seconds": 0.5,
         },

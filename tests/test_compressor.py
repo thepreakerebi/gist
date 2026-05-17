@@ -93,3 +93,26 @@ def test_model_saliency_candidates_report_source_score_type() -> None:
     assert response.selected[0].source_score_type == "model_saliency"
     assert response.selected[0].selection_rank == 1
     assert response.selected[0].mmr_score == 0
+
+
+def test_decomposed_query_reports_query_aspects_and_reasons() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="show the person in red shirt and what does the speaker say",
+        duration_seconds=60,
+        decompose_query=True,
+        visual_candidates=[
+            Candidate(id="v-1", timestamp_seconds=3, text="person in red shirt"),
+        ],
+        audio_candidates=[
+            Candidate(id="a-1", timestamp_seconds=4, text="speaker says pricing details"),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert [aspect.text for aspect in response.query_aspects] == [
+        "show the person in red shirt",
+        "what does the speaker say",
+    ]
+    assert all("aspect" in item.reason for item in response.selected)
