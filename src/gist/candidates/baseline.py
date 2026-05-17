@@ -24,10 +24,14 @@ class BaselineCandidateGenerator:
         visual_scorer: VisualFrameScorer | None = None,
         audio_transcriber: AudioTranscriber | None = None,
         audio_scorer: AudioWindowScorer | None = None,
+        audio_context_window_count: int = 1,
     ) -> None:
+        if audio_context_window_count < 0:
+            raise ValueError("audio_context_window_count must be non-negative")
         self.visual_scorer = visual_scorer
         self.audio_transcriber = audio_transcriber
         self.audio_scorer = audio_scorer
+        self.audio_context_window_count = audio_context_window_count
 
     def generate(self, ingested_video: IngestedVideo, query: str) -> CandidateSet:
         visual_scores = self._score_visual_frames(ingested_video, query)
@@ -46,7 +50,11 @@ class BaselineCandidateGenerator:
                 self._audio_candidate(
                     ingested_video.video_id,
                     window,
-                    audio_transcripts.get(window.path),
+                    self._audio_transcript_context(
+                        ingested_video.audio_windows,
+                        audio_transcripts,
+                        window.index,
+                    ),
                     audio_scores.get(window.path),
                 )
                 for window in ingested_video.audio_windows
@@ -75,6 +83,24 @@ class BaselineCandidateGenerator:
         if self.audio_scorer is None:
             return {}
         return self.audio_scorer.score_windows(ingested_video.audio_windows, query=query)
+
+    def _audio_transcript_context(
+        self,
+        windows: list[AudioWindow],
+        transcripts: dict[Path, str],
+        center_index: int,
+    ) -> str | None:
+        if not transcripts:
+            return None
+
+        start_index = max(center_index - self.audio_context_window_count, 0)
+        end_index = min(center_index + self.audio_context_window_count + 1, len(windows))
+        snippets: list[str] = []
+        for window in windows[start_index:end_index]:
+            transcript = transcripts.get(window.path, "").strip()
+            if transcript:
+                snippets.append(transcript)
+        return " ".join(snippets).strip() or None
 
     def _visual_candidate(
         self,

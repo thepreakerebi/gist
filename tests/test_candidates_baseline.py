@@ -88,6 +88,51 @@ def test_baseline_candidate_generator_can_attach_audio_transcripts() -> None:
     assert candidates.audio[0].text == "speaker explains pricing"
 
 
+def test_baseline_candidate_generator_stitches_neighboring_audio_transcripts() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=6.0, has_audio=True),
+        frames=[],
+        audio_windows=[
+            AudioWindow(
+                index=0,
+                start_seconds=0.0,
+                duration_seconds=2.0,
+                path=Path("audio-0.wav"),
+            ),
+            AudioWindow(
+                index=1,
+                start_seconds=2.0,
+                duration_seconds=2.0,
+                path=Path("audio-1.wav"),
+            ),
+            AudioWindow(
+                index=2,
+                start_seconds=4.0,
+                duration_seconds=2.0,
+                path=Path("audio-2.wav"),
+            ),
+        ],
+    )
+
+    class SequentialTranscriber:
+        def transcribe_windows(self, windows: list[AudioWindow]) -> dict[Path, str]:
+            return {
+                windows[0].path: "the architecture",
+                windows[1].path: "for these missions",
+                windows[2].path: "is taking shape",
+            }
+
+    candidates = BaselineCandidateGenerator(
+        audio_transcriber=SequentialTranscriber()
+    ).generate(manifest, query="missions")
+
+    assert candidates.audio[1].text == (
+        "the architecture for these missions is taking shape"
+    )
+
+
 def test_baseline_candidate_generator_can_attach_audio_saliency_scores() -> None:
     manifest = IngestedVideo(
         video_id="video-1",
