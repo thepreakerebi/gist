@@ -26,6 +26,12 @@ Optional CLIP visual scoring dependencies:
 pip install -e ".[vision]"
 ```
 
+Optional Whisper speech transcription dependencies:
+
+```bash
+pip install -e ".[audio]"
+```
+
 For real media extraction, install FFmpeg:
 
 ```bash
@@ -79,12 +85,15 @@ curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
     "query": "when does the speaker mention pricing?",
     "preset": "balanced",
     "visual_scorer": "baseline",
+    "audio_scorer": "baseline",
     "sample_count": 128,
     "audio_window_seconds": 1.0
   }'
 ```
 
 Use `"visual_scorer": "clip"` to score sampled frames with CLIP after installing the optional vision dependencies. The default `"baseline"` mode remains dependency-light and deterministic. CLAP and Whisper adapters will extend the audio side without changing the compression API contract.
+
+Use `"audio_scorer": "whisper"` to transcribe extracted audio windows with Faster Whisper after installing the optional audio dependencies. The transcript becomes the audio candidate text, so Gist-core can rank speech windows by query relevance.
 
 ## Architecture
 
@@ -108,6 +117,7 @@ raw video/audio
 - local ingestion API endpoint for development workflows
 - one-call local video compression pipeline
 - optional CLIP visual frame scoring adapter
+- optional Whisper audio transcription adapter
 
 ## Development Principles
 

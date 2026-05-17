@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
+from gist.audio.errors import AudioTranscriptionError
 from gist.api.schemas import (
     LocalVideoCompressionRequest,
     LocalVideoCompressionResponse,
@@ -52,7 +53,10 @@ def create_local_video_compression(
             sample_count=request.sample_count,
             audio_window_seconds=request.audio_window_seconds,
             visual_scorer=request.visual_scorer,
+            audio_scorer=request.audio_scorer,
         )
         return LocalVideoCompressionResponse(ingestion=ingestion, compression=compression)
+    except AudioTranscriptionError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     except VisualScoringError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
