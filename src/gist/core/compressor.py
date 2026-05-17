@@ -14,7 +14,13 @@ from gist.core.schemas import (
     Modality,
     SelectedCandidate,
 )
-from gist.core.scoring import lexical_relevance, temporal_similarity, z_scores
+from gist.core.scoring import (
+    lexical_relevance,
+    temporal_similarity,
+    text_similarity,
+    unique_token_count,
+    z_scores,
+)
 from gist.core.token_estimation import estimate_tokens
 
 
@@ -273,8 +279,47 @@ class GistCompressor:
                 )
             )
             remaining.remove(best)
+            remaining = self._drop_redundant_neighbors(
+                selected=best,
+                remaining=remaining,
+                temporal_sigma_seconds=temporal_sigma_seconds,
+            )
 
         return selected
+
+    def _drop_redundant_neighbors(
+        self,
+        selected: ScoredCandidate,
+        remaining: list[ScoredCandidate],
+        temporal_sigma_seconds: float,
+    ) -> list[ScoredCandidate]:
+        min_gap_seconds = temporal_sigma_seconds * 0.75
+        return [
+            candidate
+            for candidate in remaining
+            if not self._is_redundant_neighbor(
+                selected=selected,
+                candidate=candidate,
+                min_gap_seconds=min_gap_seconds,
+            )
+        ]
+
+    def _is_redundant_neighbor(
+        self,
+        selected: ScoredCandidate,
+        candidate: ScoredCandidate,
+        min_gap_seconds: float,
+    ) -> bool:
+        if selected.modality != Modality.AUDIO or candidate.modality != Modality.AUDIO:
+            return False
+
+        if abs(selected.timestamp_seconds - candidate.timestamp_seconds) > min_gap_seconds:
+            return False
+
+        if min(unique_token_count(selected.text), unique_token_count(candidate.text)) < 5:
+            return False
+
+        return text_similarity(selected.text, candidate.text) >= 0.35
 
     def _mmr_score(
         self,

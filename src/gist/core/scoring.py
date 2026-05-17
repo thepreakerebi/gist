@@ -43,6 +43,18 @@ def temporal_similarity(left_seconds: float, right_seconds: float, sigma_seconds
     return math.exp(-((delta * delta) / (sigma_seconds * sigma_seconds)))
 
 
+def text_similarity(left: str, right: str) -> float:
+    left_terms = set(_tokens(left))
+    right_terms = set(_tokens(right))
+    if not left_terms or not right_terms:
+        return 0.0
+
+    return len(left_terms & right_terms) / len(left_terms | right_terms)
+
+
+def unique_token_count(value: str) -> int:
+    return len(set(_tokens(value)))
+
+
 def _tokens(value: str) -> list[str]:
     return TOKEN_PATTERN.findall(value.lower())
-

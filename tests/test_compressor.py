@@ -47,11 +47,15 @@ def test_aggressive_preset_caps_selected_candidates() -> None:
         duration_seconds=300,
         preset=CompressionPreset.AGGRESSIVE,
         visual_candidates=[
-            Candidate(id=f"v-{index}", timestamp_seconds=float(index), text="goal replay")
+            Candidate(id=f"v-{index}", timestamp_seconds=float(index * 20), text="goal replay")
             for index in range(10)
         ],
         audio_candidates=[
-            Candidate(id=f"a-{index}", timestamp_seconds=float(index + 20), text="crowd goal noise")
+            Candidate(
+                id=f"a-{index}",
+                timestamp_seconds=float(220 + (index * 20)),
+                text="crowd goal noise",
+            )
             for index in range(10)
         ],
     )
@@ -63,6 +67,43 @@ def test_aggressive_preset_caps_selected_candidates() -> None:
     assert response.metrics.estimated_candidate_reduction_percent == 70
     assert response.metrics.dropped_candidates == 14
     assert response.metrics.estimated_token_reduction_percent > 0
+
+
+def test_compressor_suppresses_redundant_neighboring_audio_evidence() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="architecture missions",
+        duration_seconds=120,
+        preset=CompressionPreset.BALANCED,
+        audio_candidates=[
+            Candidate(
+                id="a-1",
+                timestamp_seconds=50,
+                text="to expand what is possible the architecture",
+            ),
+            Candidate(
+                id="a-2",
+                timestamp_seconds=54,
+                text="the architecture these missions are taking shape",
+            ),
+            Candidate(
+                id="a-3",
+                timestamp_seconds=58,
+                text="these missions are taking shape with new systems",
+            ),
+            Candidate(
+                id="a-4",
+                timestamp_seconds=100,
+                text="closing remarks about exploration",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+    selected_ids = {item.id for item in response.selected}
+
+    assert "a-2" in selected_ids
+    assert not {"a-1", "a-2", "a-3"}.issubset(selected_ids)
 
 
 def test_cross_modal_selection_keeps_modality_metadata() -> None:
