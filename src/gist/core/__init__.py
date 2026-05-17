@@ -1,0 +1,2 @@
+"""Core compression logic."""
+
