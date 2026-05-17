@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 from gist.core.schemas import Candidate
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
+from gist.vision.scorers import VisualFrameScorer
 
 
 @dataclass(frozen=True, slots=True)
@@ -13,10 +15,18 @@ class CandidateSet:
 class BaselineCandidateGenerator:
     """Build deterministic timestamp candidates before model-based scoring is available."""
 
+    def __init__(self, visual_scorer: VisualFrameScorer | None = None) -> None:
+        self.visual_scorer = visual_scorer
+
     def generate(self, ingested_video: IngestedVideo, query: str) -> CandidateSet:
+        visual_scores = self._score_visual_frames(ingested_video, query)
         return CandidateSet(
             visual=[
-                self._visual_candidate(ingested_video.video_id, frame)
+                self._visual_candidate(
+                    ingested_video.video_id,
+                    frame,
+                    visual_scores.get(frame.path),
+                )
                 for frame in ingested_video.frames
             ],
             audio=[
@@ -25,11 +35,26 @@ class BaselineCandidateGenerator:
             ],
         )
 
-    def _visual_candidate(self, video_id: str, frame: ExtractedFrame) -> Candidate:
+    def _score_visual_frames(
+        self,
+        ingested_video: IngestedVideo,
+        query: str,
+    ) -> dict[Path, float]:
+        if self.visual_scorer is None:
+            return {}
+        return self.visual_scorer.score_frames(ingested_video.frames, query=query)
+
+    def _visual_candidate(
+        self,
+        video_id: str,
+        frame: ExtractedFrame,
+        saliency_score: float | None,
+    ) -> Candidate:
         return Candidate(
             id=f"{video_id}:visual:{frame.index}",
             timestamp_seconds=frame.timestamp_seconds,
             text=f"visual frame sampled at {frame.timestamp_seconds:.2f} seconds",
+            saliency_score=saliency_score,
         )
 
     def _audio_candidate(self, video_id: str, window: AudioWindow) -> Candidate:
@@ -42,4 +67,3 @@ class BaselineCandidateGenerator:
                 f"from {window.start_seconds:.2f} to {end_seconds:.2f} seconds"
             ),
         )
-

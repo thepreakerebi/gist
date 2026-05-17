@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from gist.api.schemas import (
     LocalVideoCompressionRequest,
@@ -10,6 +10,7 @@ from gist.core.schemas import CompressionRequest, CompressionResponse
 from gist.media.ingestion import MediaIngestor
 from gist.media.models import IngestedVideo
 from gist.pipeline import LocalCompressionPipeline
+from gist.vision.errors import VisualScoringError
 
 router = APIRouter(prefix="/v1", tags=["compressions"])
 compressor = GistCompressor()
@@ -43,11 +44,15 @@ def create_ingestion(request: MediaIngestionRequest) -> IngestedVideo:
 def create_local_video_compression(
     request: LocalVideoCompressionRequest,
 ) -> LocalVideoCompressionResponse:
-    ingestion, compression = LocalCompressionPipeline(output_root=request.output_root).run(
-        video_path=request.video_path,
-        query=request.query,
-        preset=request.preset,
-        sample_count=request.sample_count,
-        audio_window_seconds=request.audio_window_seconds,
-    )
-    return LocalVideoCompressionResponse(ingestion=ingestion, compression=compression)
+    try:
+        ingestion, compression = LocalCompressionPipeline(output_root=request.output_root).run(
+            video_path=request.video_path,
+            query=request.query,
+            preset=request.preset,
+            sample_count=request.sample_count,
+            audio_window_seconds=request.audio_window_seconds,
+            visual_scorer=request.visual_scorer,
+        )
+        return LocalVideoCompressionResponse(ingestion=ingestion, compression=compression)
+    except VisualScoringError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc

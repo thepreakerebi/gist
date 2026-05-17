@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from gist.core.modes import VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionResponse
 from gist.media.models import IngestedVideo
@@ -18,6 +19,7 @@ class MediaIngestionRequest(BaseModel):
 class LocalVideoCompressionRequest(MediaIngestionRequest):
     query: Annotated[str, Field(min_length=1)]
     preset: CompressionPreset = CompressionPreset.BALANCED
+    visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE
 
 
 class LocalVideoCompressionResponse(BaseModel):

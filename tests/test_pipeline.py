@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from gist.core.modes import VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo, VideoMetadata
 from gist.pipeline import LocalCompressionPipeline
@@ -40,10 +41,10 @@ def test_local_pipeline_ingests_generates_candidates_and_compresses(tmp_path: Pa
         preset=CompressionPreset.BALANCED,
         sample_count=2,
         audio_window_seconds=1.0,
+        visual_scorer=VisualScoringMode.BASELINE,
     )
 
     assert ingestion.video_id == "video-1"
     assert compression.video_id == "video-1"
     assert compression.metrics.input_candidates == 3
     assert compression.metrics.selected_candidates == 3
-

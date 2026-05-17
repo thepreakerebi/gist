@@ -19,6 +19,11 @@ dev = [
   "pytest>=8.2.0",
   "ruff>=0.6.0",
 ]
+vision = [
+  "pillow>=10.0.0",
+  "torch>=2.3.0",
+  "transformers>=4.44.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -29,4 +34,3 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
-

@@ -20,6 +20,12 @@ pytest
 uvicorn gist.api.app:create_app --factory --reload
 ```
 
+Optional CLIP visual scoring dependencies:
+
+```bash
+pip install -e ".[vision]"
+```
+
 For real media extraction, install FFmpeg:
 
 ```bash
@@ -72,12 +78,13 @@ curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
     "output_root": ".gist/ingestions",
     "query": "when does the speaker mention pricing?",
     "preset": "balanced",
+    "visual_scorer": "baseline",
     "sample_count": 128,
     "audio_window_seconds": 1.0
   }'
 ```
 
-The current end-to-end path uses deterministic timestamp candidates. CLIP, CLAP, and Whisper adapters will replace this baseline candidate layer without changing the compression API contract.
+Use `"visual_scorer": "clip"` to score sampled frames with CLIP after installing the optional vision dependencies. The default `"baseline"` mode remains dependency-light and deterministic. CLAP and Whisper adapters will extend the audio side without changing the compression API contract.
 
 ## Architecture
 
@@ -100,6 +107,7 @@ raw video/audio
 - structured ingestion manifests with sampled frames and audio windows
 - local ingestion API endpoint for development workflows
 - one-call local video compression pipeline
+- optional CLIP visual frame scoring adapter
 
 ## Development Principles
 
