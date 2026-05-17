@@ -24,6 +24,15 @@ from gist.core.scoring import (
 from gist.core.token_estimation import estimate_tokens
 
 
+AUDIO_VISUAL_ANCHOR_MIN_RELEVANCE = 0.15
+AUDIO_VISUAL_ANCHOR_RELATIVE_RELEVANCE = 0.6
+AUDIO_VISUAL_ANCHOR_SIGMA_SECONDS = 8.0
+AUDIO_VISUAL_ANCHOR_MIN_SCORE = 0.25
+AUDIO_VISUAL_ANCHOR_NORMALIZED_BOOST = 1.25
+AUDIO_VISUAL_ANCHOR_RELEVANCE_BOOST = 0.1
+CROSS_MODAL_TEMPORAL_REDUNDANCY_WEIGHT = 0.15
+
+
 @dataclass(frozen=True, slots=True)
 class ScoredCandidate:
     id: str
@@ -35,6 +44,8 @@ class ScoredCandidate:
     normalized_score: float
     source_score_type: str
     aspect: str
+    audio_anchor_timestamp_seconds: float | None
+    audio_anchor_score: float
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +142,10 @@ class GistCompressor:
                     timestamp_seconds=selection.candidate.timestamp_seconds,
                     text=selection.candidate.text,
                     asset_path=selection.candidate.asset_path,
+                    audio_anchor_timestamp_seconds=(
+                        selection.candidate.audio_anchor_timestamp_seconds
+                    ),
+                    audio_anchor_score=selection.candidate.audio_anchor_score,
                     selection_rank=selection.selection_rank,
                     relevance_score=selection.candidate.relevance_score,
                     normalized_score=selection.candidate.normalized_score,
@@ -176,6 +191,20 @@ class GistCompressor:
         if best_relevance < 0.15:
             return True, "low best relevance at aggressive budget"
 
+        audio_selected = sum(
+            selection.candidate.modality == Modality.AUDIO for selection in selections
+        )
+        visual_selected = sum(
+            selection.candidate.modality == Modality.VISUAL for selection in selections
+        )
+        has_audio_anchored_visuals = any(
+            selection.candidate.modality == Modality.VISUAL
+            and selection.candidate.audio_anchor_score >= AUDIO_VISUAL_ANCHOR_MIN_SCORE
+            for selection in selections
+        )
+        if has_audio_anchored_visuals and audio_selected < 2 and visual_selected >= 2:
+            return True, "aggressive budget underrepresented source audio evidence"
+
         modalities = {selection.candidate.modality for selection in selections}
         if len(selections) > 1 and len(modalities) == 1:
             return True, "aggressive budget selected only one modality"
@@ -203,7 +232,8 @@ class GistCompressor:
                 audio.extend(
                     self._score_modality(aspect.text, request.audio_candidates, Modality.AUDIO)
                 )
-        return self._collapse_duplicate_scores(visual + audio)
+        collapsed = self._collapse_duplicate_scores(visual + audio)
+        return self._apply_audio_visual_anchors(collapsed)
 
     def _score_modality(
         self,
@@ -227,6 +257,8 @@ class GistCompressor:
                 if candidate.saliency_score is not None
                 else "lexical_overlap",
                 aspect=query,
+                audio_anchor_timestamp_seconds=None,
+                audio_anchor_score=0.0,
             )
             for candidate, raw_score, normalized_score in zip(
                 candidates,
@@ -246,6 +278,87 @@ class GistCompressor:
             if current is None or candidate.normalized_score > current.normalized_score:
                 best_by_id[candidate.id] = candidate
         return list(best_by_id.values())
+
+    def _apply_audio_visual_anchors(
+        self,
+        candidates: list[ScoredCandidate],
+    ) -> list[ScoredCandidate]:
+        audio_candidates = [
+            candidate for candidate in candidates if candidate.modality == Modality.AUDIO
+        ]
+        visual_candidates = [
+            candidate for candidate in candidates if candidate.modality == Modality.VISUAL
+        ]
+        if not audio_candidates or not visual_candidates:
+            return candidates
+
+        best_audio_relevance = max(candidate.relevance_score for candidate in audio_candidates)
+        if best_audio_relevance < AUDIO_VISUAL_ANCHOR_MIN_RELEVANCE:
+            return candidates
+
+        relevance_floor = max(
+            AUDIO_VISUAL_ANCHOR_MIN_RELEVANCE,
+            best_audio_relevance * AUDIO_VISUAL_ANCHOR_RELATIVE_RELEVANCE,
+        )
+        anchors = [
+            candidate
+            for candidate in audio_candidates
+            if candidate.relevance_score >= relevance_floor
+        ]
+        if not anchors:
+            return candidates
+
+        anchored: list[ScoredCandidate] = []
+        for candidate in candidates:
+            if candidate.modality != Modality.VISUAL:
+                anchored.append(candidate)
+                continue
+
+            anchor, anchor_score = self._nearest_audio_anchor(candidate, anchors)
+            if anchor is None or anchor_score < AUDIO_VISUAL_ANCHOR_MIN_SCORE:
+                anchored.append(candidate)
+                continue
+
+            anchored.append(
+                ScoredCandidate(
+                    id=candidate.id,
+                    modality=candidate.modality,
+                    timestamp_seconds=candidate.timestamp_seconds,
+                    text=candidate.text,
+                    asset_path=candidate.asset_path,
+                    relevance_score=(
+                        candidate.relevance_score
+                        + (AUDIO_VISUAL_ANCHOR_RELEVANCE_BOOST * anchor_score)
+                    ),
+                    normalized_score=(
+                        candidate.normalized_score
+                        + (AUDIO_VISUAL_ANCHOR_NORMALIZED_BOOST * anchor_score)
+                    ),
+                    source_score_type=candidate.source_score_type,
+                    aspect=candidate.aspect,
+                    audio_anchor_timestamp_seconds=anchor.timestamp_seconds,
+                    audio_anchor_score=anchor_score,
+                )
+            )
+        return anchored
+
+    def _nearest_audio_anchor(
+        self,
+        visual_candidate: ScoredCandidate,
+        anchors: list[ScoredCandidate],
+    ) -> tuple[ScoredCandidate | None, float]:
+        best_anchor: ScoredCandidate | None = None
+        best_score = 0.0
+        for anchor in anchors:
+            score = temporal_similarity(
+                visual_candidate.timestamp_seconds,
+                anchor.timestamp_seconds,
+                AUDIO_VISUAL_ANCHOR_SIGMA_SECONDS,
+            )
+            if score > best_score:
+                best_anchor = anchor
+                best_score = score
+        return best_anchor, best_score
 
     def _select_with_mmr(
         self,
@@ -288,7 +401,101 @@ class GistCompressor:
                 temporal_sigma_seconds=temporal_sigma_seconds,
             )
 
-        return selected
+        return self._ensure_audio_anchor_sources(
+            selections=selected,
+            candidates=candidates,
+            max_items=max_items,
+        )
+
+    def _ensure_audio_anchor_sources(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[Selection]:
+        anchored_visuals = [
+            selection
+            for selection in selections
+            if selection.candidate.modality == Modality.VISUAL
+            and selection.candidate.audio_anchor_timestamp_seconds is not None
+            and selection.candidate.audio_anchor_score >= AUDIO_VISUAL_ANCHOR_MIN_SCORE
+        ]
+        if not anchored_visuals:
+            return selections
+
+        target_audio_count = min(4, max(2, max_items // 3))
+        selected_audio_count = sum(
+            selection.candidate.modality == Modality.AUDIO for selection in selections
+        )
+        if selected_audio_count >= target_audio_count:
+            return selections
+
+        selected_ids = {selection.candidate.id for selection in selections}
+        anchor_timestamps = {
+            selection.candidate.audio_anchor_timestamp_seconds
+            for selection in anchored_visuals
+            if selection.candidate.audio_anchor_timestamp_seconds is not None
+        }
+        source_audio = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.AUDIO
+            and candidate.id not in selected_ids
+            and any(
+                abs(candidate.timestamp_seconds - timestamp) < 1e-6
+                for timestamp in anchor_timestamps
+            )
+        ]
+        source_audio.sort(
+            key=lambda candidate: (candidate.relevance_score, candidate.normalized_score),
+            reverse=True,
+        )
+
+        balanced = list(selections)
+        for candidate in source_audio:
+            if selected_audio_count >= target_audio_count:
+                break
+            if len(balanced) >= max_items and not self._drop_weakest_anchored_visual(balanced):
+                break
+            balanced.append(
+                Selection(
+                    candidate=candidate,
+                    selection_rank=0,
+                    mmr_score=candidate.normalized_score,
+                    reason=(
+                        "Included because selected visual evidence was anchored "
+                        "to this audio evidence."
+                    ),
+                )
+            )
+            selected_audio_count += 1
+
+        return self._rerank_selections(balanced)
+
+    def _drop_weakest_anchored_visual(self, selections: list[Selection]) -> bool:
+        removable = [
+            selection
+            for selection in selections
+            if selection.candidate.modality == Modality.VISUAL
+            and selection.candidate.audio_anchor_score >= AUDIO_VISUAL_ANCHOR_MIN_SCORE
+        ]
+        if not removable:
+            return False
+
+        weakest = min(removable, key=lambda selection: selection.mmr_score)
+        selections.remove(weakest)
+        return True
+
+    def _rerank_selections(self, selections: list[Selection]) -> list[Selection]:
+        return [
+            Selection(
+                candidate=selection.candidate,
+                selection_rank=index + 1,
+                mmr_score=selection.mmr_score,
+                reason=selection.reason,
+            )
+            for index, selection in enumerate(selections)
+        ]
 
     def _drop_redundant_neighbors(
         self,
@@ -335,10 +542,10 @@ class GistCompressor:
             return item.normalized_score
 
         nearest_selected_similarity = max(
-            temporal_similarity(
-                item.timestamp_seconds,
-                selected_item.timestamp_seconds,
-                temporal_sigma_seconds,
+            self._temporal_redundancy_similarity(
+                item=item,
+                selected_item=selected_item,
+                temporal_sigma_seconds=temporal_sigma_seconds,
             )
             for selected_item in selected
         )
@@ -346,24 +553,72 @@ class GistCompressor:
             (1 - relevance_weight) * nearest_selected_similarity
         )
 
+    def _temporal_redundancy_similarity(
+        self,
+        item: ScoredCandidate,
+        selected_item: ScoredCandidate,
+        temporal_sigma_seconds: float,
+    ) -> float:
+        similarity = temporal_similarity(
+            item.timestamp_seconds,
+            selected_item.timestamp_seconds,
+            temporal_sigma_seconds,
+        )
+        if item.modality == selected_item.modality:
+            return similarity
+
+        if self._is_audio_visual_anchor_pair(item, selected_item):
+            return 0.0
+
+        return similarity * CROSS_MODAL_TEMPORAL_REDUNDANCY_WEIGHT
+
+    def _is_audio_visual_anchor_pair(
+        self,
+        item: ScoredCandidate,
+        selected_item: ScoredCandidate,
+    ) -> bool:
+        if item.modality == Modality.VISUAL and selected_item.modality == Modality.AUDIO:
+            return item.audio_anchor_timestamp_seconds == selected_item.timestamp_seconds
+
+        if item.modality == Modality.AUDIO and selected_item.modality == Modality.VISUAL:
+            return selected_item.audio_anchor_timestamp_seconds == item.timestamp_seconds
+
+        return False
+
     def _selection_reason(
         self,
         item: ScoredCandidate,
         selected: list[Selection],
     ) -> str:
         if not selected:
-            return (
+            reason = (
                 f"Selected first because it had the strongest normalized "
                 f"{item.modality} relevance signal for aspect '{item.aspect}'."
             )
+            return self._with_anchor_reason(item, reason)
 
         previous = [selection.candidate for selection in selected]
         nearest_delta = min(
             abs(item.timestamp_seconds - candidate.timestamp_seconds)
             for candidate in previous
         )
-        return (
+        reason = (
             f"Selected for query relevance while preserving temporal diversity; "
             f"nearest selected evidence is {nearest_delta:.2f}s away; "
             f"matched aspect '{item.aspect}'."
+        )
+        return self._with_anchor_reason(item, reason)
+
+    def _with_anchor_reason(self, item: ScoredCandidate, reason: str) -> str:
+        if (
+            item.modality != Modality.VISUAL
+            or item.audio_anchor_timestamp_seconds is None
+            or item.audio_anchor_score < AUDIO_VISUAL_ANCHOR_MIN_SCORE
+        ):
+            return reason
+
+        return (
+            f"{reason} Boosted because it is near relevant audio evidence at "
+            f"{item.audio_anchor_timestamp_seconds:.2f}s "
+            f"(anchor score {item.audio_anchor_score:.2f})."
         )

@@ -106,6 +106,69 @@ def test_compressor_suppresses_redundant_neighboring_audio_evidence() -> None:
     assert not {"a-1", "a-2", "a-3"}.issubset(selected_ids)
 
 
+def test_compressor_boosts_visual_evidence_near_relevant_audio() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="architecture missions",
+        duration_seconds=120,
+        preset=CompressionPreset.AGGRESSIVE,
+        visual_candidates=[
+            Candidate(id="v-start", timestamp_seconds=0, text="visual frame sampled at 0 seconds"),
+            Candidate(id="v-near", timestamp_seconds=58, text="visual frame sampled at 58 seconds"),
+            Candidate(id="v-end", timestamp_seconds=118, text="visual frame sampled at 118 seconds"),
+        ],
+        audio_candidates=[
+            Candidate(
+                id="a-hit",
+                timestamp_seconds=58,
+                text="the architecture for these missions is taking shape",
+            ),
+            Candidate(id="a-end", timestamp_seconds=118, text="closing remarks"),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+    selected_by_id = {item.id: item for item in response.selected}
+
+    assert "v-near" in selected_by_id
+    assert selected_by_id["v-near"].audio_anchor_timestamp_seconds == 58
+    assert selected_by_id["v-near"].audio_anchor_score > 0.9
+    assert "near relevant audio evidence" in selected_by_id["v-near"].reason
+
+
+def test_cross_modal_anchor_pair_is_not_treated_as_redundant() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="architecture missions",
+        duration_seconds=120,
+        preset=CompressionPreset.AGGRESSIVE,
+        visual_candidates=[
+            Candidate(
+                id="v-near",
+                timestamp_seconds=58,
+                text="visual frame sampled near the architecture moment",
+            ),
+            Candidate(
+                id="v-far",
+                timestamp_seconds=110,
+                text="visual frame sampled far away",
+            ),
+        ],
+        audio_candidates=[
+            Candidate(
+                id="a-hit",
+                timestamp_seconds=58,
+                text="the architecture for these missions is taking shape",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+    selected_ids = {item.id for item in response.selected}
+
+    assert {"a-hit", "v-near"}.issubset(selected_ids)
+
+
 def test_cross_modal_selection_keeps_modality_metadata() -> None:
     request = CompressionRequest(
         video_id="demo",
@@ -218,3 +281,39 @@ def test_adaptive_budget_expands_when_aggressive_selection_has_low_relevance() -
     assert response.metrics.budget_expanded is True
     assert response.metrics.expansion_reason == "low best relevance at aggressive budget"
     assert response.metrics.selected_candidates == 12
+
+
+def test_adaptive_budget_expands_when_anchored_visuals_crowd_out_audio() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="architecture missions",
+        duration_seconds=120,
+        preset=CompressionPreset.BALANCED,
+        adaptive_budget=True,
+        visual_candidates=[
+            Candidate(
+                id=f"v-{index}",
+                timestamp_seconds=float(50 + index),
+                text=f"architecture missions visual frame sampled at {50 + index} seconds",
+            )
+            for index in range(8)
+        ],
+        audio_candidates=[
+            Candidate(
+                id="a-hit",
+                timestamp_seconds=54,
+                text="the architecture for these missions is taking shape",
+            ),
+            Candidate(id="a-context", timestamp_seconds=90, text="mission context continues"),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.preset == CompressionPreset.BALANCED
+    assert response.metrics.budget_expanded is True
+    assert (
+        response.metrics.expansion_reason
+        == "aggressive budget underrepresented source audio evidence"
+    )
+    assert response.metrics.audio_selected >= 2

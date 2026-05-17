@@ -30,6 +30,8 @@ class SelectedCandidate(BaseModel):
     timestamp_seconds: float
     text: str
     asset_path: Path | None = None
+    audio_anchor_timestamp_seconds: float | None = None
+    audio_anchor_score: float = 0.0
     selection_rank: int
     relevance_score: float
     normalized_score: float
