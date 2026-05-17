@@ -159,6 +159,8 @@ def _variants_from_settings(settings: EvalSettings | None) -> list[EvalVariant] 
         EvalVariant(
             name="gist_configured",
             preset=settings.preset,
+            visual_scorer=settings.visual_scorer,
+            audio_scorer=settings.audio_scorer,
             decompose_query=settings.decompose_query,
             adaptive_budget=settings.adaptive_budget,
             token_estimator=settings.token_estimator,

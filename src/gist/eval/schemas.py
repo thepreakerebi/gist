@@ -25,6 +25,8 @@ class EvalExample(BaseModel):
 
 class EvalSettings(BaseModel):
     preset: CompressionPreset = CompressionPreset.BALANCED
+    visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE
+    audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE
     decompose_query: bool = False
     adaptive_budget: bool = False
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC

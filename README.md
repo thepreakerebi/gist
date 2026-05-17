@@ -159,7 +159,7 @@ By default, `gist-eval` compares several variants:
 - `gist_adaptive`
 - `gist_decomposed_adaptive`
 
-Use `--single-config` with `--preset`, `--decompose-query`, and `--adaptive-budget` to run only one configured variant.
+Use `--single-config` with `--preset`, `--visual-scorer`, `--audio-scorer`, `--decompose-query`, and `--adaptive-budget` to run only one configured variant.
 
 The dataset format is one JSON object per line with:
 

@@ -77,9 +77,15 @@ def test_eval_cli_supports_single_config_mode(tmp_path) -> None:
             "--single-config",
             "--preset",
             "aggressive",
+            "--visual-scorer",
+            "baseline",
+            "--audio-scorer",
+            "baseline",
         ]
     )
 
     payload = json.loads(output.read_text())
     assert len(payload["variants"]) == 1
     assert payload["variants"][0]["name"] == "gist_configured"
+    assert payload["variants"][0]["visual_scorer"] == "baseline"
+    assert payload["variants"][0]["audio_scorer"] == "baseline"

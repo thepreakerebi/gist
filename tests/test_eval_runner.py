@@ -1,3 +1,4 @@
+from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate
 from gist.eval.baselines import uniform_baseline
@@ -51,6 +52,28 @@ def test_eval_runner_builds_report_summary() -> None:
     ].model_dump()
     assert report.results[0].baselines[0].name == "uniform"
     assert report.results[0].variants[0].name == "gist_configured"
+
+
+def test_eval_runner_passes_configured_scorers_to_single_variant() -> None:
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="pricing",
+        duration_seconds=60,
+        visual_candidates=[Candidate(id="v-1", timestamp_seconds=10, text="pricing slide")],
+    )
+
+    report = EvalRunner().run(
+        [example],
+        EvalSettings(
+            visual_scorer=VisualScoringMode.CLIP,
+            audio_scorer=AudioScoringMode.WHISPER,
+        ),
+    )
+
+    variant = report.variants[0]
+    assert variant.visual_scorer == VisualScoringMode.CLIP
+    assert variant.audio_scorer == AudioScoringMode.WHISPER
 
 
 def test_eval_runner_runs_default_variant_sweep() -> None:

@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 
+from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.token_estimation import TokenEstimatorProfile
 from gist.eval.dataset import load_jsonl_dataset
@@ -18,6 +19,16 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--html-output", type=Path)
     parser.add_argument("--preset", choices=[preset.value for preset in CompressionPreset], default="balanced")
     parser.add_argument(
+        "--visual-scorer",
+        choices=[scorer.value for scorer in VisualScoringMode],
+        default=VisualScoringMode.BASELINE.value,
+    )
+    parser.add_argument(
+        "--audio-scorer",
+        choices=[scorer.value for scorer in AudioScoringMode],
+        default=AudioScoringMode.BASELINE.value,
+    )
+    parser.add_argument(
         "--token-estimator",
         choices=[profile.value for profile in TokenEstimatorProfile],
         default=TokenEstimatorProfile.GENERIC.value,
@@ -33,11 +44,13 @@ def run(argv: list[str] | None = None) -> None:
 
     examples = load_jsonl_dataset(args.dataset)
     settings = EvalSettings(
-            preset=CompressionPreset(args.preset),
-            decompose_query=args.decompose_query,
-            adaptive_budget=args.adaptive_budget,
-            token_estimator=TokenEstimatorProfile(args.token_estimator),
-        )
+        preset=CompressionPreset(args.preset),
+        visual_scorer=VisualScoringMode(args.visual_scorer),
+        audio_scorer=AudioScoringMode(args.audio_scorer),
+        decompose_query=args.decompose_query,
+        adaptive_budget=args.adaptive_budget,
+        token_estimator=TokenEstimatorProfile(args.token_estimator),
+    )
     report = EvalRunner(output_root=args.output_root).run(
         examples,
         settings=settings if args.single_config else None,
