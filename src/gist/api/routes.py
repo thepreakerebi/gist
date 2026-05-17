@@ -54,6 +54,7 @@ def create_local_video_compression(
             audio_window_seconds=request.audio_window_seconds,
             visual_scorer=request.visual_scorer,
             audio_scorer=request.audio_scorer,
+            adaptive_budget=request.adaptive_budget,
             decompose_query=request.decompose_query,
         )
         return LocalVideoCompressionResponse(ingestion=ingestion, compression=compression)

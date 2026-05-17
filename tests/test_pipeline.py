@@ -58,6 +58,7 @@ def test_local_pipeline_ingests_generates_candidates_and_compresses(tmp_path: Pa
         audio_window_seconds=1.0,
         visual_scorer=VisualScoringMode.BASELINE,
         audio_scorer=AudioScoringMode.BASELINE,
+        adaptive_budget=False,
         decompose_query=False,
     )
 
@@ -85,6 +86,7 @@ def test_local_pipeline_reuses_disk_cache_on_repeated_runs(tmp_path: Path) -> No
             audio_window_seconds=1.0,
             visual_scorer=VisualScoringMode.BASELINE,
             audio_scorer=AudioScoringMode.BASELINE,
+            adaptive_budget=False,
             decompose_query=False,
         )
 

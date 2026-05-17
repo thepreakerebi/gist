@@ -92,6 +92,7 @@ curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
     "preset": "balanced",
     "visual_scorer": "baseline",
     "audio_scorer": "baseline",
+    "adaptive_budget": false,
     "decompose_query": false,
     "sample_count": 128,
     "audio_window_seconds": 1.0
@@ -105,6 +106,8 @@ Use `"audio_scorer": "whisper"` to transcribe extracted audio windows with Faste
 Use `"audio_scorer": "clap"` to score extracted audio windows against sound-event queries after installing the optional sound dependencies. This is intended for non-speech audio such as applause, alarms, engines, music, impact sounds, or environmental events.
 
 Use `"decompose_query": true` to split compound questions into independently scoreable aspects before compression. The current decomposer is deterministic and rule-based; an LLM decomposer can replace it later without changing the response shape.
+
+Use `"adaptive_budget": true` to start with the aggressive preset and automatically expand to a larger budget when the aggressive evidence looks weak or one-sided.
 
 ## Caching
 
@@ -126,6 +129,7 @@ Compression responses include evidence-level metadata for debugging and evaluati
 - `source_score_type`: `lexical_overlap` or `model_saliency`
 - `reason`: short explanation for why the evidence item was selected
 - `query_aspects`: decomposed query aspects used for scoring when enabled
+- `budget_mode`, `budget_preset_used`, and `budget_expanded`: adaptive-budget routing metadata
 
 ## Architecture
 
@@ -154,6 +158,7 @@ raw video/audio
 - disk-backed ingestion and candidate caching
 - explainable selected-evidence metadata
 - rule-based query decomposition for compound questions
+- adaptive budget routing for difficult queries
 
 ## Development Principles
 

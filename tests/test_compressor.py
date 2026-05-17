@@ -30,6 +30,9 @@ def test_compressor_selects_query_relevant_audio_and_visual_candidates() -> None
     assert response.metrics.audio_selected == 2
     assert response.metrics.dropped_candidates == 0
     assert response.metrics.estimated_candidate_reduction_percent == 0
+    assert response.metrics.budget_mode == "fixed"
+    assert response.metrics.budget_preset_used == CompressionPreset.AGGRESSIVE
+    assert response.metrics.budget_expanded is False
     assert all(item.reason for item in response.selected)
     assert {item.source_score_type for item in response.selected} == {"lexical_overlap"}
 
@@ -116,3 +119,57 @@ def test_decomposed_query_reports_query_aspects_and_reasons() -> None:
         "what does the speaker say",
     ]
     assert all("aspect" in item.reason for item in response.selected)
+
+
+def test_adaptive_budget_uses_aggressive_preset_when_evidence_is_good() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="pricing",
+        duration_seconds=120,
+        preset=CompressionPreset.BALANCED,
+        adaptive_budget=True,
+        visual_candidates=[
+            Candidate(id=f"v-{index}", timestamp_seconds=float(index), text="pricing slide")
+            for index in range(10)
+        ],
+        audio_candidates=[
+            Candidate(
+                id=f"a-{index}",
+                timestamp_seconds=float(index + 20),
+                text="speaker explains pricing",
+            )
+            for index in range(10)
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.preset == CompressionPreset.AGGRESSIVE
+    assert response.metrics.budget_mode == "adaptive"
+    assert response.metrics.budget_expanded is False
+    assert response.metrics.selected_candidates == 6
+
+
+def test_adaptive_budget_expands_when_aggressive_selection_has_low_relevance() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="pricing",
+        duration_seconds=120,
+        preset=CompressionPreset.BALANCED,
+        adaptive_budget=True,
+        visual_candidates=[
+            Candidate(id=f"v-{index}", timestamp_seconds=float(index), text="unrelated scene")
+            for index in range(10)
+        ],
+        audio_candidates=[
+            Candidate(id=f"a-{index}", timestamp_seconds=float(index + 20), text="ambient noise")
+            for index in range(10)
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.preset == CompressionPreset.BALANCED
+    assert response.metrics.budget_expanded is True
+    assert response.metrics.expansion_reason == "low best relevance at aggressive budget"
+    assert response.metrics.selected_candidates == 12

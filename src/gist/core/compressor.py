@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 
-from gist.core.presets import PRESETS
 from gist.core.decomposition import (
     QueryAspect,
     QueryAspectModality,
     RuleBasedQueryDecomposer,
 )
+from gist.core.presets import PRESETS, CompressionPreset
 from gist.core.schemas import (
     Candidate,
     CompressionMetrics,
@@ -42,16 +42,63 @@ class GistCompressor:
         self.query_decomposer = RuleBasedQueryDecomposer()
 
     def compress(self, request: CompressionRequest) -> CompressionResponse:
-        config = PRESETS[request.preset]
         query_aspects = self._query_aspects_for(request)
         scored = self._score_candidates(request, query_aspects)
-        selections = self._select_with_mmr(
+        preset, selections, expansion_reason = self._select_for_budget(request, scored)
+
+        return self._build_response(
+            request=request,
+            preset=preset,
+            query_aspects=query_aspects,
+            selections=selections,
+            budget_mode="adaptive" if request.adaptive_budget else "fixed",
+            budget_expanded=expansion_reason is not None,
+            expansion_reason=expansion_reason,
+        )
+
+    def _select_for_budget(
+        self,
+        request: CompressionRequest,
+        scored: list[ScoredCandidate],
+    ) -> tuple[CompressionPreset, list[Selection], str | None]:
+        if not request.adaptive_budget:
+            return request.preset, self._select_with_preset(request.preset, scored), None
+
+        aggressive = self._select_with_preset(CompressionPreset.AGGRESSIVE, scored)
+        should_expand, reason = self._should_expand_budget(aggressive)
+        if not should_expand:
+            return CompressionPreset.AGGRESSIVE, aggressive, None
+
+        expanded_preset = (
+            CompressionPreset.CONSERVATIVE
+            if request.preset == CompressionPreset.CONSERVATIVE
+            else CompressionPreset.BALANCED
+        )
+        return expanded_preset, self._select_with_preset(expanded_preset, scored), reason
+
+    def _select_with_preset(
+        self,
+        preset: CompressionPreset,
+        scored: list[ScoredCandidate],
+    ) -> list[Selection]:
+        config = PRESETS[preset]
+        return self._select_with_mmr(
             candidates=scored,
             max_items=config.max_items,
             relevance_weight=config.relevance_weight,
             temporal_sigma_seconds=config.temporal_sigma_seconds,
         )
 
+    def _build_response(
+        self,
+        request: CompressionRequest,
+        preset: CompressionPreset,
+        query_aspects: list[QueryAspect],
+        selections: list[Selection],
+        budget_mode: str,
+        budget_expanded: bool,
+        expansion_reason: str | None,
+    ) -> CompressionResponse:
         input_count = len(request.visual_candidates) + len(request.audio_candidates)
         selected_count = len(selections)
         reduction_ratio = 1.0 if input_count == 0 else selected_count / input_count
@@ -61,7 +108,7 @@ class GistCompressor:
         return CompressionResponse(
             video_id=request.video_id,
             query=request.query,
-            preset=request.preset,
+            preset=preset,
             query_aspects=query_aspects,
             selected=[
                 SelectedCandidate(
@@ -93,8 +140,26 @@ class GistCompressor:
                 estimated_candidate_reduction_ratio=reduction_ratio,
                 estimated_candidate_reduction_percent=reduction_percent,
                 dropped_candidates=dropped_count,
+                budget_mode=budget_mode,
+                budget_preset_used=preset,
+                budget_expanded=budget_expanded,
+                expansion_reason=expansion_reason,
             ),
         )
+
+    def _should_expand_budget(self, selections: list[Selection]) -> tuple[bool, str | None]:
+        if not selections:
+            return True, "no evidence selected at aggressive budget"
+
+        best_relevance = max(selection.candidate.relevance_score for selection in selections)
+        if best_relevance < 0.15:
+            return True, "low best relevance at aggressive budget"
+
+        modalities = {selection.candidate.modality for selection in selections}
+        if len(selections) > 1 and len(modalities) == 1:
+            return True, "aggressive budget selected only one modality"
+
+        return False, None
 
     def _query_aspects_for(self, request: CompressionRequest) -> list[QueryAspect]:
         if request.decompose_query:

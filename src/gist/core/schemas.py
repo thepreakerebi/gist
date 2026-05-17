@@ -39,6 +39,7 @@ class CompressionRequest(BaseModel):
     query: Annotated[str, Field(min_length=1)]
     duration_seconds: Annotated[float, Field(gt=0)]
     preset: CompressionPreset = CompressionPreset.BALANCED
+    adaptive_budget: bool = False
     decompose_query: bool = False
     visual_candidates: list[Candidate] = Field(default_factory=list)
     audio_candidates: list[Candidate] = Field(default_factory=list)
@@ -60,6 +61,10 @@ class CompressionMetrics(BaseModel):
     estimated_candidate_reduction_ratio: float
     estimated_candidate_reduction_percent: float
     dropped_candidates: int
+    budget_mode: str = "fixed"
+    budget_preset_used: CompressionPreset
+    budget_expanded: bool = False
+    expansion_reason: str | None = None
 
 
 class CompressionResponse(BaseModel):
