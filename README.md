@@ -65,6 +65,7 @@ raw video/audio
 - compression presets and response metrics
 - adapter interfaces for future model integrations
 - FFmpeg-backed media ingestion utilities
+- structured ingestion manifests with sampled frames and audio windows
 
 ## Development Principles
 

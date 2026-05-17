@@ -23,3 +23,10 @@ class AudioWindow(BaseModel):
     duration_seconds: float = Field(gt=0)
     path: Path
 
+
+class IngestedVideo(BaseModel):
+    video_id: str = Field(min_length=1)
+    source_path: Path
+    metadata: VideoMetadata
+    frames: list[ExtractedFrame]
+    audio_windows: list[AudioWindow]
