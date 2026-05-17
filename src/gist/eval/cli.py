@@ -12,6 +12,7 @@ def run(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Evaluate Gist compression on a JSONL dataset.")
     parser.add_argument("--dataset", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--output-root", type=Path, default=Path(".gist/eval"))
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--preset", choices=[preset.value for preset in CompressionPreset], default="balanced")
     parser.add_argument("--decompose-query", action="store_true")
@@ -29,7 +30,7 @@ def run(argv: list[str] | None = None) -> None:
             decompose_query=args.decompose_query,
             adaptive_budget=args.adaptive_budget,
         )
-    report = EvalRunner().run(
+    report = EvalRunner(output_root=args.output_root).run(
         examples,
         settings=settings if args.single_config else None,
     )

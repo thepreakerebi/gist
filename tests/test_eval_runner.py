@@ -66,6 +66,54 @@ def test_eval_runner_runs_default_variant_sweep() -> None:
     assert len(report.results[0].variants) == 5
 
 
+def test_eval_runner_supports_real_video_examples(tmp_path) -> None:
+    video_path = tmp_path / "video.mp4"
+    import subprocess
+
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=160x120:rate=10:duration=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=1000:duration=1",
+            "-shortest",
+            "-pix_fmt",
+            "yuv420p",
+            str(video_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    example = EvalExample(
+        id="video-case",
+        video_id="video-1",
+        video_path=video_path,
+        query="audio",
+        duration_seconds=1,
+        relevant_timestamps=[0],
+        sample_count=2,
+        audio_window_seconds=0.5,
+    )
+
+    report = EvalRunner(output_root=tmp_path / "eval").run(
+        [example],
+        EvalSettings(preset=CompressionPreset.AGGRESSIVE),
+    )
+
+    assert report.results[0].variants[0].response.metrics.input_candidates == 4
+    assert report.summary.variants["gist_configured"].avg_timestamp_hit_rate == 1
+
+
 def test_render_markdown_report_includes_summary() -> None:
     example = EvalExample(
         id="case-1",

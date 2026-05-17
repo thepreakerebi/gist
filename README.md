@@ -139,6 +139,7 @@ Run the lightweight JSONL evaluation harness:
 gist-eval \
   --dataset data/eval/demo.jsonl \
   --output reports/eval.json \
+  --output-root .gist/eval \
   --markdown-output reports/eval.md \
   --preset aggressive
 ```
@@ -163,6 +164,14 @@ The dataset format is one JSON object per line with:
 - `timestamp_tolerance_seconds`
 - `visual_candidates`
 - `audio_candidates`
+
+For real-video evaluation, provide `video_path` instead of prebuilt candidates:
+
+```json
+{"id":"case-1","video_id":"demo","video_path":"/absolute/path/video.mp4","query":"when does applause happen","duration_seconds":120,"relevant_timestamps":[42],"sample_count":128,"audio_window_seconds":1.0}
+```
+
+Real-video examples use the local video pipeline, so `--output-root` stores extracted frames, audio windows, and reusable cache artifacts.
 
 The report compares Gist variants against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
 
@@ -195,6 +204,7 @@ raw video/audio
 - rule-based query decomposition for compound questions
 - adaptive budget routing for difficult queries
 - JSONL evaluation harness with multi-variant comparison
+- real-video evaluation through the local ingestion pipeline
 
 ## Development Principles
 

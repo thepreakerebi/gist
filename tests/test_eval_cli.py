@@ -29,6 +29,8 @@ def test_eval_cli_writes_json_and_markdown_reports(tmp_path) -> None:
             str(dataset),
             "--output",
             str(output),
+            "--output-root",
+            str(tmp_path / "eval-cache"),
             "--markdown-output",
             str(markdown),
             "--preset",

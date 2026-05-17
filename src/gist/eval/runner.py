@@ -1,3 +1,4 @@
+from pathlib import Path
 import time
 
 from gist.core.compressor import GistCompressor
@@ -15,6 +16,7 @@ from gist.eval.schemas import (
     EvalVariantSummary,
     GistVariantResult,
 )
+from gist.pipeline import LocalCompressionPipeline
 
 
 DEFAULT_VARIANTS = [
@@ -32,8 +34,13 @@ DEFAULT_VARIANTS = [
 
 
 class EvalRunner:
-    def __init__(self, compressor: GistCompressor | None = None) -> None:
+    def __init__(
+        self,
+        compressor: GistCompressor | None = None,
+        output_root: Path = Path(".gist/eval"),
+    ) -> None:
         self.compressor = compressor or GistCompressor()
+        self.output_root = output_root
 
     def run(
         self,
@@ -66,18 +73,33 @@ class EvalRunner:
 
     def _run_variant(self, example: EvalExample, variant: EvalVariant) -> GistVariantResult:
         started = time.perf_counter()
-        gist = self.compressor.compress(
-            CompressionRequest(
-                video_id=example.video_id,
+        if example.video_path is not None:
+            _ingestion, gist = LocalCompressionPipeline(
+                output_root=self.output_root / example.id
+            ).run(
+                video_path=example.video_path,
                 query=example.query,
-                duration_seconds=example.duration_seconds,
                 preset=variant.preset,
+                sample_count=example.sample_count,
+                audio_window_seconds=example.audio_window_seconds,
+                visual_scorer=variant.visual_scorer,
+                audio_scorer=variant.audio_scorer,
                 adaptive_budget=variant.adaptive_budget,
                 decompose_query=variant.decompose_query,
-                visual_candidates=example.visual_candidates,
-                audio_candidates=example.audio_candidates,
             )
-        )
+        else:
+            gist = self.compressor.compress(
+                CompressionRequest(
+                    video_id=example.video_id,
+                    query=example.query,
+                    duration_seconds=example.duration_seconds,
+                    preset=variant.preset,
+                    adaptive_budget=variant.adaptive_budget,
+                    decompose_query=variant.decompose_query,
+                    visual_candidates=example.visual_candidates,
+                    audio_candidates=example.audio_candidates,
+                )
+            )
         latency_ms = (time.perf_counter() - started) * 1000
 
         return GistVariantResult(

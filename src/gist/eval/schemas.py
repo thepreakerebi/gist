@@ -3,6 +3,7 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate, CompressionResponse, Modality, SelectedCandidate
 
@@ -12,6 +13,9 @@ class EvalExample(BaseModel):
     video_id: Annotated[str, Field(min_length=1)]
     query: Annotated[str, Field(min_length=1)]
     duration_seconds: Annotated[float, Field(gt=0)]
+    video_path: Path | None = None
+    sample_count: Annotated[int, Field(gt=0, le=512)] = 128
+    audio_window_seconds: Annotated[float, Field(gt=0, le=30)] = 1.0
     relevant_timestamps: list[float] = Field(default_factory=list)
     timestamp_tolerance_seconds: Annotated[float, Field(gt=0)] = 5.0
     visual_candidates: list[Candidate] = Field(default_factory=list)
@@ -27,6 +31,8 @@ class EvalSettings(BaseModel):
 class EvalVariant(BaseModel):
     name: Annotated[str, Field(min_length=1)]
     preset: CompressionPreset = CompressionPreset.BALANCED
+    visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE
+    audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE
     decompose_query: bool = False
     adaptive_budget: bool = False
 
