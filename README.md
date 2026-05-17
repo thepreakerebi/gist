@@ -231,6 +231,7 @@ raw video/audio
 - proxy token-savings estimates for compression and evaluation reports
 - gated slow integration tests for CLIP, Whisper, and CLAP adapters
 - HTML evidence reports for evaluation output
+- provider-neutral downstream LLM gateway interface
 
 ## Development Principles
 
