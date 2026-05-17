@@ -47,6 +47,21 @@ curl -X POST http://127.0.0.1:8000/v1/compressions \
   }'
 ```
 
+## Ingest a Local Video
+
+```bash
+curl -X POST http://127.0.0.1:8000/v1/ingestions \
+  -H "content-type: application/json" \
+  -d '{
+    "video_path": "/absolute/path/to/video.mp4",
+    "output_root": ".gist/ingestions",
+    "sample_count": 128,
+    "audio_window_seconds": 1.0
+  }'
+```
+
+This endpoint is intended for local development and controlled backend usage. Public deployments should use upload/object-storage based ingestion instead of accepting arbitrary filesystem paths.
+
 ## Architecture
 
 ```text
@@ -66,6 +81,7 @@ raw video/audio
 - adapter interfaces for future model integrations
 - FFmpeg-backed media ingestion utilities
 - structured ingestion manifests with sampled frames and audio windows
+- local ingestion API endpoint for development workflows
 
 ## Development Principles
 
