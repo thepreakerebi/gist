@@ -25,8 +25,12 @@ class SelectedCandidate(BaseModel):
     modality: Modality
     timestamp_seconds: float
     text: str
+    selection_rank: int
     relevance_score: float
     normalized_score: float
+    mmr_score: float
+    source_score_type: str
+    reason: str
 
 
 class CompressionRequest(BaseModel):
@@ -52,6 +56,8 @@ class CompressionMetrics(BaseModel):
     visual_selected: int
     audio_selected: int
     estimated_candidate_reduction_ratio: float
+    estimated_candidate_reduction_percent: float
+    dropped_candidates: int
 
 
 class CompressionResponse(BaseModel):
@@ -60,4 +66,3 @@ class CompressionResponse(BaseModel):
     preset: CompressionPreset
     selected: list[SelectedCandidate]
     metrics: CompressionMetrics
-

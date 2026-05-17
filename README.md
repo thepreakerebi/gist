@@ -112,6 +112,17 @@ Local video compression writes reusable JSON cache artifacts under `output_root/
 
 This prevents repeated FFmpeg extraction, CLIP scoring, and Whisper transcription for identical local compression requests.
 
+## Explainability
+
+Compression responses include evidence-level metadata for debugging and evaluation:
+
+- `selection_rank`: order in which MMR selected the item
+- `relevance_score`: raw query relevance score
+- `normalized_score`: within-modality z-score used for fair visual/audio arbitration
+- `mmr_score`: final relevance-diversity score at selection time
+- `source_score_type`: `lexical_overlap` or `model_saliency`
+- `reason`: short explanation for why the evidence item was selected
+
 ## Architecture
 
 ```text
@@ -137,6 +148,7 @@ raw video/audio
 - optional Whisper audio transcription adapter
 - optional CLAP sound-event scoring adapter
 - disk-backed ingestion and candidate caching
+- explainable selected-evidence metadata
 
 ## Development Principles
 

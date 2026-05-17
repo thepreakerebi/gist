@@ -20,13 +20,22 @@ class ScoredCandidate:
     text: str
     relevance_score: float
     normalized_score: float
+    source_score_type: str
+
+
+@dataclass(frozen=True, slots=True)
+class Selection:
+    candidate: ScoredCandidate
+    selection_rank: int
+    mmr_score: float
+    reason: str
 
 
 class GistCompressor:
     def compress(self, request: CompressionRequest) -> CompressionResponse:
         config = PRESETS[request.preset]
         scored = self._score_candidates(request)
-        selected = self._select_with_mmr(
+        selections = self._select_with_mmr(
             candidates=scored,
             max_items=config.max_items,
             relevance_weight=config.relevance_weight,
@@ -34,8 +43,10 @@ class GistCompressor:
         )
 
         input_count = len(request.visual_candidates) + len(request.audio_candidates)
-        selected_count = len(selected)
+        selected_count = len(selections)
         reduction_ratio = 1.0 if input_count == 0 else selected_count / input_count
+        reduction_percent = (1.0 - reduction_ratio) * 100
+        dropped_count = max(input_count - selected_count, 0)
 
         return CompressionResponse(
             video_id=request.video_id,
@@ -43,21 +54,34 @@ class GistCompressor:
             preset=request.preset,
             selected=[
                 SelectedCandidate(
-                    id=item.id,
-                    modality=item.modality,
-                    timestamp_seconds=item.timestamp_seconds,
-                    text=item.text,
-                    relevance_score=item.relevance_score,
-                    normalized_score=item.normalized_score,
+                    id=selection.candidate.id,
+                    modality=selection.candidate.modality,
+                    timestamp_seconds=selection.candidate.timestamp_seconds,
+                    text=selection.candidate.text,
+                    selection_rank=selection.selection_rank,
+                    relevance_score=selection.candidate.relevance_score,
+                    normalized_score=selection.candidate.normalized_score,
+                    mmr_score=selection.mmr_score,
+                    source_score_type=selection.candidate.source_score_type,
+                    reason=selection.reason,
                 )
-                for item in selected
+                for selection in sorted(
+                    selections,
+                    key=lambda item: item.candidate.timestamp_seconds,
+                )
             ],
             metrics=CompressionMetrics(
                 input_candidates=input_count,
                 selected_candidates=selected_count,
-                visual_selected=sum(item.modality == Modality.VISUAL for item in selected),
-                audio_selected=sum(item.modality == Modality.AUDIO for item in selected),
+                visual_selected=sum(
+                    item.candidate.modality == Modality.VISUAL for item in selections
+                ),
+                audio_selected=sum(
+                    item.candidate.modality == Modality.AUDIO for item in selections
+                ),
                 estimated_candidate_reduction_ratio=reduction_ratio,
+                estimated_candidate_reduction_percent=reduction_percent,
+                dropped_candidates=dropped_count,
             ),
         )
 
@@ -83,6 +107,9 @@ class GistCompressor:
                 text=candidate.text,
                 relevance_score=raw_score,
                 normalized_score=normalized_score,
+                source_score_type="model_saliency"
+                if candidate.saliency_score is not None
+                else "lexical_overlap",
             )
             for candidate, raw_score, normalized_score in zip(
                 candidates,
@@ -98,8 +125,8 @@ class GistCompressor:
         max_items: int,
         relevance_weight: float,
         temporal_sigma_seconds: float,
-    ) -> list[ScoredCandidate]:
-        selected: list[ScoredCandidate] = []
+    ) -> list[Selection]:
+        selected: list[Selection] = []
         remaining = sorted(candidates, key=lambda item: (item.timestamp_seconds, item.id))
 
         while remaining and len(selected) < max_items:
@@ -107,15 +134,28 @@ class GistCompressor:
                 remaining,
                 key=lambda item: self._mmr_score(
                     item=item,
-                    selected=selected,
+                    selected=[selection.candidate for selection in selected],
                     relevance_weight=relevance_weight,
                     temporal_sigma_seconds=temporal_sigma_seconds,
                 ),
             )
-            selected.append(best)
+            mmr_score = self._mmr_score(
+                item=best,
+                selected=[selection.candidate for selection in selected],
+                relevance_weight=relevance_weight,
+                temporal_sigma_seconds=temporal_sigma_seconds,
+            )
+            selected.append(
+                Selection(
+                    candidate=best,
+                    selection_rank=len(selected) + 1,
+                    mmr_score=mmr_score,
+                    reason=self._selection_reason(best, selected),
+                )
+            )
             remaining.remove(best)
 
-        return sorted(selected, key=lambda item: item.timestamp_seconds)
+        return selected
 
     def _mmr_score(
         self,
@@ -139,3 +179,23 @@ class GistCompressor:
             (1 - relevance_weight) * nearest_selected_similarity
         )
 
+    def _selection_reason(
+        self,
+        item: ScoredCandidate,
+        selected: list[Selection],
+    ) -> str:
+        if not selected:
+            return (
+                f"Selected first because it had the strongest normalized "
+                f"{item.modality} relevance signal."
+            )
+
+        previous = [selection.candidate for selection in selected]
+        nearest_delta = min(
+            abs(item.timestamp_seconds - candidate.timestamp_seconds)
+            for candidate in previous
+        )
+        return (
+            f"Selected for query relevance while preserving temporal diversity; "
+            f"nearest selected evidence is {nearest_delta:.2f}s away."
+        )

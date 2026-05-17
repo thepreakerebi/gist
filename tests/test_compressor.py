@@ -28,6 +28,10 @@ def test_compressor_selects_query_relevant_audio_and_visual_candidates() -> None
     assert response.metrics.selected_candidates == 4
     assert response.metrics.visual_selected == 2
     assert response.metrics.audio_selected == 2
+    assert response.metrics.dropped_candidates == 0
+    assert response.metrics.estimated_candidate_reduction_percent == 0
+    assert all(item.reason for item in response.selected)
+    assert {item.source_score_type for item in response.selected} == {"lexical_overlap"}
 
 
 def test_aggressive_preset_caps_selected_candidates() -> None:
@@ -50,6 +54,8 @@ def test_aggressive_preset_caps_selected_candidates() -> None:
 
     assert response.metrics.selected_candidates == 6
     assert response.metrics.estimated_candidate_reduction_ratio == 0.3
+    assert response.metrics.estimated_candidate_reduction_percent == 70
+    assert response.metrics.dropped_candidates == 14
 
 
 def test_cross_modal_selection_keeps_modality_metadata() -> None:
@@ -66,3 +72,24 @@ def test_cross_modal_selection_keeps_modality_metadata() -> None:
 
     assert modalities == {Modality.VISUAL, Modality.AUDIO}
 
+
+def test_model_saliency_candidates_report_source_score_type() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="applause",
+        duration_seconds=10,
+        audio_candidates=[
+            Candidate(
+                id="a-1",
+                timestamp_seconds=1,
+                text="audio event",
+                saliency_score=0.82,
+            )
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.selected[0].source_score_type == "model_saliency"
+    assert response.selected[0].selection_rank == 1
+    assert response.selected[0].mmr_score == 0
