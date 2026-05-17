@@ -38,6 +38,12 @@ Optional CLAP sound-event scoring dependencies:
 pip install -e ".[sound]"
 ```
 
+Run slow model adapter tests only after installing optional dependencies:
+
+```bash
+GIST_RUN_SLOW_MODEL_TESTS=1 python -m pytest -m slow
+```
+
 For real media extraction, install FFmpeg:
 
 ```bash
@@ -215,6 +221,7 @@ raw video/audio
 - JSONL evaluation harness with multi-variant comparison
 - real-video evaluation through the local ingestion pipeline
 - proxy token-savings estimates for compression and evaluation reports
+- gated slow integration tests for CLIP, Whisper, and CLAP adapters
 
 ## Development Principles
 
