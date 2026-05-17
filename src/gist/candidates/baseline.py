@@ -97,13 +97,14 @@ class BaselineCandidateGenerator:
         saliency_score: float | None,
     ) -> Candidate:
         end_seconds = window.start_seconds + window.duration_seconds
+        midpoint_seconds = window.start_seconds + (window.duration_seconds / 2)
         text = transcript or (
             "audio window "
             f"from {window.start_seconds:.2f} to {end_seconds:.2f} seconds"
         )
         return Candidate(
             id=f"{video_id}:audio:{window.index}",
-            timestamp_seconds=window.start_seconds,
+            timestamp_seconds=midpoint_seconds,
             text=text,
             saliency_score=saliency_score,
         )

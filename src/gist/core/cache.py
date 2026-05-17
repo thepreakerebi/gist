@@ -7,6 +7,9 @@ from gist.core.schemas import Candidate
 from gist.media.models import IngestedVideo
 
 
+CANDIDATE_CACHE_VERSION = "v2"
+
+
 @dataclass(slots=True)
 class CandidateCache:
     _visual: dict[str, list[Candidate]] = field(default_factory=dict)
@@ -75,7 +78,7 @@ def candidate_cache_key(
     audio_scorer: AudioScoringMode,
 ) -> str:
     fingerprint = (
-        f"{ingestion.video_id}|query={query.strip()}|"
+        f"{CANDIDATE_CACHE_VERSION}|{ingestion.video_id}|query={query.strip()}|"
         f"visual={visual_scorer}|audio={audio_scorer}"
     )
     return _sha256_short(fingerprint)
