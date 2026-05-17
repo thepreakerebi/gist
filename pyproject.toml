@@ -27,6 +27,11 @@ vision = [
 audio = [
   "faster-whisper>=1.1.0",
 ]
+sound = [
+  "numpy>=1.26.0",
+  "torch>=2.3.0",
+  "transformers>=4.44.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -14,6 +14,11 @@ class FakeAudioTranscriber:
         return {window.path: "speaker explains pricing" for window in windows}
 
 
+class FakeAudioScorer:
+    def score_windows(self, windows: list[AudioWindow], query: str) -> dict[Path, float]:
+        return {window.path: 0.8 for window in windows}
+
+
 def test_baseline_candidate_generator_maps_manifest_to_candidates() -> None:
     manifest = IngestedVideo(
         video_id="video-1",
@@ -81,3 +86,27 @@ def test_baseline_candidate_generator_can_attach_audio_transcripts() -> None:
     )
 
     assert candidates.audio[0].text == "speaker explains pricing"
+
+
+def test_baseline_candidate_generator_can_attach_audio_saliency_scores() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=2.0, has_audio=True),
+        frames=[],
+        audio_windows=[
+            AudioWindow(
+                index=0,
+                start_seconds=0.0,
+                duration_seconds=1.0,
+                path=Path("audio.wav"),
+            ),
+        ],
+    )
+
+    candidates = BaselineCandidateGenerator(audio_scorer=FakeAudioScorer()).generate(
+        manifest,
+        query="applause",
+    )
+
+    assert candidates.audio[0].saliency_score == 0.8

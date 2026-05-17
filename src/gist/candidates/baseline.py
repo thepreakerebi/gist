@@ -2,6 +2,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
+from gist.audio.scorers import AudioWindowScorer
 from gist.audio.transcribers import AudioTranscriber
 from gist.core.schemas import Candidate
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
@@ -22,13 +23,16 @@ class BaselineCandidateGenerator:
         self,
         visual_scorer: VisualFrameScorer | None = None,
         audio_transcriber: AudioTranscriber | None = None,
+        audio_scorer: AudioWindowScorer | None = None,
     ) -> None:
         self.visual_scorer = visual_scorer
         self.audio_transcriber = audio_transcriber
+        self.audio_scorer = audio_scorer
 
     def generate(self, ingested_video: IngestedVideo, query: str) -> CandidateSet:
         visual_scores = self._score_visual_frames(ingested_video, query)
         audio_transcripts = self._transcribe_audio_windows(ingested_video)
+        audio_scores = self._score_audio_windows(ingested_video, query)
         return CandidateSet(
             visual=[
                 self._visual_candidate(
@@ -43,6 +47,7 @@ class BaselineCandidateGenerator:
                     ingested_video.video_id,
                     window,
                     audio_transcripts.get(window.path),
+                    audio_scores.get(window.path),
                 )
                 for window in ingested_video.audio_windows
             ],
@@ -62,6 +67,15 @@ class BaselineCandidateGenerator:
             return {}
         return self.audio_transcriber.transcribe_windows(ingested_video.audio_windows)
 
+    def _score_audio_windows(
+        self,
+        ingested_video: IngestedVideo,
+        query: str,
+    ) -> dict[Path, float]:
+        if self.audio_scorer is None:
+            return {}
+        return self.audio_scorer.score_windows(ingested_video.audio_windows, query=query)
+
     def _visual_candidate(
         self,
         video_id: str,
@@ -80,6 +94,7 @@ class BaselineCandidateGenerator:
         video_id: str,
         window: AudioWindow,
         transcript: str | None,
+        saliency_score: float | None,
     ) -> Candidate:
         end_seconds = window.start_seconds + window.duration_seconds
         text = transcript or (
@@ -90,4 +105,5 @@ class BaselineCandidateGenerator:
             id=f"{video_id}:audio:{window.index}",
             timestamp_seconds=window.start_seconds,
             text=text,
+            saliency_score=saliency_score,
         )

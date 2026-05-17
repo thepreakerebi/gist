@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
 from gist.candidates.baseline import BaselineCandidateGenerator
 from gist.core.cache import (
@@ -88,7 +89,8 @@ class LocalCompressionPipeline:
         audio_scorer: AudioScoringMode,
     ) -> BaselineCandidateGenerator:
         visual_adapter = None
-        audio_adapter = None
+        audio_transcriber = None
+        audio_score_adapter = None
 
         if visual_scorer == VisualScoringMode.CLIP:
             visual_adapter = HuggingFaceClipFrameScorer()
@@ -96,14 +98,17 @@ class LocalCompressionPipeline:
             raise ValueError(f"unsupported visual scorer: {visual_scorer}")
 
         if audio_scorer == AudioScoringMode.WHISPER:
-            audio_adapter = FasterWhisperTranscriber()
+            audio_transcriber = FasterWhisperTranscriber()
+        elif audio_scorer == AudioScoringMode.CLAP:
+            audio_score_adapter = HuggingFaceClapAudioScorer()
         elif audio_scorer != AudioScoringMode.BASELINE:
             raise ValueError(f"unsupported audio scorer: {audio_scorer}")
 
-        if visual_adapter is None and audio_adapter is None:
+        if visual_adapter is None and audio_transcriber is None and audio_score_adapter is None:
             return self.candidate_generator
 
         return BaselineCandidateGenerator(
             visual_scorer=visual_adapter,
-            audio_transcriber=audio_adapter,
+            audio_transcriber=audio_transcriber,
+            audio_scorer=audio_score_adapter,
         )

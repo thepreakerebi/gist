@@ -32,6 +32,12 @@ Optional Whisper speech transcription dependencies:
 pip install -e ".[audio]"
 ```
 
+Optional CLAP sound-event scoring dependencies:
+
+```bash
+pip install -e ".[sound]"
+```
+
 For real media extraction, install FFmpeg:
 
 ```bash
@@ -95,6 +101,8 @@ Use `"visual_scorer": "clip"` to score sampled frames with CLIP after installing
 
 Use `"audio_scorer": "whisper"` to transcribe extracted audio windows with Faster Whisper after installing the optional audio dependencies. The transcript becomes the audio candidate text, so Gist-core can rank speech windows by query relevance.
 
+Use `"audio_scorer": "clap"` to score extracted audio windows against sound-event queries after installing the optional sound dependencies. This is intended for non-speech audio such as applause, alarms, engines, music, impact sounds, or environmental events.
+
 ## Caching
 
 Local video compression writes reusable JSON cache artifacts under `output_root/cache`:
@@ -109,7 +117,7 @@ This prevents repeated FFmpeg extraction, CLIP scoring, and Whisper transcriptio
 ```text
 raw video/audio
   -> media ingestion (ffprobe metadata, sampled frames, audio windows)
-  -> baseline candidate generation (CLIP/CLAP/Whisper adapters later)
+  -> baseline candidate generation (optional CLIP, Whisper, and CLAP adapters)
   -> Gist-core selector
   -> compressed timestamped evidence
   -> video LLM / omni-LLM gateway
@@ -127,6 +135,7 @@ raw video/audio
 - one-call local video compression pipeline
 - optional CLIP visual frame scoring adapter
 - optional Whisper audio transcription adapter
+- optional CLAP sound-event scoring adapter
 - disk-backed ingestion and candidate caching
 
 ## Development Principles

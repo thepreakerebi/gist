@@ -71,3 +71,14 @@ def test_cache_keys_change_when_parameters_change(tmp_path) -> None:
         VisualScoringMode.CLIP,
         AudioScoringMode.BASELINE,
     )
+    assert candidate_cache_key(
+        ingestion,
+        "pricing",
+        VisualScoringMode.BASELINE,
+        AudioScoringMode.WHISPER,
+    ) != candidate_cache_key(
+        ingestion,
+        "pricing",
+        VisualScoringMode.BASELINE,
+        AudioScoringMode.CLAP,
+    )
