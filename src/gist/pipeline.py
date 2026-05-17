@@ -12,6 +12,7 @@ from gist.core.compressor import GistCompressor
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionRequest, CompressionResponse
+from gist.core.token_estimation import TokenEstimatorProfile
 from gist.media.ingestion import MediaIngestor
 from gist.media.models import IngestedVideo
 from gist.vision.clip import HuggingFaceClipFrameScorer
@@ -43,6 +44,7 @@ class LocalCompressionPipeline:
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
         adaptive_budget: bool = False,
         decompose_query: bool = False,
+        token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC,
     ) -> tuple[IngestedVideo, CompressionResponse]:
         ingestion_key = ingestion_cache_key(
             video_path=video_path,
@@ -81,6 +83,7 @@ class LocalCompressionPipeline:
                 preset=preset,
                 adaptive_budget=adaptive_budget,
                 decompose_query=decompose_query,
+                token_estimator=token_estimator,
                 visual_candidates=candidates.visual,
                 audio_candidates=candidates.audio,
             )

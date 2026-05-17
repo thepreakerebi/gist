@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionResponse
+from gist.core.token_estimation import TokenEstimatorProfile
 from gist.media.models import IngestedVideo
 
 
@@ -23,6 +24,7 @@ class LocalVideoCompressionRequest(MediaIngestionRequest):
     audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE
     adaptive_budget: bool = False
     decompose_query: bool = False
+    token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
 
 
 class LocalVideoCompressionResponse(BaseModel):

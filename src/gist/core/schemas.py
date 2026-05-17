@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gist.core.decomposition import QueryAspect
 from gist.core.presets import CompressionPreset
+from gist.core.token_estimation import TokenEstimatorProfile
 
 
 class Modality(StrEnum):
@@ -41,6 +42,7 @@ class CompressionRequest(BaseModel):
     preset: CompressionPreset = CompressionPreset.BALANCED
     adaptive_budget: bool = False
     decompose_query: bool = False
+    token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
     visual_candidates: list[Candidate] = Field(default_factory=list)
     audio_candidates: list[Candidate] = Field(default_factory=list)
 
@@ -70,6 +72,7 @@ class CompressionMetrics(BaseModel):
     estimated_saved_tokens: int = 0
     estimated_token_reduction_ratio: float = 0.0
     estimated_token_reduction_percent: float = 0.0
+    token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
 
 
 class CompressionResponse(BaseModel):

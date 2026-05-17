@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate, CompressionResponse, Modality, SelectedCandidate
+from gist.core.token_estimation import TokenEstimatorProfile
 
 
 class EvalExample(BaseModel):
@@ -26,6 +27,7 @@ class EvalSettings(BaseModel):
     preset: CompressionPreset = CompressionPreset.BALANCED
     decompose_query: bool = False
     adaptive_budget: bool = False
+    token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
 
 
 class EvalVariant(BaseModel):
@@ -35,6 +37,7 @@ class EvalVariant(BaseModel):
     audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE
     decompose_query: bool = False
     adaptive_budget: bool = False
+    token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
 
 
 class BaselineResult(BaseModel):

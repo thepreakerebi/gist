@@ -86,6 +86,7 @@ class EvalRunner:
                 audio_scorer=variant.audio_scorer,
                 adaptive_budget=variant.adaptive_budget,
                 decompose_query=variant.decompose_query,
+                token_estimator=variant.token_estimator,
             )
         else:
             gist = self.compressor.compress(
@@ -96,6 +97,7 @@ class EvalRunner:
                     preset=variant.preset,
                     adaptive_budget=variant.adaptive_budget,
                     decompose_query=variant.decompose_query,
+                    token_estimator=variant.token_estimator,
                     visual_candidates=example.visual_candidates,
                     audio_candidates=example.audio_candidates,
                 )
@@ -159,5 +161,6 @@ def _variants_from_settings(settings: EvalSettings | None) -> list[EvalVariant] 
             preset=settings.preset,
             decompose_query=settings.decompose_query,
             adaptive_budget=settings.adaptive_budget,
+            token_estimator=settings.token_estimator,
         )
     ]

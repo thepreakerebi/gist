@@ -190,6 +190,12 @@ Gist reports proxy token savings in compression and evaluation outputs:
 
 These defaults are conservative model-agnostic proxies inspired by current video-LLM pricing/tokenization patterns. They are not provider billing guarantees. Provider-specific token estimators can replace this layer later.
 
+Available token estimator profiles:
+
+- `generic`
+- `gemini_default`
+- `gemini_low_res`
+
 ## Architecture
 
 ```text

@@ -109,6 +109,7 @@ class GistCompressor:
             input_visual_candidates=len(request.visual_candidates),
             input_audio_candidates=len(request.audio_candidates),
             selected_modalities=[selection.candidate.modality for selection in selections],
+            profile=request.token_estimator,
         )
 
         return CompressionResponse(
@@ -155,6 +156,7 @@ class GistCompressor:
                 estimated_saved_tokens=token_estimate.saved_tokens,
                 estimated_token_reduction_ratio=token_estimate.reduction_ratio,
                 estimated_token_reduction_percent=token_estimate.reduction_percent,
+                token_estimator=token_estimate.profile,
             ),
         )
 

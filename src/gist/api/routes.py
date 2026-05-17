@@ -56,6 +56,7 @@ def create_local_video_compression(
             audio_scorer=request.audio_scorer,
             adaptive_budget=request.adaptive_budget,
             decompose_query=request.decompose_query,
+            token_estimator=request.token_estimator,
         )
         return LocalVideoCompressionResponse(ingestion=ingestion, compression=compression)
     except AudioTranscriptionError as exc:

@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 from gist.core.presets import CompressionPreset
+from gist.core.token_estimation import TokenEstimatorProfile
 from gist.eval.dataset import load_jsonl_dataset
 from gist.eval.reporting import render_markdown_report
 from gist.eval.runner import EvalRunner
@@ -15,6 +16,11 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--output-root", type=Path, default=Path(".gist/eval"))
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--preset", choices=[preset.value for preset in CompressionPreset], default="balanced")
+    parser.add_argument(
+        "--token-estimator",
+        choices=[profile.value for profile in TokenEstimatorProfile],
+        default=TokenEstimatorProfile.GENERIC.value,
+    )
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--adaptive-budget", action="store_true")
     parser.add_argument(
@@ -29,6 +35,7 @@ def run(argv: list[str] | None = None) -> None:
             preset=CompressionPreset(args.preset),
             decompose_query=args.decompose_query,
             adaptive_budget=args.adaptive_budget,
+            token_estimator=TokenEstimatorProfile(args.token_estimator),
         )
     report = EvalRunner(output_root=args.output_root).run(
         examples,
