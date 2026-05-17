@@ -20,6 +20,12 @@ pytest
 uvicorn gist.api.app:create_app --factory --reload
 ```
 
+For real media extraction, install FFmpeg:
+
+```bash
+brew install ffmpeg
+```
+
 ## Example Request
 
 ```bash
@@ -45,11 +51,20 @@ curl -X POST http://127.0.0.1:8000/v1/compressions \
 
 ```text
 raw video/audio
+  -> media ingestion (ffprobe metadata, sampled frames, audio windows)
   -> candidate extraction adapters (CLIP/CLAP/Whisper later)
   -> Gist-core selector
   -> compressed timestamped evidence
   -> video LLM / omni-LLM gateway
 ```
+
+## Current Milestones
+
+- API and typed compression contracts
+- deterministic Gist-core candidate selector
+- compression presets and response metrics
+- adapter interfaces for future model integrations
+- FFmpeg-backed media ingestion utilities
 
 ## Development Principles
 
@@ -58,4 +73,3 @@ raw video/audio
 - model adapters outside the core selector
 - explicit metrics in every compression response
 - tests around algorithmic behavior before GPU/model work
-
