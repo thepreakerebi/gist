@@ -1,4 +1,5 @@
 from enum import StrEnum
+from pathlib import Path
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -20,6 +21,7 @@ class Candidate(BaseModel):
     timestamp_seconds: Annotated[float, Field(ge=0)]
     text: str = ""
     saliency_score: float | None = None
+    asset_path: Path | None = None
 
 
 class SelectedCandidate(BaseModel):
@@ -27,6 +29,7 @@ class SelectedCandidate(BaseModel):
     modality: Modality
     timestamp_seconds: float
     text: str
+    asset_path: Path | None = None
     selection_rank: int
     relevance_score: float
     normalized_score: float

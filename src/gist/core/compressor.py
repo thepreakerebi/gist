@@ -30,6 +30,7 @@ class ScoredCandidate:
     modality: Modality
     timestamp_seconds: float
     text: str
+    asset_path: str | None
     relevance_score: float
     normalized_score: float
     source_score_type: str
@@ -129,6 +130,7 @@ class GistCompressor:
                     modality=selection.candidate.modality,
                     timestamp_seconds=selection.candidate.timestamp_seconds,
                     text=selection.candidate.text,
+                    asset_path=selection.candidate.asset_path,
                     selection_rank=selection.selection_rank,
                     relevance_score=selection.candidate.relevance_score,
                     normalized_score=selection.candidate.normalized_score,
@@ -218,6 +220,7 @@ class GistCompressor:
                 modality=modality,
                 timestamp_seconds=candidate.timestamp_seconds,
                 text=candidate.text,
+                asset_path=str(candidate.asset_path) if candidate.asset_path else None,
                 relevance_score=raw_score,
                 normalized_score=normalized_score,
                 source_score_type="model_saliency"

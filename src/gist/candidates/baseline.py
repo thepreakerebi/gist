@@ -113,6 +113,7 @@ class BaselineCandidateGenerator:
             timestamp_seconds=frame.timestamp_seconds,
             text=f"visual frame sampled at {frame.timestamp_seconds:.2f} seconds",
             saliency_score=saliency_score,
+            asset_path=frame.path,
         )
 
     def _audio_candidate(
@@ -133,4 +134,5 @@ class BaselineCandidateGenerator:
             timestamp_seconds=midpoint_seconds,
             text=text,
             saliency_score=saliency_score,
+            asset_path=window.path,
         )

@@ -1,5 +1,7 @@
 from html import escape
+from pathlib import Path
 
+from gist.core.schemas import Modality
 from gist.eval.schemas import EvalReport
 
 
@@ -73,6 +75,7 @@ def render_html_report(report: EvalReport) -> str:
     th, td {{ border: 1px solid #d7dfdf; padding: 8px 10px; text-align: left; vertical-align: top; }}
     th {{ background: #edf5f3; }}
     .evidence {{ background: #f8fbfa; border: 1px solid #d7dfdf; padding: 10px; margin: 8px 0; }}
+    .evidence-frame {{ display: block; max-width: min(520px, 100%); height: auto; margin: 10px 0; border: 1px solid #d7dfdf; border-radius: 6px; }}
     .muted {{ color: #5f6f6f; }}
     code {{ background: #eef3f2; padding: 2px 4px; border-radius: 4px; }}
   </style>
@@ -122,9 +125,24 @@ def _render_evidence(selected) -> str:
         f"""
         <div class="evidence">
           <div><strong>{escape(item.modality.value)}</strong> at <code>{item.timestamp_seconds:.2f}s</code></div>
+          {_render_asset(item)}
           <div>{escape(item.text)}</div>
           <div class="muted">{escape(item.reason)}</div>
         </div>
         """
         for item in selected
+    )
+
+
+def _render_asset(item) -> str:
+    if item.modality != Modality.VISUAL or item.asset_path is None:
+        return ""
+
+    path = Path(item.asset_path)
+    if not path.exists():
+        return f"<div class='muted'>Frame asset missing: <code>{escape(str(path))}</code></div>"
+
+    return (
+        f'<img class="evidence-frame" src="{escape(path.resolve().as_uri())}" '
+        f'alt="Selected visual evidence at {item.timestamp_seconds:.2f}s">'
     )

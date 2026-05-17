@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate
@@ -158,12 +160,20 @@ def test_render_markdown_report_includes_summary() -> None:
 
 
 def test_render_html_report_includes_evidence() -> None:
+    frame_path = Path(__file__)
     example = EvalExample(
         id="case-1",
         video_id="v1",
         query="pricing",
         duration_seconds=60,
-        visual_candidates=[Candidate(id="v-1", timestamp_seconds=10, text="pricing slide")],
+        visual_candidates=[
+            Candidate(
+                id="v-1",
+                timestamp_seconds=10,
+                text="pricing slide",
+                asset_path=frame_path,
+            )
+        ],
     )
     report = EvalRunner().run([example], EvalSettings())
 
@@ -171,3 +181,5 @@ def test_render_html_report_includes_evidence() -> None:
 
     assert "<html" in html
     assert "pricing slide" in html
+    assert "evidence-frame" in html
+    assert frame_path.resolve().as_uri() in html
