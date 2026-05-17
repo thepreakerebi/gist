@@ -2,6 +2,11 @@ from pathlib import Path
 
 from gist.audio.whisper import FasterWhisperTranscriber
 from gist.candidates.baseline import BaselineCandidateGenerator
+from gist.core.cache import (
+    DiskCache,
+    candidate_cache_key,
+    ingestion_cache_key,
+)
 from gist.core.compressor import GistCompressor
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
@@ -18,11 +23,13 @@ class LocalCompressionPipeline:
         ingestor: MediaIngestor | None = None,
         candidate_generator: BaselineCandidateGenerator | None = None,
         compressor: GistCompressor | None = None,
+        cache: DiskCache | None = None,
     ) -> None:
         self.output_root = output_root
         self.ingestor = ingestor or MediaIngestor(output_root=output_root)
         self.candidate_generator = candidate_generator or BaselineCandidateGenerator()
         self.compressor = compressor or GistCompressor()
+        self.cache = cache or DiskCache(output_root / "cache")
 
     def run(
         self,
@@ -34,16 +41,35 @@ class LocalCompressionPipeline:
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
     ) -> tuple[IngestedVideo, CompressionResponse]:
-        ingested = self.ingestor.ingest(
+        ingestion_key = ingestion_cache_key(
             video_path=video_path,
             sample_count=sample_count,
             audio_window_seconds=audio_window_seconds,
         )
+        ingested = self.cache.get_ingestion(ingestion_key)
+        if ingested is None:
+            ingested = self.ingestor.ingest(
+                video_path=video_path,
+                sample_count=sample_count,
+                audio_window_seconds=audio_window_seconds,
+            )
+            self.cache.set_ingestion(ingestion_key, ingested)
+
         candidate_generator = self._candidate_generator_for(
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
         )
-        candidates = candidate_generator.generate(ingested, query=query)
+        candidates_key = candidate_cache_key(
+            ingestion=ingested,
+            query=query,
+            visual_scorer=visual_scorer,
+            audio_scorer=audio_scorer,
+        )
+        candidates = self.cache.get_candidates(candidates_key)
+        if candidates is None:
+            candidates = candidate_generator.generate(ingested, query=query)
+            self.cache.set_candidates(candidates_key, candidates)
+
         compression = self.compressor.compress(
             CompressionRequest(
                 video_id=ingested.video_id,

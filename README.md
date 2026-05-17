@@ -95,6 +95,15 @@ Use `"visual_scorer": "clip"` to score sampled frames with CLIP after installing
 
 Use `"audio_scorer": "whisper"` to transcribe extracted audio windows with Faster Whisper after installing the optional audio dependencies. The transcript becomes the audio candidate text, so Gist-core can rank speech windows by query relevance.
 
+## Caching
+
+Local video compression writes reusable JSON cache artifacts under `output_root/cache`:
+
+- ingestion manifests keyed by video path, frame sample count, and audio-window duration
+- candidate sets keyed by video ID, query, visual scorer, and audio scorer
+
+This prevents repeated FFmpeg extraction, CLIP scoring, and Whisper transcription for identical local compression requests.
+
 ## Architecture
 
 ```text
@@ -118,6 +127,7 @@ raw video/audio
 - one-call local video compression pipeline
 - optional CLIP visual frame scoring adapter
 - optional Whisper audio transcription adapter
+- disk-backed ingestion and candidate caching
 
 ## Development Principles
 

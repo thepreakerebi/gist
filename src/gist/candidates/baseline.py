@@ -1,5 +1,6 @@
-from dataclasses import dataclass
 from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict
 
 from gist.audio.transcribers import AudioTranscriber
 from gist.core.schemas import Candidate
@@ -7,8 +8,9 @@ from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
 from gist.vision.scorers import VisualFrameScorer
 
 
-@dataclass(frozen=True, slots=True)
-class CandidateSet:
+class CandidateSet(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
     visual: list[Candidate]
     audio: list[Candidate]
 
