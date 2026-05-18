@@ -140,6 +140,9 @@ def test_eval_runner_supports_real_video_examples(tmp_path) -> None:
 
     assert report.results[0].variants[0].response.metrics.input_candidates == 4
     assert report.summary.variants["gist_configured"].avg_timestamp_hit_rate == 1
+    for item in report.results[0].variants[0].response.selected:
+        assert item.clip_path is not None
+        assert item.clip_path.exists()
 
 
 def test_render_markdown_report_includes_summary() -> None:
@@ -183,3 +186,28 @@ def test_render_html_report_includes_evidence() -> None:
     assert "pricing slide" in html
     assert "evidence-frame" in html
     assert frame_path.resolve().as_uri() in html
+
+
+def test_render_html_report_prefers_video_clip_over_frame() -> None:
+    clip_path = Path(__file__)
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="pricing",
+        duration_seconds=60,
+        visual_candidates=[Candidate(id="v-1", timestamp_seconds=10, text="pricing slide")],
+    )
+    report = EvalRunner().run([example], EvalSettings())
+    selected = [
+        item.model_copy(update={"clip_path": clip_path})
+        for item in report.results[0].variants[0].response.selected
+    ]
+    report.results[0].variants[0].response = report.results[0].variants[
+        0
+    ].response.model_copy(update={"selected": selected})
+
+    html = render_html_report(report)
+
+    assert "<video" in html
+    assert "evidence-clip" in html
+    assert clip_path.resolve().as_uri() in html

@@ -69,6 +69,38 @@ def test_extract_audio_windows_returns_empty_when_video_has_no_audio(tmp_path: P
     assert windows == []
 
 
+def test_extract_clip_clamps_to_video_bounds(tmp_path: Path) -> None:
+    video_path = tmp_path / "input.mp4"
+    output_path = tmp_path / "clips" / "evidence.mp4"
+    video_path.write_bytes(b"fake")
+    processor = FfmpegMediaProcessor()
+
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
+        with patch.object(
+            processor,
+            "probe",
+            return_value=processor._parse_metadata(
+                {
+                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                    "format": {"duration": "5.0"},
+                }
+            ),
+        ):
+            with patch.object(processor, "_run") as run:
+                result = processor.extract_clip(
+                    video_path=video_path,
+                    output_path=output_path,
+                    center_seconds=4.5,
+                    duration_seconds=8.0,
+                )
+
+    command = run.call_args.args[0]
+    assert result == output_path
+    assert output_path.parent.exists()
+    assert command[command.index("-ss") + 1] == "0.000"
+    assert command[command.index("-t") + 1] == "5.000"
+
+
 def test_missing_ffprobe_raises_clear_error(tmp_path: Path) -> None:
     video_path = tmp_path / "input.mp4"
     video_path.write_bytes(b"fake")
@@ -76,4 +108,3 @@ def test_missing_ffprobe_raises_clear_error(tmp_path: Path) -> None:
     with patch("gist.media.ffmpeg.shutil.which", return_value=None):
         with pytest.raises(MediaProcessingError, match="missing required binary"):
             FfmpegMediaProcessor().probe(video_path)
-

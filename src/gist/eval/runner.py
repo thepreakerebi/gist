@@ -1,9 +1,10 @@
 from pathlib import Path
+import re
 import time
 
 from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
-from gist.core.schemas import CompressionRequest
+from gist.core.schemas import CompressionRequest, CompressionResponse, SelectedCandidate
 from gist.eval.baselines import uniform_baseline
 from gist.eval.metrics import timestamp_hit_rate
 from gist.eval.schemas import (
@@ -16,6 +17,7 @@ from gist.eval.schemas import (
     EvalVariantSummary,
     GistVariantResult,
 )
+from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.pipeline import LocalCompressionPipeline
 
 
@@ -38,9 +40,11 @@ class EvalRunner:
         self,
         compressor: GistCompressor | None = None,
         output_root: Path = Path(".gist/eval"),
+        media_processor: FfmpegMediaProcessor | None = None,
     ) -> None:
         self.compressor = compressor or GistCompressor()
         self.output_root = output_root
+        self.media_processor = media_processor or FfmpegMediaProcessor()
 
     def run(
         self,
@@ -88,6 +92,11 @@ class EvalRunner:
                 decompose_query=variant.decompose_query,
                 token_estimator=variant.token_estimator,
             )
+            gist = self._attach_evidence_clips(
+                compression=gist,
+                video_path=example.video_path,
+                output_dir=self.output_root / example.id / "clips" / variant.name,
+            )
         else:
             gist = self.compressor.compress(
                 CompressionRequest(
@@ -115,6 +124,37 @@ class EvalRunner:
             ),
             latency_ms=latency_ms,
         )
+
+    def _attach_evidence_clips(
+        self,
+        compression: CompressionResponse,
+        video_path: Path,
+        output_dir: Path,
+    ) -> CompressionResponse:
+        selected = [
+            self._with_evidence_clip(
+                item=item,
+                video_path=video_path,
+                output_dir=output_dir,
+            )
+            for item in compression.selected
+        ]
+        return compression.model_copy(update={"selected": selected})
+
+    def _with_evidence_clip(
+        self,
+        item: SelectedCandidate,
+        video_path: Path,
+        output_dir: Path,
+    ) -> SelectedCandidate:
+        clip_path = output_dir / f"{_safe_file_stem(item.id)}_{item.timestamp_seconds:.2f}s.mp4"
+        if not clip_path.exists():
+            self.media_processor.extract_clip(
+                video_path=video_path,
+                output_path=clip_path,
+                center_seconds=item.timestamp_seconds,
+            )
+        return item.model_copy(update={"clip_path": clip_path})
 
 
 def _summarize(results: list[EvalExampleResult]) -> EvalSummary:
@@ -166,3 +206,7 @@ def _variants_from_settings(settings: EvalSettings | None) -> list[EvalVariant] 
             token_estimator=settings.token_estimator,
         )
     ]
+
+
+def _safe_file_stem(value: str) -> str:
+    return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value).strip("_") or "evidence"

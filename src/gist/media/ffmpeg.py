@@ -128,6 +128,56 @@ class FfmpegMediaProcessor:
 
         return windows
 
+    def extract_clip(
+        self,
+        video_path: Path,
+        output_path: Path,
+        center_seconds: float,
+        duration_seconds: float = 8.0,
+    ) -> Path:
+        if center_seconds < 0:
+            raise ValueError("center_seconds must be non-negative")
+        if duration_seconds <= 0:
+            raise ValueError("duration_seconds must be greater than zero")
+
+        self._require_binary(self.ffmpeg_bin)
+        self._require_file(video_path)
+        metadata = self.probe(video_path)
+
+        start = max(center_seconds - (duration_seconds / 2), 0.0)
+        if start + duration_seconds > metadata.duration_seconds:
+            start = max(metadata.duration_seconds - duration_seconds, 0.0)
+        actual_duration = min(duration_seconds, metadata.duration_seconds - start)
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        self._run(
+            [
+                self.ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-ss",
+                f"{start:.3f}",
+                "-i",
+                str(video_path),
+                "-t",
+                f"{actual_duration:.3f}",
+                "-c:v",
+                "libx264",
+                "-preset",
+                "veryfast",
+                "-crf",
+                "28",
+                "-c:a",
+                "aac",
+                "-movflags",
+                "+faststart",
+                str(output_path),
+            ]
+        )
+        return output_path
+
     def _parse_metadata(self, payload: dict) -> VideoMetadata:
         streams = payload.get("streams", [])
         format_info = payload.get("format", {})
@@ -214,4 +264,3 @@ def _parse_frame_rate(value: object) -> float | None:
     if numerator_value is None or denominator_value in {None, 0}:
         return None
     return numerator_value / denominator_value
-

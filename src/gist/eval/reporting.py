@@ -76,6 +76,7 @@ def render_html_report(report: EvalReport) -> str:
     th {{ background: #edf5f3; }}
     .evidence {{ background: #f8fbfa; border: 1px solid #d7dfdf; padding: 10px; margin: 8px 0; }}
     .evidence-frame {{ display: block; max-width: min(520px, 100%); height: auto; margin: 10px 0; border: 1px solid #d7dfdf; border-radius: 6px; }}
+    .evidence-clip {{ display: block; width: min(720px, 100%); margin: 10px 0; border: 1px solid #d7dfdf; border-radius: 6px; background: #000; }}
     .muted {{ color: #5f6f6f; }}
     code {{ background: #eef3f2; padding: 2px 4px; border-radius: 4px; }}
   </style>
@@ -135,6 +136,11 @@ def _render_evidence(selected) -> str:
 
 
 def _render_asset(item) -> str:
+    if item.clip_path is not None:
+        clip_markup = _render_clip(item)
+        if clip_markup:
+            return clip_markup
+
     if item.modality != Modality.VISUAL or item.asset_path is None:
         return ""
 
@@ -145,4 +151,15 @@ def _render_asset(item) -> str:
     return (
         f'<img class="evidence-frame" src="{escape(path.resolve().as_uri())}" '
         f'alt="Selected visual evidence at {item.timestamp_seconds:.2f}s">'
+    )
+
+
+def _render_clip(item) -> str:
+    path = Path(item.clip_path)
+    if not path.exists():
+        return f"<div class='muted'>Clip asset missing: <code>{escape(str(path))}</code></div>"
+
+    return (
+        f'<video class="evidence-clip" controls preload="metadata" '
+        f'src="{escape(path.resolve().as_uri())}"></video>'
     )
