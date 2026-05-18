@@ -1,8 +1,11 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from gist.media.models import ExtractedFrame
 from gist.vision.errors import VisualScoringError
+from gist.vision.scene import FrameEmbedding
+
+T = TypeVar("T")
 
 
 class HuggingFaceClipFrameScorer:
@@ -58,6 +61,42 @@ class HuggingFaceClipFrameScorer:
 
         return scores
 
+    def embed_frames(self, frames: list[ExtractedFrame]) -> list[FrameEmbedding]:
+        if not frames:
+            return []
+
+        self._load()
+        assert self._model is not None
+        assert self._processor is not None
+        assert self._torch is not None
+
+        embeddings: list[FrameEmbedding] = []
+        for batch_frames in _chunks(frames, self.batch_size):
+            images = [self._load_image(frame.path) for frame in batch_frames]
+            inputs = self._processor(
+                images=images,
+                return_tensors="pt",
+                padding=True,
+            )
+            inputs = {key: value.to(self._model.device) for key, value in inputs.items()}
+
+            with self._torch.no_grad():
+                image_embeds = _normalize(
+                    self._model.get_image_features(**inputs),
+                    self._torch,
+                )
+
+            for frame, vector in zip(batch_frames, image_embeds.tolist(), strict=True):
+                embeddings.append(
+                    FrameEmbedding(
+                        frame_index=frame.index,
+                        timestamp_seconds=frame.timestamp_seconds,
+                        vector=tuple(float(value) for value in vector),
+                    )
+                )
+
+        return embeddings
+
     def _load(self) -> None:
         if self._model is not None and self._processor is not None and self._torch is not None:
             return
@@ -96,6 +135,5 @@ def _normalize(tensor: Any, torch: Any) -> Any:
     return tensor / tensor.norm(dim=-1, keepdim=True).clamp(min=torch.finfo(tensor.dtype).eps)
 
 
-def _chunks(paths: list[Path], batch_size: int) -> list[list[Path]]:
-    return [paths[index : index + batch_size] for index in range(0, len(paths), batch_size)]
-
+def _chunks(items: list[T], batch_size: int) -> list[list[T]]:
+    return [items[index : index + batch_size] for index in range(0, len(items), batch_size)]

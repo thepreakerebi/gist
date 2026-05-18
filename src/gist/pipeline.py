@@ -99,8 +99,10 @@ class LocalCompressionPipeline:
         audio_transcriber = None
         audio_score_adapter = None
 
-        if visual_scorer == VisualScoringMode.CLIP:
+        scene_aware_visuals = False
+        if visual_scorer in {VisualScoringMode.CLIP, VisualScoringMode.CLIP_SCENE}:
             visual_adapter = HuggingFaceClipFrameScorer()
+            scene_aware_visuals = visual_scorer == VisualScoringMode.CLIP_SCENE
         elif visual_scorer != VisualScoringMode.BASELINE:
             raise ValueError(f"unsupported visual scorer: {visual_scorer}")
 
@@ -118,4 +120,5 @@ class LocalCompressionPipeline:
             visual_scorer=visual_adapter,
             audio_transcriber=audio_transcriber,
             audio_scorer=audio_score_adapter,
+            scene_aware_visuals=scene_aware_visuals,
         )
