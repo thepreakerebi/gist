@@ -119,12 +119,87 @@ class GistCompressor:
         scored: list[ScoredCandidate],
     ) -> list[Selection]:
         config = PRESETS[preset]
+        scored = self._apply_scene_aware_visual_budget(scored, config.max_items)
         return self._select_with_mmr(
             candidates=scored,
             max_items=config.max_items,
             relevance_weight=config.relevance_weight,
             temporal_sigma_seconds=config.temporal_sigma_seconds,
         )
+
+    def _apply_scene_aware_visual_budget(
+        self,
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[ScoredCandidate]:
+        scene_visuals = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.VISUAL and candidate.segment_id is not None
+        ]
+        scene_ids = {candidate.segment_id for candidate in scene_visuals}
+        if len(scene_ids) < 2:
+            return candidates
+
+        audio_candidates = [
+            candidate for candidate in candidates if candidate.modality == Modality.AUDIO
+        ]
+        unscened_visuals = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.VISUAL and candidate.segment_id is None
+        ]
+        visual_budget = min(
+            len(scene_visuals),
+            max(1, max_items - min(2, len(audio_candidates))),
+        )
+
+        grouped: dict[str, list[ScoredCandidate]] = {}
+        for candidate in scene_visuals:
+            assert candidate.segment_id is not None
+            grouped.setdefault(candidate.segment_id, []).append(candidate)
+        for group in grouped.values():
+            group.sort(
+                key=lambda candidate: (
+                    candidate.normalized_score,
+                    candidate.relevance_score,
+                    -candidate.timestamp_seconds,
+                ),
+                reverse=True,
+            )
+
+        ranked_scene_ids = sorted(
+            grouped,
+            key=lambda scene_id: (
+                max(candidate.normalized_score for candidate in grouped[scene_id]),
+                max(candidate.relevance_score for candidate in grouped[scene_id]),
+            ),
+            reverse=True,
+        )
+        selected: list[ScoredCandidate] = []
+        for scene_id in ranked_scene_ids[:visual_budget]:
+            selected.append(grouped[scene_id][0])
+
+        remaining_budget = visual_budget - len(selected)
+        if remaining_budget > 0:
+            selected_ids = {candidate.id for candidate in selected}
+            remaining = [
+                candidate
+                for group in grouped.values()
+                for candidate in group[1:]
+                if candidate.id not in selected_ids
+            ]
+            remaining.sort(
+                key=lambda candidate: (
+                    candidate.normalized_score,
+                    candidate.relevance_score,
+                    -candidate.timestamp_seconds,
+                ),
+                reverse=True,
+            )
+            selected.extend(remaining[:remaining_budget])
+
+        return audio_candidates + unscened_visuals + selected
 
     def _build_response(
         self,

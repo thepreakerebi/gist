@@ -98,6 +98,40 @@ def test_aggressive_preset_caps_selected_candidates() -> None:
     assert response.metrics.estimated_token_reduction_percent > 0
 
 
+def test_scene_aware_selection_preserves_relevant_scene_coverage() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="goal replay",
+        duration_seconds=300,
+        preset=CompressionPreset.AGGRESSIVE,
+        visual_candidates=[
+            Candidate(
+                id=f"v-a-{index}",
+                timestamp_seconds=float(index),
+                text="goal replay close angle",
+                segment_id="scene-a",
+                scene_start_seconds=0,
+                scene_end_seconds=20,
+            )
+            for index in range(8)
+        ]
+        + [
+            Candidate(
+                id="v-b-0",
+                timestamp_seconds=140,
+                text="goal replay wide angle",
+                segment_id="scene-b",
+                scene_start_seconds=130,
+                scene_end_seconds=150,
+            )
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert {item.segment_id for item in response.selected} >= {"scene-a", "scene-b"}
+
+
 def test_compressor_suppresses_redundant_neighboring_audio_evidence() -> None:
     request = CompressionRequest(
         video_id="demo",
