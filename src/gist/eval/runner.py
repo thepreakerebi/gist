@@ -4,7 +4,7 @@ import time
 
 from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
-from gist.core.schemas import CompressionRequest, CompressionResponse, SelectedCandidate
+from gist.core.schemas import CompressionRequest, CompressionResponse, Modality, SelectedCandidate
 from gist.eval.baselines import uniform_baseline
 from gist.eval.metrics import timestamp_hit_rate
 from gist.eval.schemas import (
@@ -20,6 +20,11 @@ from gist.eval.schemas import (
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.pipeline import LocalCompressionPipeline
+from gist.vision.spatial import (
+    build_query_spatial_mask,
+    estimate_spatial_tokens,
+    write_spatial_mask,
+)
 
 
 DEFAULT_VARIANTS = [
@@ -98,6 +103,13 @@ class EvalRunner:
                 video_path=example.video_path,
                 output_dir=self.output_root / example.id / "clips" / variant.name,
             )
+            if variant.spatial_pruning:
+                gist = self._attach_spatial_masks(
+                    compression=gist,
+                    output_dir=self.output_root / example.id / "spatial" / variant.name,
+                    grid_size=variant.spatial_grid_size,
+                    retention_ratio=variant.spatial_retention_ratio,
+                )
         else:
             gist = self.compressor.compress(
                 CompressionRequest(
@@ -178,6 +190,45 @@ class EvalRunner:
             }
         )
 
+    def _attach_spatial_masks(
+        self,
+        compression: CompressionResponse,
+        output_dir: Path,
+        grid_size: int,
+        retention_ratio: float,
+    ) -> CompressionResponse:
+        selected: list[SelectedCandidate] = []
+        visual_count = 0
+        for item in compression.selected:
+            if item.modality != Modality.VISUAL:
+                selected.append(item)
+                continue
+
+            visual_count += 1
+            mask = build_query_spatial_mask(
+                evidence_id=item.id,
+                query=compression.query,
+                grid_size=grid_size,
+                retention_ratio=retention_ratio,
+            )
+            mask_path = output_dir / f"{_safe_file_stem(item.id)}.spatial-mask.json"
+            write_spatial_mask(mask, mask_path)
+            selected.append(item.model_copy(update={"spatial_mask_path": mask_path}))
+
+        baseline_tokens, retained_tokens, reduction_percent = estimate_spatial_tokens(
+            selected_visual_count=visual_count,
+            grid_size=grid_size,
+            retention_ratio=retention_ratio,
+        )
+        metrics = compression.metrics.model_copy(
+            update={
+                "estimated_spatial_visual_tokens": baseline_tokens,
+                "estimated_retained_spatial_visual_tokens": retained_tokens,
+                "estimated_spatial_token_reduction_percent": reduction_percent,
+            }
+        )
+        return compression.model_copy(update={"selected": selected, "metrics": metrics})
+
 
 def _summarize(results: list[EvalExampleResult]) -> EvalSummary:
     if not results:
@@ -226,6 +277,9 @@ def _variants_from_settings(settings: EvalSettings | None) -> list[EvalVariant] 
             decompose_query=settings.decompose_query,
             adaptive_budget=settings.adaptive_budget,
             token_estimator=settings.token_estimator,
+            spatial_pruning=settings.spatial_pruning,
+            spatial_retention_ratio=settings.spatial_retention_ratio,
+            spatial_grid_size=settings.spatial_grid_size,
         )
     ]
 

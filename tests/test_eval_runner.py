@@ -2,7 +2,7 @@ from pathlib import Path
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
-from gist.core.schemas import Candidate
+from gist.core.schemas import Candidate, Modality
 from gist.eval.baselines import uniform_baseline
 from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
@@ -135,7 +135,7 @@ def test_eval_runner_supports_real_video_examples(tmp_path) -> None:
 
     report = EvalRunner(output_root=tmp_path / "eval").run(
         [example],
-        EvalSettings(preset=CompressionPreset.AGGRESSIVE),
+        EvalSettings(preset=CompressionPreset.AGGRESSIVE, spatial_pruning=True),
     )
 
     assert report.results[0].variants[0].response.metrics.input_candidates == 4
@@ -146,6 +146,15 @@ def test_eval_runner_supports_real_video_examples(tmp_path) -> None:
         assert item.clip_start_seconds is not None
         assert item.clip_end_seconds is not None
         assert item.clip_end_seconds > item.clip_start_seconds
+        if item.modality == Modality.VISUAL:
+            assert item.spatial_mask_path is not None
+            assert item.spatial_mask_path.exists()
+    assert (
+        report.results[0]
+        .variants[0]
+        .response.metrics.estimated_spatial_token_reduction_percent
+        > 0
+    )
 
 
 def test_render_markdown_report_includes_summary() -> None:

@@ -30,6 +30,9 @@ class EvalSettings(BaseModel):
     decompose_query: bool = False
     adaptive_budget: bool = False
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
+    spatial_pruning: bool = False
+    spatial_retention_ratio: Annotated[float, Field(gt=0, le=1)] = 0.35
+    spatial_grid_size: Annotated[int, Field(gt=0)] = 14
 
 
 class EvalVariant(BaseModel):
@@ -40,6 +43,9 @@ class EvalVariant(BaseModel):
     decompose_query: bool = False
     adaptive_budget: bool = False
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
+    spatial_pruning: bool = False
+    spatial_retention_ratio: Annotated[float, Field(gt=0, le=1)] = 0.35
+    spatial_grid_size: Annotated[int, Field(gt=0)] = 14
 
 
 class BaselineResult(BaseModel):
