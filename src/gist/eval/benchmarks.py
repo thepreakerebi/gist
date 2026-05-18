@@ -27,6 +27,8 @@ class BenchmarkExample(BaseModel):
     choices: list[str] = Field(default_factory=list)
     answer: str | None = None
     relevant_timestamps: list[float] = Field(default_factory=list)
+    sample_count: int = 128
+    audio_window_seconds: float = 1.0
 
     def to_eval_example(self) -> EvalExample:
         return EvalExample(
@@ -38,7 +40,24 @@ class BenchmarkExample(BaseModel):
             relevant_timestamps=self.relevant_timestamps,
             expected_answer=self.answer,
             choices=self.choices,
+            sample_count=self.sample_count,
+            audio_window_seconds=self.audio_window_seconds,
         )
+
+    def with_video_path(self, video_path: Path | None) -> "BenchmarkExample":
+        return self.model_copy(update={"video_path": video_path})
+
+    def with_ingestion_settings(
+        self,
+        sample_count: int | None = None,
+        audio_window_seconds: float | None = None,
+    ) -> "BenchmarkExample":
+        updates = {}
+        if sample_count is not None:
+            updates["sample_count"] = sample_count
+        if audio_window_seconds is not None:
+            updates["audio_window_seconds"] = audio_window_seconds
+        return self.model_copy(update=updates)
 
 
 SOTA_BENCHMARK_VARIANTS = [
@@ -80,6 +99,58 @@ def load_benchmark_jsonl(path: Path, benchmark: BenchmarkName) -> list[Benchmark
     return examples
 
 
+def resolve_benchmark_video_paths(
+    examples: list[BenchmarkExample],
+    video_root: Path,
+    extensions: tuple[str, ...] = (".mp4", ".mov", ".mkv", ".webm"),
+) -> list[BenchmarkExample]:
+    return [
+        example.with_video_path(
+            example.video_path if example.video_path is not None else _find_video_path(
+                video_root=video_root,
+                video_id=example.video_id,
+                extensions=extensions,
+            )
+        )
+        for example in examples
+    ]
+
+
+def benchmark_readiness_issues(examples: list[BenchmarkExample]) -> list[str]:
+    issues: list[str] = []
+    for example in examples:
+        if example.video_path is None:
+            issues.append(f"{example.id}: missing video_path")
+        elif not example.video_path.exists():
+            issues.append(f"{example.id}: video file does not exist: {example.video_path}")
+        if example.answer is None:
+            issues.append(f"{example.id}: missing expected answer")
+    return issues
+
+
+def write_benchmark_jsonl(examples: list[BenchmarkExample], path: Path) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        json.dumps(
+            {
+                "id": example.id,
+                "video_id": example.video_id,
+                "query": example.query,
+                "duration_seconds": example.duration_seconds,
+                "video_path": str(example.video_path) if example.video_path else None,
+                "choices": example.choices,
+                "answer": example.answer,
+                "relevant_timestamps": example.relevant_timestamps,
+                "sample_count": example.sample_count,
+                "audio_window_seconds": example.audio_window_seconds,
+            }
+        )
+        for example in examples
+    ]
+    path.write_text("\n".join(lines) + ("\n" if lines else ""))
+    return path
+
+
 def _benchmark_example_from_record(
     record: dict[str, Any],
     benchmark: BenchmarkName,
@@ -106,6 +177,8 @@ def _benchmark_example_from_record(
         choices=_choices(record),
         answer=_first_string(record, "answer", "correct_answer", "label"),
         relevant_timestamps=_timestamps(record),
+        sample_count=int(_first_float(record, "sample_count") or 128),
+        audio_window_seconds=_first_float(record, "audio_window_seconds") or 1.0,
     )
 
 
@@ -133,6 +206,26 @@ def _first_float(record: dict[str, Any], *keys: str) -> float | None:
 def _optional_path(value: Any) -> Path | None:
     if isinstance(value, str) and value.strip():
         return Path(value)
+    return None
+
+
+def _find_video_path(
+    video_root: Path,
+    video_id: str,
+    extensions: tuple[str, ...],
+) -> Path | None:
+    direct = Path(video_id)
+    if direct.exists():
+        return direct
+
+    for extension in extensions:
+        candidate = video_root / f"{video_id}{extension}"
+        if candidate.exists():
+            return candidate
+
+    for path in video_root.rglob("*"):
+        if path.is_file() and path.suffix.lower() in extensions and path.stem == video_id:
+            return path
     return None
 
 
