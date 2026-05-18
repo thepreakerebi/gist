@@ -6,7 +6,7 @@ from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionRequest, CompressionResponse, Modality, SelectedCandidate
 from gist.eval.answers import answer_score
-from gist.eval.baselines import uniform_baseline
+from gist.eval.baselines import score_topk_baseline, uniform_baseline
 from gist.eval.metrics import timestamp_hit_rate
 from gist.eval.schemas import (
     EvalExample,
@@ -83,7 +83,10 @@ class EvalRunner:
             id=example.id,
             query=example.query,
             variants=variant_results,
-            baselines=[uniform_baseline(example, baseline_preset)],
+            baselines=[
+                uniform_baseline(example, baseline_preset),
+                score_topk_baseline(example, baseline_preset),
+            ],
         )
 
     def _run_variant(self, example: EvalExample, variant: EvalVariant) -> GistVariantResult:

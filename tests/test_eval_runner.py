@@ -3,7 +3,7 @@ from pathlib import Path
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate, Modality
-from gist.eval.baselines import uniform_baseline
+from gist.eval.baselines import score_topk_baseline, uniform_baseline
 from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
 from gist.eval.schemas import EvalExample, EvalSettings
@@ -44,6 +44,33 @@ def test_uniform_baseline_selects_evenly_spaced_candidates() -> None:
     assert result.timestamp_hit_rate == 1
 
 
+def test_score_topk_baseline_selects_salient_candidates() -> None:
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="pricing",
+        duration_seconds=60,
+        visual_candidates=[
+            Candidate(
+                id=f"v-{index}",
+                timestamp_seconds=float(index),
+                text="frame",
+                saliency_score=0.1,
+            )
+            for index in range(8)
+        ]
+        + [
+            Candidate(id="v-high", timestamp_seconds=20, text="high", saliency_score=0.9),
+        ],
+    )
+
+    result = score_topk_baseline(example, CompressionPreset.AGGRESSIVE)
+
+    assert result.name == "score_topk"
+    assert result.selected_candidates == 6
+    assert "v-high" in {item.id for item in result.selected}
+
+
 def test_eval_runner_builds_report_summary() -> None:
     example = EvalExample(
         id="case-1",
@@ -67,7 +94,10 @@ def test_eval_runner_builds_report_summary() -> None:
     assert "avg_token_reduction_percent" in report.summary.variants[
         "gist_configured"
     ].model_dump()
-    assert report.results[0].baselines[0].name == "uniform"
+    assert [baseline.name for baseline in report.results[0].baselines] == [
+        "uniform",
+        "score_topk",
+    ]
     assert report.results[0].variants[0].name == "gist_configured"
 
 
