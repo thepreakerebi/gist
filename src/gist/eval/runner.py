@@ -17,6 +17,7 @@ from gist.eval.schemas import (
     EvalVariantSummary,
     GistVariantResult,
 )
+from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.pipeline import LocalCompressionPipeline
 
@@ -131,11 +132,14 @@ class EvalRunner:
         video_path: Path,
         output_dir: Path,
     ) -> CompressionResponse:
+        video_duration_seconds = self.media_processor.probe(video_path).duration_seconds
         selected = [
             self._with_evidence_clip(
                 item=item,
+                compression=compression,
                 video_path=video_path,
                 output_dir=output_dir,
+                video_duration_seconds=video_duration_seconds,
             )
             for item in compression.selected
         ]
@@ -144,17 +148,35 @@ class EvalRunner:
     def _with_evidence_clip(
         self,
         item: SelectedCandidate,
+        compression: CompressionResponse,
         video_path: Path,
         output_dir: Path,
+        video_duration_seconds: float,
     ) -> SelectedCandidate:
-        clip_path = output_dir / f"{_safe_file_stem(item.id)}_{item.timestamp_seconds:.2f}s.mp4"
+        span = adaptive_clip_span(
+            item=item,
+            query=compression.query,
+            query_intent=compression.query_intent,
+            video_duration_seconds=video_duration_seconds,
+        )
+        clip_path = (
+            output_dir
+            / f"{_safe_file_stem(item.id)}_{span.start_seconds:.2f}-{span.end_seconds:.2f}s.mp4"
+        )
         if not clip_path.exists():
             self.media_processor.extract_clip(
                 video_path=video_path,
                 output_path=clip_path,
-                center_seconds=item.timestamp_seconds,
+                start_seconds=span.start_seconds,
+                duration_seconds=span.duration_seconds,
             )
-        return item.model_copy(update={"clip_path": clip_path})
+        return item.model_copy(
+            update={
+                "clip_path": clip_path,
+                "clip_start_seconds": span.start_seconds,
+                "clip_end_seconds": span.end_seconds,
+            }
+        )
 
 
 def _summarize(results: list[EvalExampleResult]) -> EvalSummary:

@@ -132,11 +132,16 @@ class FfmpegMediaProcessor:
         self,
         video_path: Path,
         output_path: Path,
-        center_seconds: float,
+        center_seconds: float | None = None,
         duration_seconds: float = 8.0,
+        start_seconds: float | None = None,
     ) -> Path:
-        if center_seconds < 0:
+        if center_seconds is None and start_seconds is None:
+            raise ValueError("center_seconds or start_seconds must be provided")
+        if center_seconds is not None and center_seconds < 0:
             raise ValueError("center_seconds must be non-negative")
+        if start_seconds is not None and start_seconds < 0:
+            raise ValueError("start_seconds must be non-negative")
         if duration_seconds <= 0:
             raise ValueError("duration_seconds must be greater than zero")
 
@@ -144,7 +149,11 @@ class FfmpegMediaProcessor:
         self._require_file(video_path)
         metadata = self.probe(video_path)
 
-        start = max(center_seconds - (duration_seconds / 2), 0.0)
+        start = (
+            start_seconds
+            if start_seconds is not None
+            else max((center_seconds or 0.0) - (duration_seconds / 2), 0.0)
+        )
         if start + duration_seconds > metadata.duration_seconds:
             start = max(metadata.duration_seconds - duration_seconds, 0.0)
         actual_duration = min(duration_seconds, metadata.duration_seconds - start)

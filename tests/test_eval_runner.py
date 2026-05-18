@@ -143,6 +143,9 @@ def test_eval_runner_supports_real_video_examples(tmp_path) -> None:
     for item in report.results[0].variants[0].response.selected:
         assert item.clip_path is not None
         assert item.clip_path.exists()
+        assert item.clip_start_seconds is not None
+        assert item.clip_end_seconds is not None
+        assert item.clip_end_seconds > item.clip_start_seconds
 
 
 def test_render_markdown_report_includes_summary() -> None:
