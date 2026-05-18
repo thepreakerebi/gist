@@ -29,6 +29,8 @@ def test_load_benchmark_jsonl_accepts_video_mme_style_rows(tmp_path: Path) -> No
     assert examples[0].query == "What happens"
     assert examples[0].choices == ["A", "B"]
     assert examples[0].answer == "A"
+    assert examples[0].to_eval_example().expected_answer == "A"
+    assert examples[0].to_eval_example().choices == ["A", "B"]
     assert examples[0].to_eval_example().relevant_timestamps == [12.0, 18.0]
 
 

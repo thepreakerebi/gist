@@ -7,6 +7,21 @@ from gist.eval.baselines import uniform_baseline
 from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
 from gist.eval.schemas import EvalExample, EvalSettings
+from gist.gateway.schemas import GatewayRequest, GatewayResponse
+
+
+class FixedGateway:
+    provider = "fixed"
+
+    def __init__(self, answer: str) -> None:
+        self.fixed_answer = answer
+
+    def answer(self, request: GatewayRequest) -> GatewayResponse:
+        return GatewayResponse(
+            answer=self.fixed_answer,
+            context="fixed context",
+            provider=self.provider,
+        )
 
 
 def test_uniform_baseline_selects_evenly_spaced_candidates() -> None:
@@ -54,6 +69,30 @@ def test_eval_runner_builds_report_summary() -> None:
     ].model_dump()
     assert report.results[0].baselines[0].name == "uniform"
     assert report.results[0].variants[0].name == "gist_configured"
+
+
+def test_eval_runner_scores_gateway_answers() -> None:
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="which planet is discussed",
+        duration_seconds=60,
+        expected_answer="Mars",
+        visual_candidates=[
+            Candidate(id="v-1", timestamp_seconds=10, text="Mars appears on screen"),
+        ],
+    )
+
+    report = EvalRunner(gateway=FixedGateway("Mars")).run(
+        [example],
+        EvalSettings(preset=CompressionPreset.AGGRESSIVE),
+    )
+
+    variant = report.results[0].variants[0]
+    assert variant.predicted_answer == "Mars"
+    assert variant.answer_score == 1
+    assert variant.answer_provider == "fixed"
+    assert report.summary.variants["gist_configured"].avg_answer_score == 1
 
 
 def test_eval_runner_passes_configured_scorers_to_single_variant() -> None:

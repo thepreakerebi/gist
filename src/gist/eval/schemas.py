@@ -19,6 +19,8 @@ class EvalExample(BaseModel):
     audio_window_seconds: Annotated[float, Field(gt=0, le=30)] = 1.0
     relevant_timestamps: list[float] = Field(default_factory=list)
     timestamp_tolerance_seconds: Annotated[float, Field(gt=0)] = 5.0
+    expected_answer: str | None = None
+    choices: list[str] = Field(default_factory=list)
     visual_candidates: list[Candidate] = Field(default_factory=list)
     audio_candidates: list[Candidate] = Field(default_factory=list)
 
@@ -63,6 +65,9 @@ class GistVariantResult(BaseModel):
     response: CompressionResponse
     timestamp_hit_rate: float
     latency_ms: float
+    predicted_answer: str | None = None
+    answer_score: float | None = None
+    answer_provider: str | None = None
 
 
 class EvalExampleResult(BaseModel):
@@ -82,6 +87,7 @@ class EvalVariantSummary(BaseModel):
     avg_token_reduction_percent: float
     avg_timestamp_hit_rate: float
     avg_latency_ms: float
+    avg_answer_score: float | None = None
 
 
 class EvalReport(BaseModel):

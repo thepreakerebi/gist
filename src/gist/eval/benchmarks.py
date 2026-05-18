@@ -36,6 +36,8 @@ class BenchmarkExample(BaseModel):
             duration_seconds=self.duration_seconds,
             video_path=self.video_path,
             relevant_timestamps=self.relevant_timestamps,
+            expected_answer=self.answer,
+            choices=self.choices,
         )
 
 

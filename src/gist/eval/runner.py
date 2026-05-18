@@ -5,6 +5,7 @@ import time
 from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionRequest, CompressionResponse, Modality, SelectedCandidate
+from gist.eval.answers import answer_score
 from gist.eval.baselines import uniform_baseline
 from gist.eval.metrics import timestamp_hit_rate
 from gist.eval.schemas import (
@@ -17,6 +18,8 @@ from gist.eval.schemas import (
     EvalVariantSummary,
     GistVariantResult,
 )
+from gist.gateway.base import LlmGateway
+from gist.gateway.schemas import GatewayRequest
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.pipeline import LocalCompressionPipeline
@@ -47,10 +50,12 @@ class EvalRunner:
         compressor: GistCompressor | None = None,
         output_root: Path = Path(".gist/eval"),
         media_processor: FfmpegMediaProcessor | None = None,
+        gateway: LlmGateway | None = None,
     ) -> None:
         self.compressor = compressor or GistCompressor()
         self.output_root = output_root
         self.media_processor = media_processor or FfmpegMediaProcessor()
+        self.gateway = gateway
 
     def run(
         self,
@@ -125,6 +130,11 @@ class EvalRunner:
                 )
             )
         latency_ms = (time.perf_counter() - started) * 1000
+        gateway_response = (
+            self.gateway.answer(GatewayRequest(query=example.query, compression=gist))
+            if self.gateway is not None
+            else None
+        )
 
         return GistVariantResult(
             name=variant.name,
@@ -136,6 +146,13 @@ class EvalRunner:
                 example.timestamp_tolerance_seconds,
             ),
             latency_ms=latency_ms,
+            predicted_answer=gateway_response.answer if gateway_response else None,
+            answer_score=answer_score(
+                predicted=gateway_response.answer if gateway_response else None,
+                expected=example.expected_answer,
+                choices=example.choices,
+            ),
+            answer_provider=gateway_response.provider if gateway_response else None,
         )
 
     def _attach_evidence_clips(
@@ -260,9 +277,17 @@ def _summarize(results: list[EvalExampleResult]) -> EvalSummary:
             / len(variant_results),
             avg_latency_ms=sum(result.latency_ms for result in variant_results)
             / len(variant_results),
+            avg_answer_score=_average_answer_score(variant_results),
         )
 
     return EvalSummary(examples=len(results), variants=summaries)
+
+
+def _average_answer_score(variant_results: list[GistVariantResult]) -> float | None:
+    scores = [result.answer_score for result in variant_results if result.answer_score is not None]
+    if not scores:
+        return None
+    return sum(scores) / len(scores)
 
 
 def _variants_from_settings(settings: EvalSettings | None) -> list[EvalVariant] | None:

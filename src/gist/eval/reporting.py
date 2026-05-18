@@ -19,14 +19,16 @@ def render_markdown_report(report: EvalReport) -> str:
         "",
         f"- Examples: {report.summary.examples}",
         "",
-        "| Variant | Avg Candidate Reduction | Avg Token Reduction | Avg Timestamp Hit Rate | Avg Latency |",
-        "|---|---:|---:|---:|---:|",
+        "| Variant | Avg Candidate Reduction | Avg Token Reduction | Avg Timestamp Hit Rate | Avg Answer Score | Avg Latency |",
+        "|---|---:|---:|---:|---:|---:|",
     ]
     for name, summary in report.summary.variants.items():
         lines.append(
             f"| {name} | {summary.avg_reduction_percent:.2f}% | "
             f"{summary.avg_token_reduction_percent:.2f}% | "
-            f"{summary.avg_timestamp_hit_rate:.2f} | {summary.avg_latency_ms:.2f} ms |"
+            f"{summary.avg_timestamp_hit_rate:.2f} | "
+            f"{_format_optional_score(summary.avg_answer_score)} | "
+            f"{summary.avg_latency_ms:.2f} ms |"
         )
     lines.extend(
         [
@@ -42,8 +44,8 @@ def render_markdown_report(report: EvalReport) -> str:
                 "",
                 f"- Query: {result.query}",
                 "",
-                "| Variant | Selected | Candidate Reduction | Token Reduction | Timestamp Hit Rate | Latency |",
-                "|---|---:|---:|---:|---:|---:|",
+                "| Variant | Selected | Candidate Reduction | Token Reduction | Timestamp Hit Rate | Answer Score | Latency |",
+                "|---|---:|---:|---:|---:|---:|---:|",
             ]
         )
         for variant in result.variants:
@@ -51,7 +53,9 @@ def render_markdown_report(report: EvalReport) -> str:
                 f"| {variant.name} | {variant.response.metrics.selected_candidates} | "
                 f"{variant.response.metrics.estimated_candidate_reduction_percent:.2f}% | "
                 f"{variant.response.metrics.estimated_token_reduction_percent:.2f}% | "
-                f"{variant.timestamp_hit_rate:.2f} | {variant.latency_ms:.2f} ms |"
+                f"{variant.timestamp_hit_rate:.2f} | "
+                f"{_format_optional_score(variant.answer_score)} | "
+                f"{variant.latency_ms:.2f} ms |"
             )
         lines.append("")
     return "\n".join(lines).strip() + "\n"
@@ -64,6 +68,7 @@ def render_html_report(report: EvalReport) -> str:
         f"<td>{summary.avg_reduction_percent:.2f}%</td>"
         f"<td>{summary.avg_token_reduction_percent:.2f}%</td>"
         f"<td>{summary.avg_timestamp_hit_rate:.2f}</td>"
+        f"<td>{_format_optional_score(summary.avg_answer_score)}</td>"
         f"<td>{summary.avg_latency_ms:.2f} ms</td>"
         "</tr>"
         for name, summary in report.summary.variants.items()
@@ -93,7 +98,7 @@ def render_html_report(report: EvalReport) -> str:
   <h2>Summary</h2>
   <table>
     <thead>
-      <tr><th>Variant</th><th>Candidate Reduction</th><th>Token Reduction</th><th>Timestamp Hit Rate</th><th>Latency</th></tr>
+      <tr><th>Variant</th><th>Candidate Reduction</th><th>Token Reduction</th><th>Timestamp Hit Rate</th><th>Answer Score</th><th>Latency</th></tr>
     </thead>
     <tbody>{summary_rows}</tbody>
   </table>
@@ -127,6 +132,7 @@ def _render_variant(variant) -> str:
         rendered {len(evidence_cards)} video evidence clips;
         token reduction {variant.response.metrics.estimated_token_reduction_percent:.2f}%;
         timestamp hit rate {variant.timestamp_hit_rate:.2f};
+        answer score {_format_optional_score(variant.answer_score)};
         latency {variant.latency_ms:.2f} ms.</p>
         {_render_evidence(evidence_cards)}
         """
@@ -256,6 +262,10 @@ def _rank_evidence_cards(query: str, cards: list[EvidenceCard]) -> list[Evidence
         ),
     )
     return sorted(ranked[:MAX_RENDERED_EVIDENCE_CLIPS], key=lambda card: card.timestamp_seconds)
+
+
+def _format_optional_score(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:.2f}"
 
 
 def _answer_likelihood(query: str, card: EvidenceCard) -> float:
