@@ -4,6 +4,7 @@ from pathlib import Path
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.token_estimation import TokenEstimatorProfile
+from gist.eval.benchmarks import BenchmarkName, SOTA_BENCHMARK_VARIANTS, load_benchmark_jsonl
 from gist.eval.dataset import load_jsonl_dataset
 from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
@@ -35,6 +36,19 @@ def run(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument("--spatial-pruning", action="store_true")
+    parser.add_argument("--spatial-retention-ratio", type=float, default=0.35)
+    parser.add_argument("--spatial-grid-size", type=int, default=14)
+    parser.add_argument(
+        "--benchmark",
+        choices=[benchmark.value for benchmark in BenchmarkName],
+        help="Parse dataset as a benchmark JSONL format instead of native EvalExample JSONL.",
+    )
+    parser.add_argument(
+        "--sota-sweep",
+        action="store_true",
+        help="Run the benchmark SOTA variant sweep instead of the default sweep.",
+    )
     parser.add_argument(
         "--single-config",
         action="store_true",
@@ -42,7 +56,14 @@ def run(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
 
-    examples = load_jsonl_dataset(args.dataset)
+    examples = (
+        [
+            example.to_eval_example()
+            for example in load_benchmark_jsonl(args.dataset, BenchmarkName(args.benchmark))
+        ]
+        if args.benchmark
+        else load_jsonl_dataset(args.dataset)
+    )
     settings = EvalSettings(
         preset=CompressionPreset(args.preset),
         visual_scorer=VisualScoringMode(args.visual_scorer),
@@ -50,9 +71,13 @@ def run(argv: list[str] | None = None) -> None:
         decompose_query=args.decompose_query,
         adaptive_budget=args.adaptive_budget,
         token_estimator=TokenEstimatorProfile(args.token_estimator),
+        spatial_pruning=args.spatial_pruning,
+        spatial_retention_ratio=args.spatial_retention_ratio,
+        spatial_grid_size=args.spatial_grid_size,
     )
     report = EvalRunner(output_root=args.output_root).run(
         examples,
+        variants=SOTA_BENCHMARK_VARIANTS if args.sota_sweep else None,
         settings=settings if args.single_config else None,
     )
     report.write_json(args.output)

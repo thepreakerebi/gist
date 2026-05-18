@@ -89,3 +89,42 @@ def test_eval_cli_supports_single_config_mode(tmp_path) -> None:
     assert payload["variants"][0]["name"] == "gist_configured"
     assert payload["variants"][0]["visual_scorer"] == "baseline"
     assert payload["variants"][0]["audio_scorer"] == "baseline"
+
+
+def test_eval_cli_supports_benchmark_sota_sweep(tmp_path) -> None:
+    dataset = tmp_path / "video_mme.jsonl"
+    output = tmp_path / "report.json"
+    dataset.write_text(
+        json.dumps(
+            {
+                "question_id": "q1",
+                "video_id": "v1",
+                "question": "What happens?",
+                "duration": 60,
+                "answer": "A",
+                "options": ["A", "B"],
+            }
+        )
+        + "\n"
+    )
+
+    run(
+        [
+            "--dataset",
+            str(dataset),
+            "--output",
+            str(output),
+            "--benchmark",
+            "video_mme",
+            "--sota-sweep",
+        ]
+    )
+
+    payload = json.loads(output.read_text())
+    assert [variant["name"] for variant in payload["variants"]] == [
+        "gist_core",
+        "gist_scene_clip",
+        "gist_scene_router_adaptive",
+        "gist_scene_spatial",
+    ]
+    assert payload["results"][0]["variants"][0]["answer_score"] == 0
