@@ -1,6 +1,9 @@
 import argparse
 from pathlib import Path
 
+from gist.core.modes import AudioScoringMode, VisualScoringMode
+from gist.core.presets import CompressionPreset
+from gist.core.token_estimation import TokenEstimatorProfile
 from gist.eval.benchmarks import (
     BenchmarkName,
     benchmark_readiness_issues,
@@ -30,6 +33,32 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--sample-count", type=int)
     parser.add_argument("--audio-window-seconds", type=float)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--single-config",
+        action="store_true",
+        help="Run one configured Gist setting instead of the full SOTA variant sweep.",
+    )
+    parser.add_argument("--preset", choices=[preset.value for preset in CompressionPreset], default="balanced")
+    parser.add_argument(
+        "--visual-scorer",
+        choices=[scorer.value for scorer in VisualScoringMode],
+        default=VisualScoringMode.BASELINE.value,
+    )
+    parser.add_argument(
+        "--audio-scorer",
+        choices=[scorer.value for scorer in AudioScoringMode],
+        default=AudioScoringMode.BASELINE.value,
+    )
+    parser.add_argument(
+        "--token-estimator",
+        choices=[profile.value for profile in TokenEstimatorProfile],
+        default=TokenEstimatorProfile.GENERIC.value,
+    )
+    parser.add_argument("--decompose-query", action="store_true")
+    parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument("--spatial-pruning", action="store_true")
+    parser.add_argument("--spatial-retention-ratio", type=float, default=0.35)
+    parser.add_argument("--spatial-grid-size", type=int, default=14)
     args = parser.parse_args(argv)
 
     output_dir = args.output_dir
@@ -62,27 +91,52 @@ def run(argv: list[str] | None = None) -> None:
         joined = "\n".join(f"- {issue}" for issue in issues)
         raise SystemExit(f"Benchmark dataset is not ready:\n{joined}")
 
-    run_eval(
-        [
-            "--dataset",
-            str(prepared_dataset),
-            "--benchmark",
-            args.benchmark,
-            "--sota-sweep",
-            "--output",
-            str(output_dir / "sota-report.json"),
-            "--markdown-output",
-            str(output_dir / "sota-report.md"),
-            "--html-output",
-            str(output_dir / "sota-report.html"),
-            "--output-root",
-            str(output_root),
-            "--gateway-command",
-            args.gateway_command,
-            "--gateway-timeout",
-            str(args.gateway_timeout),
-        ]
-    )
+    eval_args = [
+        "--dataset",
+        str(prepared_dataset),
+        "--benchmark",
+        args.benchmark,
+        "--output",
+        str(output_dir / "sota-report.json"),
+        "--markdown-output",
+        str(output_dir / "sota-report.md"),
+        "--html-output",
+        str(output_dir / "sota-report.html"),
+        "--output-root",
+        str(output_root),
+        "--gateway-command",
+        args.gateway_command,
+        "--gateway-timeout",
+        str(args.gateway_timeout),
+    ]
+    if args.single_config:
+        eval_args.extend(
+            [
+                "--single-config",
+                "--preset",
+                args.preset,
+                "--visual-scorer",
+                args.visual_scorer,
+                "--audio-scorer",
+                args.audio_scorer,
+                "--token-estimator",
+                args.token_estimator,
+                "--spatial-retention-ratio",
+                str(args.spatial_retention_ratio),
+                "--spatial-grid-size",
+                str(args.spatial_grid_size),
+            ]
+        )
+        if args.decompose_query:
+            eval_args.append("--decompose-query")
+        if args.adaptive_budget:
+            eval_args.append("--adaptive-budget")
+        if args.spatial_pruning:
+            eval_args.append("--spatial-pruning")
+    else:
+        eval_args.append("--sota-sweep")
+
+    run_eval(eval_args)
 
 
 def main() -> None:

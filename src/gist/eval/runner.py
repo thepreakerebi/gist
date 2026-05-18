@@ -84,20 +84,41 @@ class EvalRunner:
         example: EvalExample,
         variants: list[EvalVariant],
     ) -> EvalExampleResult:
+        baseline_example = self._example_with_baseline_candidates(example)
         variant_results = [self._run_variant(example, variant) for variant in variants]
         baseline_preset = variants[0].preset if variants else CompressionPreset.BALANCED
         baselines = [
-            uniform_baseline(example, baseline_preset),
-            score_topk_baseline(example, baseline_preset),
+            uniform_baseline(baseline_example, baseline_preset),
+            score_topk_baseline(baseline_example, baseline_preset),
         ]
         return EvalExampleResult(
             id=example.id,
             query=example.query,
             variants=variant_results,
             baselines=[
-                self._score_baseline_answer(example, baseline, baseline_preset)
+                self._score_baseline_answer(baseline_example, baseline, baseline_preset)
                 for baseline in baselines
             ],
+        )
+
+    def _example_with_baseline_candidates(self, example: EvalExample) -> EvalExample:
+        if example.video_path is None:
+            return example
+        ingested, candidates = LocalCompressionPipeline(
+            output_root=self.output_root / example.id
+        ).prepare_candidates(
+            video_path=example.video_path,
+            query=example.query,
+            sample_count=example.sample_count,
+            audio_window_seconds=example.audio_window_seconds,
+        )
+        return example.model_copy(
+            update={
+                "video_id": ingested.video_id,
+                "duration_seconds": ingested.metadata.duration_seconds,
+                "visual_candidates": candidates.visual,
+                "audio_candidates": candidates.audio,
+            }
         )
 
     def _run_variant(self, example: EvalExample, variant: EvalVariant) -> GistVariantResult:
@@ -274,11 +295,18 @@ class EvalRunner:
             baseline=baseline,
             preset=preset,
         )
+        if example.video_path is not None:
+            compression = self._attach_evidence_clips(
+                compression=compression,
+                video_path=example.video_path,
+                output_dir=self.output_root / example.id / "clips" / "baselines" / baseline.name,
+            )
         gateway_response = self.gateway.answer(
             GatewayRequest(query=example.query, compression=compression)
         )
         return baseline.model_copy(
             update={
+                "selected": compression.selected,
                 "predicted_answer": gateway_response.answer,
                 "answer_score": answer_score(
                     predicted=gateway_response.answer,

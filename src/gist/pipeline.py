@@ -2,7 +2,7 @@ from pathlib import Path
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
-from gist.candidates.baseline import BaselineCandidateGenerator
+from gist.candidates.baseline import BaselineCandidateGenerator, CandidateSet
 from gist.core.cache import (
     DiskCache,
     candidate_cache_key,
@@ -46,6 +46,39 @@ class LocalCompressionPipeline:
         decompose_query: bool = False,
         token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC,
     ) -> tuple[IngestedVideo, CompressionResponse]:
+        ingested, candidates = self.prepare_candidates(
+            video_path=video_path,
+            query=query,
+            sample_count=sample_count,
+            audio_window_seconds=audio_window_seconds,
+            visual_scorer=visual_scorer,
+            audio_scorer=audio_scorer,
+        )
+
+        compression = self.compressor.compress(
+            CompressionRequest(
+                video_id=ingested.video_id,
+                query=query,
+                duration_seconds=ingested.metadata.duration_seconds,
+                preset=preset,
+                adaptive_budget=adaptive_budget,
+                decompose_query=decompose_query,
+                token_estimator=token_estimator,
+                visual_candidates=candidates.visual,
+                audio_candidates=candidates.audio,
+            )
+        )
+        return ingested, compression
+
+    def prepare_candidates(
+        self,
+        video_path: Path,
+        query: str,
+        sample_count: int = 128,
+        audio_window_seconds: float = 1.0,
+        visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
+        audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+    ) -> tuple[IngestedVideo, CandidateSet]:
         ingestion_key = ingestion_cache_key(
             video_path=video_path,
             sample_count=sample_count,
@@ -75,20 +108,7 @@ class LocalCompressionPipeline:
             candidates = candidate_generator.generate(ingested, query=query)
             self.cache.set_candidates(candidates_key, candidates)
 
-        compression = self.compressor.compress(
-            CompressionRequest(
-                video_id=ingested.video_id,
-                query=query,
-                duration_seconds=ingested.metadata.duration_seconds,
-                preset=preset,
-                adaptive_budget=adaptive_budget,
-                decompose_query=decompose_query,
-                token_estimator=token_estimator,
-                visual_candidates=candidates.visual,
-                audio_candidates=candidates.audio,
-            )
-        )
-        return ingested, compression
+        return ingested, candidates
 
     def _candidate_generator_for(
         self,

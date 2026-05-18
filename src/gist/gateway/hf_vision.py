@@ -25,7 +25,8 @@ def answer_from_gateway_payload(
 ) -> dict[str, str]:
     try:
         from PIL import Image
-        from transformers import pipeline
+        import torch
+        from transformers import AutoProcessor
     except ImportError as exc:
         raise HuggingFaceVisionGatewayError(
             "Hugging Face VLM gateway requires optional vision dependencies. "
@@ -41,14 +42,33 @@ def answer_from_gateway_payload(
         )
         images = [Image.open(path).convert("RGB") for path in frame_paths]
         messages = build_messages(payload, images)
-        vlm = pipeline(
-            "image-text-to-text",
-            model=model,
-            device_map=device_map,
-            torch_dtype=torch_dtype,
+        processor = AutoProcessor.from_pretrained(
+            model,
             trust_remote_code=trust_remote_code,
         )
-        output = vlm(text=messages, max_new_tokens=max_new_tokens)
+        vlm = _load_model(
+            model=model,
+            device_map=device_map,
+            dtype=_resolve_dtype(torch, torch_dtype),
+            trust_remote_code=trust_remote_code,
+        )
+        device = _model_device(vlm)
+        prompt = processor.apply_chat_template(
+            _messages_with_image_placeholders(payload, images),
+            add_generation_prompt=True,
+        )
+        inputs = processor(
+            text=prompt,
+            images=images or None,
+            return_tensors="pt",
+        ).to(device)
+        with torch.no_grad():
+            generated_ids = vlm.generate(**inputs, max_new_tokens=max_new_tokens)
+        input_length = inputs["input_ids"].shape[-1]
+        output = processor.batch_decode(
+            generated_ids[:, input_length:],
+            skip_special_tokens=True,
+        )[0]
 
     return {
         "answer": extract_pipeline_text(output),
@@ -73,6 +93,59 @@ def build_messages(payload: dict[str, Any], images: list[Any]) -> list[dict[str,
             "content": content,
         }
     ]
+
+
+def _messages_with_image_placeholders(
+    payload: dict[str, Any],
+    images: list[Any],
+) -> list[dict[str, Any]]:
+    content: list[dict[str, Any]] = [{"type": "image"} for _image in images]
+    content.append({"type": "text", "text": _prompt(payload)})
+    return [{"role": "user", "content": content}]
+
+
+def _load_model(
+    model: str,
+    device_map: str,
+    dtype: Any,
+    trust_remote_code: bool,
+) -> Any:
+    try:
+        from transformers import AutoModelForImageTextToText
+
+        return AutoModelForImageTextToText.from_pretrained(
+            model,
+            device_map=device_map,
+            dtype=dtype,
+            trust_remote_code=trust_remote_code,
+        )
+    except (ImportError, ValueError, OSError):
+        from transformers import AutoModelForVision2Seq
+
+        return AutoModelForVision2Seq.from_pretrained(
+            model,
+            device_map=device_map,
+            dtype=dtype,
+            trust_remote_code=trust_remote_code,
+        )
+
+
+def _resolve_dtype(torch: Any, torch_dtype: str) -> Any:
+    if torch_dtype == "auto":
+        return "auto"
+    dtype = getattr(torch, torch_dtype, None)
+    if dtype is None:
+        raise HuggingFaceVisionGatewayError(f"unsupported torch dtype: {torch_dtype}")
+    return dtype
+
+
+def _model_device(model: Any) -> Any:
+    if hasattr(model, "device"):
+        return model.device
+    try:
+        return next(model.parameters()).device
+    except StopIteration as exc:
+        raise HuggingFaceVisionGatewayError("model has no parameters") from exc
 
 
 def extract_pipeline_text(output: Any) -> str:
