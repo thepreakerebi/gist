@@ -1,4 +1,5 @@
 from html import escape
+from dataclasses import dataclass
 from pathlib import Path
 
 from gist.core.schemas import Modality
@@ -99,17 +100,7 @@ def render_html_report(report: EvalReport) -> str:
 
 
 def _render_example(result) -> str:
-    variant_sections = "\n".join(
-        f"""
-        <h4>{escape(variant.name)}</h4>
-        <p class="muted">Selected {variant.response.metrics.selected_candidates} evidence items;
-        token reduction {variant.response.metrics.estimated_token_reduction_percent:.2f}%;
-        timestamp hit rate {variant.timestamp_hit_rate:.2f};
-        latency {variant.latency_ms:.2f} ms.</p>
-        {_render_evidence(variant.response.selected)}
-        """
-        for variant in result.variants
-    )
+    variant_sections = "\n".join(_render_variant(variant) for variant in result.variants)
     return f"""
     <section>
       <h3>{escape(result.id)}</h3>
@@ -119,43 +110,138 @@ def _render_example(result) -> str:
     """
 
 
-def _render_evidence(selected) -> str:
+def _render_variant(variant) -> str:
+    evidence_cards = _merge_evidence_cards(variant.response.selected)
+    return (
+        f"""
+        <h4>{escape(variant.name)}</h4>
+        <p class="muted">Selected {variant.response.metrics.selected_candidates} internal evidence items;
+        rendered {len(evidence_cards)} video evidence clips;
+        token reduction {variant.response.metrics.estimated_token_reduction_percent:.2f}%;
+        timestamp hit rate {variant.timestamp_hit_rate:.2f};
+        latency {variant.latency_ms:.2f} ms.</p>
+        {_render_evidence(evidence_cards)}
+        """
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceCard:
+    timestamp_seconds: float
+    modalities: tuple[str, ...]
+    text: str
+    reason: str
+    clip_path: Path | None
+    asset_path: Path | None
+
+
+def _merge_evidence_cards(selected) -> list[EvidenceCard]:
     if not selected:
+        return []
+
+    groups: list[list] = []
+    for item in sorted(selected, key=lambda evidence: evidence.timestamp_seconds):
+        group = _matching_group(item, groups)
+        if group is None:
+            groups.append([item])
+        else:
+            group.append(item)
+
+    return [_card_from_group(group) for group in groups]
+
+
+def _matching_group(item, groups: list[list]):
+    for group in groups:
+        if any(_same_video_evidence(item, existing) for existing in group):
+            return group
+    return None
+
+
+def _same_video_evidence(left, right) -> bool:
+    if left.clip_path is not None and right.clip_path is not None:
+        return abs(left.timestamp_seconds - right.timestamp_seconds) <= 4.5
+    return False
+
+
+def _card_from_group(group: list) -> EvidenceCard:
+    primary = _primary_evidence(group)
+    return EvidenceCard(
+        timestamp_seconds=primary.timestamp_seconds,
+        modalities=tuple(sorted({item.modality.value for item in group})),
+        text=_combined_text(group),
+        reason=_combined_reason(group),
+        clip_path=primary.clip_path,
+        asset_path=primary.asset_path,
+    )
+
+
+def _primary_evidence(group: list):
+    with_clip = [item for item in group if item.clip_path is not None]
+    candidates = with_clip or group
+    audio_items = [item for item in candidates if item.modality == Modality.AUDIO]
+    return max(
+        audio_items or candidates,
+        key=lambda item: (item.relevance_score, item.normalized_score),
+    )
+
+
+def _combined_text(group: list) -> str:
+    texts: list[str] = []
+    for item in sorted(group, key=lambda evidence: evidence.timestamp_seconds):
+        if item.text and item.text not in texts:
+            texts.append(item.text)
+    return " ".join(texts)
+
+
+def _combined_reason(group: list) -> str:
+    if len(group) == 1:
+        return group[0].reason
+
+    modalities = ", ".join(sorted({item.modality.value for item in group}))
+    timestamps = ", ".join(f"{item.timestamp_seconds:.2f}s" for item in group)
+    return (
+        f"Merged {len(group)} internal {modalities} evidence items into one "
+        f"playable video clip because their timestamps overlap ({timestamps})."
+    )
+
+
+def _render_evidence(cards: list[EvidenceCard]) -> str:
+    if not cards:
         return "<p class='muted'>No evidence selected.</p>"
     return "\n".join(
         f"""
         <div class="evidence">
-          <div><strong>{escape(item.modality.value)}</strong> at <code>{item.timestamp_seconds:.2f}s</code></div>
-          {_render_asset(item)}
-          <div>{escape(item.text)}</div>
-          <div class="muted">{escape(item.reason)}</div>
+          <div><strong>video</strong> at <code>{card.timestamp_seconds:.2f}s</code> <span class="muted">from {escape(", ".join(card.modalities))}</span></div>
+          {_render_asset(card)}
+          <div>{escape(card.text)}</div>
+          <div class="muted">{escape(card.reason)}</div>
         </div>
         """
-        for item in selected
+        for card in cards
     )
 
 
-def _render_asset(item) -> str:
-    if item.clip_path is not None:
-        clip_markup = _render_clip(item)
+def _render_asset(card: EvidenceCard) -> str:
+    if card.clip_path is not None:
+        clip_markup = _render_clip(card)
         if clip_markup:
             return clip_markup
 
-    if item.modality != Modality.VISUAL or item.asset_path is None:
+    if card.asset_path is None:
         return ""
 
-    path = Path(item.asset_path)
+    path = Path(card.asset_path)
     if not path.exists():
         return f"<div class='muted'>Frame asset missing: <code>{escape(str(path))}</code></div>"
 
     return (
         f'<img class="evidence-frame" src="{escape(path.resolve().as_uri())}" '
-        f'alt="Selected visual evidence at {item.timestamp_seconds:.2f}s">'
+        f'alt="Selected visual evidence at {card.timestamp_seconds:.2f}s">'
     )
 
 
-def _render_clip(item) -> str:
-    path = Path(item.clip_path)
+def _render_clip(card: EvidenceCard) -> str:
+    path = Path(card.clip_path)
     if not path.exists():
         return f"<div class='muted'>Clip asset missing: <code>{escape(str(path))}</code></div>"
 

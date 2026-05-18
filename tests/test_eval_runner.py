@@ -211,3 +211,34 @@ def test_render_html_report_prefers_video_clip_over_frame() -> None:
     assert "<video" in html
     assert "evidence-clip" in html
     assert clip_path.resolve().as_uri() in html
+
+
+def test_render_html_report_merges_overlapping_audio_visual_evidence() -> None:
+    clip_path = Path(__file__)
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="architecture",
+        duration_seconds=60,
+        visual_candidates=[
+            Candidate(id="v-near", timestamp_seconds=10.2, text="visual frame near topic")
+        ],
+        audio_candidates=[
+            Candidate(id="a-topic", timestamp_seconds=10.0, text="speaker says architecture")
+        ],
+    )
+    report = EvalRunner().run([example], EvalSettings())
+    selected = [
+        item.model_copy(update={"clip_path": clip_path})
+        for item in report.results[0].variants[0].response.selected
+    ]
+    report.results[0].variants[0].response = report.results[0].variants[
+        0
+    ].response.model_copy(update={"selected": selected})
+
+    html = render_html_report(report)
+
+    assert "rendered 1 video evidence clips" in html
+    assert html.count("<video") == 1
+    assert "speaker says architecture" in html
+    assert "visual frame near topic" in html
