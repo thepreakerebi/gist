@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+import shlex
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
@@ -9,6 +10,7 @@ from gist.eval.dataset import load_jsonl_dataset
 from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
 from gist.eval.schemas import EvalSettings
+from gist.gateway.subprocess import SubprocessVideoLlmGateway
 
 
 def run(argv: list[str] | None = None) -> None:
@@ -54,6 +56,14 @@ def run(argv: list[str] | None = None) -> None:
         action="store_true",
         help="Run only the configured preset/options instead of the default variant sweep.",
     )
+    parser.add_argument(
+        "--gateway-command",
+        help=(
+            "External Video-LLM command. Gist sends JSON to stdin and expects either "
+            "plain-text answer stdout or JSON stdout with an 'answer' field."
+        ),
+    )
+    parser.add_argument("--gateway-timeout", type=float, default=120.0)
     args = parser.parse_args(argv)
 
     examples = (
@@ -75,7 +85,15 @@ def run(argv: list[str] | None = None) -> None:
         spatial_retention_ratio=args.spatial_retention_ratio,
         spatial_grid_size=args.spatial_grid_size,
     )
-    report = EvalRunner(output_root=args.output_root).run(
+    gateway = (
+        SubprocessVideoLlmGateway(
+            command=shlex.split(args.gateway_command),
+            timeout_seconds=args.gateway_timeout,
+        )
+        if args.gateway_command
+        else None
+    )
+    report = EvalRunner(output_root=args.output_root, gateway=gateway).run(
         examples,
         variants=SOTA_BENCHMARK_VARIANTS if args.sota_sweep else None,
         settings=settings if args.single_config else None,

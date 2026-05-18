@@ -1,4 +1,5 @@
 import json
+import sys
 
 from gist.eval.cli import run
 
@@ -128,3 +129,44 @@ def test_eval_cli_supports_benchmark_sota_sweep(tmp_path) -> None:
         "gist_scene_spatial",
     ]
     assert payload["results"][0]["variants"][0]["answer_score"] == 0
+
+
+def test_eval_cli_supports_subprocess_gateway(tmp_path) -> None:
+    dataset = tmp_path / "eval.jsonl"
+    output = tmp_path / "report.json"
+    dataset.write_text(
+        json.dumps(
+            {
+                "id": "case-1",
+                "video_id": "v1",
+                "query": "pricing",
+                "duration_seconds": 60,
+                "expected_answer": "pricing",
+                "visual_candidates": [
+                    {"id": "v-1", "timestamp_seconds": 10, "text": "pricing slide"}
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    run(
+        [
+            "--dataset",
+            str(dataset),
+            "--output",
+            str(output),
+            "--single-config",
+            "--gateway-command",
+            (
+                f"{sys.executable} -c "
+                "\"import json,sys; payload=json.load(sys.stdin); "
+                "print(json.dumps({'answer': payload['query']}))\""
+            ),
+        ]
+    )
+
+    payload = json.loads(output.read_text())
+    variant = payload["results"][0]["variants"][0]
+    assert variant["predicted_answer"] == "pricing"
+    assert variant["answer_score"] == 1
