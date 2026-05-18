@@ -166,7 +166,9 @@ class EvalRunner:
             )
         latency_ms = (time.perf_counter() - started) * 1000
         gateway_response = (
-            self.gateway.answer(GatewayRequest(query=example.query, compression=gist))
+            self.gateway.answer(
+                GatewayRequest(query=_question_with_choices(example), compression=gist)
+            )
             if self.gateway is not None
             else None
         )
@@ -302,7 +304,7 @@ class EvalRunner:
                 output_dir=self.output_root / example.id / "clips" / "baselines" / baseline.name,
             )
         gateway_response = self.gateway.answer(
-            GatewayRequest(query=example.query, compression=compression)
+            GatewayRequest(query=_question_with_choices(example), compression=compression)
         )
         return baseline.model_copy(
             update={
@@ -408,3 +410,12 @@ def _variants_from_settings(settings: EvalSettings | None) -> list[EvalVariant] 
 
 def _safe_file_stem(value: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_.-]+", "_", value).strip("_") or "evidence"
+
+
+def _question_with_choices(example: EvalExample) -> str:
+    if not example.choices:
+        return example.query
+    choices = "\n".join(str(choice).strip() for choice in example.choices if str(choice).strip())
+    if not choices:
+        return example.query
+    return f"{example.query}\n\nChoices:\n{choices}"

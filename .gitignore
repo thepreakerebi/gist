@@ -11,3 +11,5 @@ dist/
 build/
 *.egg-info/
 reports/
+data/hf-metadata/
+data/videomme-real-subset/

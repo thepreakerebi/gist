@@ -82,7 +82,7 @@ class HuggingFaceClipFrameScorer:
 
             with self._torch.no_grad():
                 image_embeds = _normalize(
-                    self._model.get_image_features(**inputs),
+                    _feature_tensor(self._model.get_image_features(**inputs)),
                     self._torch,
                 )
 
@@ -133,6 +133,20 @@ class HuggingFaceClipFrameScorer:
 
 def _normalize(tensor: Any, torch: Any) -> Any:
     return tensor / tensor.norm(dim=-1, keepdim=True).clamp(min=torch.finfo(tensor.dtype).eps)
+
+
+def _feature_tensor(output: Any) -> Any:
+    if hasattr(output, "norm"):
+        return output
+    for attribute in ("image_embeds", "pooler_output", "last_hidden_state"):
+        tensor = getattr(output, attribute, None)
+        if tensor is not None:
+            if attribute == "last_hidden_state":
+                return tensor[:, 0]
+            return tensor
+    if isinstance(output, tuple) and output:
+        return output[0]
+    raise VisualScoringError("CLIP image feature output did not contain a tensor")
 
 
 def _chunks(items: list[T], batch_size: int) -> list[list[T]]:
