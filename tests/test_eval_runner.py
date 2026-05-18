@@ -242,3 +242,51 @@ def test_render_html_report_merges_overlapping_audio_visual_evidence() -> None:
     assert html.count("<video") == 1
     assert "speaker says architecture" in html
     assert "visual frame near topic" in html
+
+
+def test_render_html_report_keeps_answer_and_precontext_but_drops_weak_late_context() -> None:
+    clip_path = Path(__file__)
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="architecture missions",
+        duration_seconds=140,
+        audio_candidates=[
+            Candidate(
+                id="a-pre",
+                timestamp_seconds=37,
+                text="building the next chapter returning to the moon",
+            ),
+            Candidate(
+                id="a-answer",
+                timestamp_seconds=58,
+                text="the architecture for these missions is taking shape",
+            ),
+            Candidate(
+                id="a-theme",
+                timestamp_seconds=94,
+                text="sustainable science and human spirit",
+            ),
+            Candidate(
+                id="a-outro",
+                timestamp_seconds=122,
+                text="every day every mission we advance",
+            ),
+        ],
+    )
+    report = EvalRunner().run([example], EvalSettings())
+    selected = [
+        item.model_copy(update={"clip_path": clip_path})
+        for item in report.results[0].variants[0].response.selected
+    ]
+    report.results[0].variants[0].response = report.results[0].variants[
+        0
+    ].response.model_copy(update={"selected": selected})
+
+    html = render_html_report(report)
+
+    assert "rendered 2 video evidence clips" in html
+    assert "building the next chapter" in html
+    assert "the architecture for these missions" in html
+    assert "sustainable science" not in html
+    assert "every day every mission" not in html

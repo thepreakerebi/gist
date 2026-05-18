@@ -6,6 +6,11 @@ from gist.core.schemas import Modality
 from gist.eval.schemas import EvalReport
 
 
+MAX_RENDERED_EVIDENCE_CLIPS = 3
+ANSWER_LIKELIHOOD_KEEP_RATIO = 0.55
+PRE_CONTEXT_SECONDS = 30.0
+
+
 def render_markdown_report(report: EvalReport) -> str:
     lines = [
         "# Gist Evaluation Report",
@@ -111,7 +116,10 @@ def _render_example(result) -> str:
 
 
 def _render_variant(variant) -> str:
-    evidence_cards = _merge_evidence_cards(variant.response.selected)
+    evidence_cards = _rank_evidence_cards(
+        query=variant.response.query,
+        cards=_merge_evidence_cards(variant.response.selected),
+    )
     return (
         f"""
         <h4>{escape(variant.name)}</h4>
@@ -133,6 +141,8 @@ class EvidenceCard:
     reason: str
     clip_path: Path | None
     asset_path: Path | None
+    relevance_score: float
+    normalized_score: float
 
 
 def _merge_evidence_cards(selected) -> list[EvidenceCard]:
@@ -172,6 +182,8 @@ def _card_from_group(group: list) -> EvidenceCard:
         reason=_combined_reason(group),
         clip_path=primary.clip_path,
         asset_path=primary.asset_path,
+        relevance_score=max(item.relevance_score for item in group),
+        normalized_score=max(item.normalized_score for item in group),
     )
 
 
@@ -203,6 +215,89 @@ def _combined_reason(group: list) -> str:
         f"Merged {len(group)} internal {modalities} evidence items into one "
         f"playable video clip because their timestamps overlap ({timestamps})."
     )
+
+
+def _rank_evidence_cards(query: str, cards: list[EvidenceCard]) -> list[EvidenceCard]:
+    if len(cards) <= MAX_RENDERED_EVIDENCE_CLIPS:
+        return cards
+
+    scored = [
+        (_answer_likelihood(query, card), card)
+        for card in cards
+    ]
+    best_score = max(score for score, _card in scored)
+    direct_cards = [
+        card
+        for score, card in scored
+        if best_score > 0 and score >= best_score * ANSWER_LIKELIHOOD_KEEP_RATIO
+    ]
+    if not direct_cards:
+        direct_cards = [max(scored, key=lambda item: item[0])[1]]
+
+    earliest_direct = min(card.timestamp_seconds for card in direct_cards)
+    pre_context = [
+        card
+        for score, card in scored
+        if card.timestamp_seconds < earliest_direct
+        and earliest_direct - card.timestamp_seconds <= PRE_CONTEXT_SECONDS
+    ]
+    pre_context.sort(
+        key=lambda card: (
+            abs(card.timestamp_seconds - earliest_direct),
+            -_answer_likelihood(query, card),
+        )
+    )
+
+    ranked = sorted(
+        {*direct_cards, *pre_context[:1]},
+        key=lambda card: (
+            -_answer_likelihood(query, card),
+            card.timestamp_seconds,
+        ),
+    )
+    return sorted(ranked[:MAX_RENDERED_EVIDENCE_CLIPS], key=lambda card: card.timestamp_seconds)
+
+
+def _answer_likelihood(query: str, card: EvidenceCard) -> float:
+    query_text_score = _query_coverage(query, card.text)
+    source_score = max(card.relevance_score, 0.0) * 0.25
+    modality_bonus = 0.08 if "audio" in card.modalities else 0.0
+    return query_text_score + source_score + modality_bonus
+
+
+def _query_coverage(query: str, text: str) -> float:
+    query_terms = _content_terms(query)
+    text_terms = _content_terms(text)
+    if not query_terms or not text_terms:
+        return 0.0
+    return len(query_terms & text_terms) / len(query_terms)
+
+
+def _content_terms(value: str) -> set[str]:
+    stopwords = {
+        "a",
+        "an",
+        "and",
+        "are",
+        "at",
+        "do",
+        "does",
+        "for",
+        "in",
+        "is",
+        "of",
+        "the",
+        "they",
+        "to",
+        "when",
+    }
+    import re
+
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", value.lower())
+        if token not in stopwords
+    }
 
 
 def _render_evidence(cards: list[EvidenceCard]) -> str:
