@@ -23,8 +23,12 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument(
         "--gateway-command",
-        required=True,
+        required=False,
         help="Command that implements the Gist subprocess Video-LLM gateway protocol.",
+    )
+    parser.add_argument(
+        "--persistent-gateway-command",
+        help="Long-running command that implements the JSONL Video-LLM gateway protocol.",
     )
     parser.add_argument("--gateway-timeout", type=float, default=600.0)
     parser.add_argument("--output-root", type=Path)
@@ -60,6 +64,10 @@ def run(argv: list[str] | None = None) -> None:
     parser.add_argument("--spatial-retention-ratio", type=float, default=0.35)
     parser.add_argument("--spatial-grid-size", type=int, default=14)
     args = parser.parse_args(argv)
+    if args.gateway_command and args.persistent_gateway_command:
+        raise SystemExit("Use either --gateway-command or --persistent-gateway-command, not both")
+    if not args.gateway_command and not args.persistent_gateway_command and not args.dry_run:
+        raise SystemExit("--gateway-command or --persistent-gateway-command is required")
 
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -104,11 +112,13 @@ def run(argv: list[str] | None = None) -> None:
         str(output_dir / "sota-report.html"),
         "--output-root",
         str(output_root),
-        "--gateway-command",
-        args.gateway_command,
         "--gateway-timeout",
         str(args.gateway_timeout),
     ]
+    if args.persistent_gateway_command:
+        eval_args.extend(["--persistent-gateway-command", args.persistent_gateway_command])
+    elif args.gateway_command:
+        eval_args.extend(["--gateway-command", args.gateway_command])
     if args.single_config:
         eval_args.extend(
             [

@@ -59,7 +59,6 @@ def test_sota_cli_runs_benchmark_sweep_with_gateway(tmp_path, monkeypatch) -> No
         )
         + "\n"
     )
-
     run(
         [
             "--dataset",
@@ -105,7 +104,6 @@ def test_sota_cli_dry_run_reports_readiness_issues(tmp_path, capsys) -> None:
         )
         + "\n"
     )
-
     run(
         [
             "--dataset",
@@ -171,7 +169,6 @@ def test_sota_cli_runs_single_config_with_gateway(tmp_path) -> None:
         )
         + "\n"
     )
-
     run(
         [
             "--dataset",
@@ -201,3 +198,81 @@ def test_sota_cli_runs_single_config_with_gateway(tmp_path) -> None:
     payload = json.loads((output_dir / "sota-report.json").read_text())
     assert [variant["name"] for variant in payload["variants"]] == ["gist_configured"]
     assert payload["variants"][0]["preset"] == "aggressive"
+
+
+def test_sota_cli_runs_with_persistent_gateway(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        eval_cli,
+        "SOTA_BENCHMARK_VARIANTS",
+        [EvalVariant(name="gist_core", preset=CompressionPreset.BALANCED)],
+    )
+    dataset = tmp_path / "video_mme.jsonl"
+    output_dir = tmp_path / "sota"
+    video_root = tmp_path / "videos"
+    video_root.mkdir()
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=160x120:rate=10:duration=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=1000:duration=1",
+            "-shortest",
+            "-pix_fmt",
+            "yuv420p",
+            str(video_root / "v1.mp4"),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    dataset.write_text(
+        json.dumps(
+            {
+                "question_id": "q1",
+                "video_id": "v1",
+                "question": "What happens?",
+                "duration": 60,
+                "answer": "What happens?",
+            }
+        )
+        + "\n"
+    )
+    gateway_script = tmp_path / "gateway.py"
+    gateway_script.write_text(
+        "import json, sys\n"
+        "for line in sys.stdin:\n"
+        "    payload = json.loads(line)\n"
+        "    if payload.get('type') == 'shutdown':\n"
+        "        break\n"
+        "    print(json.dumps({'answer': payload.get('query', ''), "
+        "'provider': 'fake-persistent'}), flush=True)\n"
+    )
+
+    run(
+        [
+            "--dataset",
+            str(dataset),
+            "--benchmark",
+            "video_mme",
+            "--output-dir",
+            str(output_dir),
+            "--video-root",
+            str(video_root),
+            "--sample-count",
+            "4",
+            "--persistent-gateway-command",
+            f"{sys.executable} {gateway_script}",
+        ]
+    )
+
+    payload = json.loads((output_dir / "sota-report.json").read_text())
+    assert payload["results"][0]["variants"][0]["answer_provider"] == "fake-persistent"

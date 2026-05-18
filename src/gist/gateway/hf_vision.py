@@ -23,57 +23,105 @@ def answer_from_gateway_payload(
     trust_remote_code: bool = False,
     ffmpeg_bin: str = "ffmpeg",
 ) -> dict[str, str]:
-    try:
-        from PIL import Image
-        import torch
-        from transformers import AutoProcessor
-    except ImportError as exc:
-        raise HuggingFaceVisionGatewayError(
-            "Hugging Face VLM gateway requires optional vision dependencies. "
-            "Install with: pip install -e '.[sota]'"
-        ) from exc
+    return HuggingFaceVisionSession(
+        model=model,
+        device_map=device_map,
+        torch_dtype=torch_dtype,
+        trust_remote_code=trust_remote_code,
+        ffmpeg_bin=ffmpeg_bin,
+    ).answer(payload=payload, max_frames=max_frames, max_new_tokens=max_new_tokens)
 
-    with tempfile.TemporaryDirectory(prefix="gist-hf-frames-") as temp_dir:
-        frame_paths = sample_evidence_frames(
-            evidence=payload.get("evidence", []),
-            output_dir=Path(temp_dir),
-            max_frames=max_frames,
-            ffmpeg_bin=ffmpeg_bin,
-        )
-        images = [Image.open(path).convert("RGB") for path in frame_paths]
-        messages = build_messages(payload, images)
-        processor = AutoProcessor.from_pretrained(
-            model,
-            trust_remote_code=trust_remote_code,
-        )
-        vlm = _load_model(
-            model=model,
-            device_map=device_map,
-            dtype=_resolve_dtype(torch, torch_dtype),
-            trust_remote_code=trust_remote_code,
-        )
-        device = _model_device(vlm)
-        prompt = processor.apply_chat_template(
-            _messages_with_image_placeholders(payload, images),
-            add_generation_prompt=True,
-        )
-        inputs = processor(
-            text=prompt,
-            images=images or None,
-            return_tensors="pt",
-        ).to(device)
-        with torch.no_grad():
-            generated_ids = vlm.generate(**inputs, max_new_tokens=max_new_tokens)
-        input_length = inputs["input_ids"].shape[-1]
-        output = processor.batch_decode(
-            generated_ids[:, input_length:],
-            skip_special_tokens=True,
-        )[0]
 
-    return {
-        "answer": extract_pipeline_text(output),
-        "provider": f"hf:{model}",
-    }
+class HuggingFaceVisionSession:
+    def __init__(
+        self,
+        model: str = DEFAULT_HF_MODEL,
+        device_map: str = "auto",
+        torch_dtype: str = "auto",
+        trust_remote_code: bool = False,
+        ffmpeg_bin: str = "ffmpeg",
+    ) -> None:
+        self.model = model
+        self.device_map = device_map
+        self.torch_dtype = torch_dtype
+        self.trust_remote_code = trust_remote_code
+        self.ffmpeg_bin = ffmpeg_bin
+        self._processor: Any | None = None
+        self._model: Any | None = None
+        self._torch: Any | None = None
+
+    def answer(
+        self,
+        payload: dict[str, Any],
+        max_frames: int = 8,
+        max_new_tokens: int = 128,
+    ) -> dict[str, str]:
+        self.load()
+        assert self._processor is not None
+        assert self._model is not None
+        assert self._torch is not None
+
+        try:
+            from PIL import Image
+        except ImportError as exc:
+            raise HuggingFaceVisionGatewayError(
+                "Hugging Face VLM gateway requires Pillow. Install with: pip install -e '.[sota]'"
+            ) from exc
+
+        with tempfile.TemporaryDirectory(prefix="gist-hf-frames-") as temp_dir:
+            frame_paths = sample_evidence_frames(
+                evidence=payload.get("evidence", []),
+                output_dir=Path(temp_dir),
+                max_frames=max_frames,
+                ffmpeg_bin=self.ffmpeg_bin,
+            )
+            images = [Image.open(path).convert("RGB") for path in frame_paths]
+            prompt = self._processor.apply_chat_template(
+                _messages_with_image_placeholders(payload, images),
+                add_generation_prompt=True,
+            )
+            inputs = self._processor(
+                text=prompt,
+                images=images or None,
+                return_tensors="pt",
+            ).to(_model_device(self._model))
+            with self._torch.no_grad():
+                generated_ids = self._model.generate(**inputs, max_new_tokens=max_new_tokens)
+            input_length = inputs["input_ids"].shape[-1]
+            output = self._processor.batch_decode(
+                generated_ids[:, input_length:],
+                skip_special_tokens=True,
+            )[0]
+
+        return {
+            "answer": extract_pipeline_text(output),
+            "provider": f"hf:{self.model}",
+        }
+
+    def load(self) -> None:
+        if self._processor is not None and self._model is not None and self._torch is not None:
+            return
+
+        try:
+            import torch
+            from transformers import AutoProcessor
+        except ImportError as exc:
+            raise HuggingFaceVisionGatewayError(
+                "Hugging Face VLM gateway requires optional vision dependencies. "
+                "Install with: pip install -e '.[sota]'"
+            ) from exc
+
+        self._torch = torch
+        self._processor = AutoProcessor.from_pretrained(
+            self.model,
+            trust_remote_code=self.trust_remote_code,
+        )
+        self._model = _load_model(
+            model=self.model,
+            device_map=self.device_map,
+            dtype=_resolve_dtype(torch, self.torch_dtype),
+            trust_remote_code=self.trust_remote_code,
+        )
 
 
 def build_messages(payload: dict[str, Any], images: list[Any]) -> list[dict[str, Any]]:

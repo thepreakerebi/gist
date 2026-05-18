@@ -10,7 +10,7 @@ from gist.eval.dataset import load_jsonl_dataset
 from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner
 from gist.eval.schemas import EvalSettings
-from gist.gateway.subprocess import SubprocessVideoLlmGateway
+from gist.gateway.subprocess import PersistentSubprocessVideoLlmGateway, SubprocessVideoLlmGateway
 
 
 def run(argv: list[str] | None = None) -> None:
@@ -63,8 +63,17 @@ def run(argv: list[str] | None = None) -> None:
             "plain-text answer stdout or JSON stdout with an 'answer' field."
         ),
     )
+    parser.add_argument(
+        "--persistent-gateway-command",
+        help=(
+            "Long-running Video-LLM command that accepts one JSON request per stdin line "
+            "and returns one JSON response per stdout line."
+        ),
+    )
     parser.add_argument("--gateway-timeout", type=float, default=120.0)
     args = parser.parse_args(argv)
+    if args.gateway_command and args.persistent_gateway_command:
+        raise SystemExit("Use either --gateway-command or --persistent-gateway-command, not both")
 
     examples = (
         [
@@ -85,19 +94,21 @@ def run(argv: list[str] | None = None) -> None:
         spatial_retention_ratio=args.spatial_retention_ratio,
         spatial_grid_size=args.spatial_grid_size,
     )
-    gateway = (
-        SubprocessVideoLlmGateway(
-            command=shlex.split(args.gateway_command),
-            timeout_seconds=args.gateway_timeout,
+    gateway = _build_gateway(
+        gateway_command=args.gateway_command,
+        persistent_gateway_command=args.persistent_gateway_command,
+        timeout_seconds=args.gateway_timeout,
+    )
+    try:
+        report = EvalRunner(output_root=args.output_root, gateway=gateway).run(
+            examples,
+            variants=SOTA_BENCHMARK_VARIANTS if args.sota_sweep else None,
+            settings=settings if args.single_config else None,
         )
-        if args.gateway_command
-        else None
-    )
-    report = EvalRunner(output_root=args.output_root, gateway=gateway).run(
-        examples,
-        variants=SOTA_BENCHMARK_VARIANTS if args.sota_sweep else None,
-        settings=settings if args.single_config else None,
-    )
+    finally:
+        close = getattr(gateway, "close", None)
+        if close is not None:
+            close()
     report.write_json(args.output)
     if args.markdown_output:
         args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
@@ -109,6 +120,24 @@ def run(argv: list[str] | None = None) -> None:
 
 def main() -> None:
     run()
+
+
+def _build_gateway(
+    gateway_command: str | None,
+    persistent_gateway_command: str | None,
+    timeout_seconds: float,
+) -> SubprocessVideoLlmGateway | PersistentSubprocessVideoLlmGateway | None:
+    if persistent_gateway_command:
+        return PersistentSubprocessVideoLlmGateway(
+            command=shlex.split(persistent_gateway_command),
+            timeout_seconds=timeout_seconds,
+        )
+    if gateway_command:
+        return SubprocessVideoLlmGateway(
+            command=shlex.split(gateway_command),
+            timeout_seconds=timeout_seconds,
+        )
+    return None
 
 
 if __name__ == "__main__":
