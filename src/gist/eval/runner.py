@@ -4,7 +4,13 @@ import time
 
 from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
-from gist.core.schemas import CompressionRequest, CompressionResponse, Modality, SelectedCandidate
+from gist.core.schemas import (
+    CompressionMetrics,
+    CompressionRequest,
+    CompressionResponse,
+    Modality,
+    SelectedCandidate,
+)
 from gist.eval.answers import answer_score
 from gist.eval.baselines import score_topk_baseline, uniform_baseline
 from gist.eval.metrics import timestamp_hit_rate
@@ -16,6 +22,7 @@ from gist.eval.schemas import (
     EvalSummary,
     EvalVariant,
     EvalVariantSummary,
+    BaselineResult,
     GistVariantResult,
 )
 from gist.gateway.base import LlmGateway
@@ -79,13 +86,17 @@ class EvalRunner:
     ) -> EvalExampleResult:
         variant_results = [self._run_variant(example, variant) for variant in variants]
         baseline_preset = variants[0].preset if variants else CompressionPreset.BALANCED
+        baselines = [
+            uniform_baseline(example, baseline_preset),
+            score_topk_baseline(example, baseline_preset),
+        ]
         return EvalExampleResult(
             id=example.id,
             query=example.query,
             variants=variant_results,
             baselines=[
-                uniform_baseline(example, baseline_preset),
-                score_topk_baseline(example, baseline_preset),
+                self._score_baseline_answer(example, baseline, baseline_preset)
+                for baseline in baselines
             ],
         )
 
@@ -249,6 +260,35 @@ class EvalRunner:
         )
         return compression.model_copy(update={"selected": selected, "metrics": metrics})
 
+    def _score_baseline_answer(
+        self,
+        example: EvalExample,
+        baseline: BaselineResult,
+        preset: CompressionPreset,
+    ) -> BaselineResult:
+        if self.gateway is None:
+            return baseline
+
+        compression = _baseline_compression_response(
+            example=example,
+            baseline=baseline,
+            preset=preset,
+        )
+        gateway_response = self.gateway.answer(
+            GatewayRequest(query=example.query, compression=compression)
+        )
+        return baseline.model_copy(
+            update={
+                "predicted_answer": gateway_response.answer,
+                "answer_score": answer_score(
+                    predicted=gateway_response.answer,
+                    expected=example.expected_answer,
+                    choices=example.choices,
+                ),
+                "answer_provider": gateway_response.provider,
+            }
+        )
+
 
 def _summarize(results: list[EvalExampleResult]) -> EvalSummary:
     if not results:
@@ -284,6 +324,32 @@ def _summarize(results: list[EvalExampleResult]) -> EvalSummary:
         )
 
     return EvalSummary(examples=len(results), variants=summaries)
+
+
+def _baseline_compression_response(
+    example: EvalExample,
+    baseline: BaselineResult,
+    preset: CompressionPreset,
+) -> CompressionResponse:
+    input_count = len(example.visual_candidates) + len(example.audio_candidates)
+    selected_count = len(baseline.selected)
+    reduction_ratio = 1.0 if input_count == 0 else selected_count / input_count
+    return CompressionResponse(
+        video_id=example.video_id,
+        query=example.query,
+        preset=preset,
+        selected=baseline.selected,
+        metrics=CompressionMetrics(
+            input_candidates=input_count,
+            selected_candidates=selected_count,
+            visual_selected=sum(item.modality == Modality.VISUAL for item in baseline.selected),
+            audio_selected=sum(item.modality == Modality.AUDIO for item in baseline.selected),
+            estimated_candidate_reduction_ratio=reduction_ratio,
+            estimated_candidate_reduction_percent=baseline.reduction_percent,
+            dropped_candidates=max(input_count - selected_count, 0),
+            budget_preset_used=preset,
+        ),
+    )
 
 
 def _average_answer_score(variant_results: list[GistVariantResult]) -> float | None:

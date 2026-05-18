@@ -57,6 +57,9 @@ class BaselineResult(BaseModel):
     reduction_percent: float
     timestamp_hit_rate: float
     modality_coverage: dict[Modality, int]
+    predicted_answer: str | None = None
+    answer_score: float | None = None
+    answer_provider: str | None = None
 
 
 class GistVariantResult(BaseModel):

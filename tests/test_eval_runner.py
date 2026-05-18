@@ -122,6 +122,11 @@ def test_eval_runner_scores_gateway_answers() -> None:
     assert variant.predicted_answer == "Mars"
     assert variant.answer_score == 1
     assert variant.answer_provider == "fixed"
+    assert [baseline.answer_score for baseline in report.results[0].baselines] == [1, 1]
+    assert [baseline.answer_provider for baseline in report.results[0].baselines] == [
+        "fixed",
+        "fixed",
+    ]
     assert report.summary.variants["gist_configured"].avg_answer_score == 1
 
 
@@ -240,6 +245,7 @@ def test_render_markdown_report_includes_summary() -> None:
 
     assert "# Gist Evaluation Report" in markdown
     assert "case-1" in markdown
+    assert "Baselines" in markdown
     assert "Variant" in markdown
 
 
@@ -264,6 +270,7 @@ def test_render_html_report_includes_evidence() -> None:
     html = render_html_report(report)
 
     assert "<html" in html
+    assert "Baselines" in html
     assert "pricing slide" in html
     assert "evidence-frame" in html
     assert frame_path.resolve().as_uri() in html

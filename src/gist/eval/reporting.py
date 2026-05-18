@@ -44,6 +44,24 @@ def render_markdown_report(report: EvalReport) -> str:
                 "",
                 f"- Query: {result.query}",
                 "",
+                "#### Baselines",
+                "",
+                "| Baseline | Selected | Candidate Reduction | Timestamp Hit Rate | Answer Score |",
+                "|---|---:|---:|---:|---:|",
+            ]
+        )
+        for baseline in result.baselines:
+            lines.append(
+                f"| {baseline.name} | {baseline.selected_candidates} | "
+                f"{baseline.reduction_percent:.2f}% | "
+                f"{baseline.timestamp_hit_rate:.2f} | "
+                f"{_format_optional_score(baseline.answer_score)} |"
+            )
+        lines.extend(
+            [
+                "",
+                "#### Gist Variants",
+                "",
                 "| Variant | Selected | Candidate Reduction | Token Reduction | Timestamp Hit Rate | Answer Score | Latency |",
                 "|---|---:|---:|---:|---:|---:|---:|",
             ]
@@ -111,10 +129,28 @@ def render_html_report(report: EvalReport) -> str:
 
 def _render_example(result) -> str:
     variant_sections = "\n".join(_render_variant(variant) for variant in result.variants)
+    baseline_rows = "\n".join(
+        "<tr>"
+        f"<td>{escape(baseline.name)}</td>"
+        f"<td>{baseline.selected_candidates}</td>"
+        f"<td>{baseline.reduction_percent:.2f}%</td>"
+        f"<td>{baseline.timestamp_hit_rate:.2f}</td>"
+        f"<td>{_format_optional_score(baseline.answer_score)}</td>"
+        "</tr>"
+        for baseline in result.baselines
+    )
     return f"""
     <section>
       <h3>{escape(result.id)}</h3>
       <p><strong>Query:</strong> {escape(result.query)}</p>
+      <h4>Baselines</h4>
+      <table>
+        <thead>
+          <tr><th>Baseline</th><th>Selected</th><th>Candidate Reduction</th><th>Timestamp Hit Rate</th><th>Answer Score</th></tr>
+        </thead>
+        <tbody>{baseline_rows}</tbody>
+      </table>
+      <h4>Gist Variants</h4>
       {variant_sections}
     </section>
     """
