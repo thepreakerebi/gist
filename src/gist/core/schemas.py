@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gist.core.decomposition import QueryAspect
 from gist.core.presets import CompressionPreset
+from gist.core.query_intent import QueryIntent
 from gist.core.token_estimation import TokenEstimatorProfile
 
 
@@ -22,6 +23,10 @@ class Candidate(BaseModel):
     text: str = ""
     saliency_score: float | None = None
     asset_path: Path | None = None
+    segment_id: str | None = None
+    scene_start_seconds: float | None = None
+    scene_end_seconds: float | None = None
+    spatial_mask_path: Path | None = None
 
 
 class SelectedCandidate(BaseModel):
@@ -31,6 +36,12 @@ class SelectedCandidate(BaseModel):
     text: str
     asset_path: Path | None = None
     clip_path: Path | None = None
+    clip_start_seconds: float | None = None
+    clip_end_seconds: float | None = None
+    segment_id: str | None = None
+    scene_start_seconds: float | None = None
+    scene_end_seconds: float | None = None
+    spatial_mask_path: Path | None = None
     audio_anchor_timestamp_seconds: float | None = None
     audio_anchor_score: float = 0.0
     selection_rank: int
@@ -49,6 +60,8 @@ class CompressionRequest(BaseModel):
     adaptive_budget: bool = False
     decompose_query: bool = False
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
+    query_intent: QueryIntent | None = None
+    routing_reason: str | None = None
     visual_candidates: list[Candidate] = Field(default_factory=list)
     audio_candidates: list[Candidate] = Field(default_factory=list)
 
@@ -79,12 +92,17 @@ class CompressionMetrics(BaseModel):
     estimated_token_reduction_ratio: float = 0.0
     estimated_token_reduction_percent: float = 0.0
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
+    estimated_spatial_visual_tokens: int = 0
+    estimated_retained_spatial_visual_tokens: int = 0
+    estimated_spatial_token_reduction_percent: float = 0.0
 
 
 class CompressionResponse(BaseModel):
     video_id: str
     query: str
     preset: CompressionPreset
+    query_intent: QueryIntent | None = None
+    routing_reason: str | None = None
     query_aspects: list[QueryAspect] = Field(default_factory=list)
     selected: list[SelectedCandidate]
     metrics: CompressionMetrics

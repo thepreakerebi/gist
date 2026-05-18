@@ -1,5 +1,6 @@
 from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
+from gist.core.query_intent import QueryIntent
 from gist.core.schemas import Candidate, CompressionRequest, Modality
 
 
@@ -36,8 +37,36 @@ def test_compressor_selects_query_relevant_audio_and_visual_candidates() -> None
     assert response.metrics.estimated_baseline_tokens > 0
     assert response.metrics.estimated_compressed_tokens > 0
     assert response.metrics.estimated_saved_tokens == 0
+    assert response.query_intent == QueryIntent.MIXED_AV
+    assert response.routing_reason
     assert all(item.reason for item in response.selected)
     assert {item.source_score_type for item in response.selected} == {"lexical_overlap"}
+
+
+def test_compressor_preserves_scene_metadata_on_selected_candidates() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="show the person",
+        duration_seconds=120,
+        preset=CompressionPreset.AGGRESSIVE,
+        visual_candidates=[
+            Candidate(
+                id="v-person",
+                timestamp_seconds=42,
+                text="person enters the frame",
+                segment_id="scene-2",
+                scene_start_seconds=36,
+                scene_end_seconds=50,
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.query_intent == QueryIntent.VISUAL_OBJECT_ACTION
+    assert response.selected[0].segment_id == "scene-2"
+    assert response.selected[0].scene_start_seconds == 36
+    assert response.selected[0].scene_end_seconds == 50
 
 
 def test_aggressive_preset_caps_selected_candidates() -> None:

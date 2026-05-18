@@ -1,0 +1,36 @@
+from gist.core.query_intent import QueryIntent, route_query_intent
+
+
+def test_routes_temporal_speech_query() -> None:
+    intent, reason = route_query_intent("when does the speaker mention architecture")
+
+    assert intent == QueryIntent.TEMPORAL_BEFORE_AFTER
+    assert "temporal" in reason
+
+
+def test_routes_visual_query() -> None:
+    intent, reason = route_query_intent("show the person holding the tool")
+
+    assert intent == QueryIntent.VISUAL_OBJECT_ACTION
+    assert "visual" in reason
+
+
+def test_routes_sound_event_query() -> None:
+    intent, reason = route_query_intent("where is the applause loudest")
+
+    assert intent == QueryIntent.SOUND_EVENT
+    assert "sound" in reason
+
+
+def test_routes_global_query() -> None:
+    intent, reason = route_query_intent("summarize the overall video")
+
+    assert intent == QueryIntent.GLOBAL_SUMMARY
+    assert "global" in reason
+
+
+def test_routes_mixed_query_when_no_dominant_signal_exists() -> None:
+    intent, reason = route_query_intent("pricing")
+
+    assert intent == QueryIntent.MIXED_AV
+    assert "mixed" in reason

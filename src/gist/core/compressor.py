@@ -6,6 +6,7 @@ from gist.core.decomposition import (
     RuleBasedQueryDecomposer,
 )
 from gist.core.presets import PRESETS, CompressionPreset
+from gist.core.query_intent import route_query_intent
 from gist.core.schemas import (
     Candidate,
     CompressionMetrics,
@@ -40,6 +41,10 @@ class ScoredCandidate:
     timestamp_seconds: float
     text: str
     asset_path: str | None
+    segment_id: str | None
+    scene_start_seconds: float | None
+    scene_end_seconds: float | None
+    spatial_mask_path: str | None
     relevance_score: float
     normalized_score: float
     source_score_type: str
@@ -61,6 +66,19 @@ class GistCompressor:
         self.query_decomposer = RuleBasedQueryDecomposer()
 
     def compress(self, request: CompressionRequest) -> CompressionResponse:
+        if request.query_intent is None:
+            query_intent, routing_reason = route_query_intent(request.query)
+            request = request.model_copy(
+                update={
+                    "query_intent": query_intent,
+                    "routing_reason": routing_reason,
+                }
+            )
+        elif request.routing_reason is None:
+            request = request.model_copy(
+                update={"routing_reason": "query intent provided by caller"}
+            )
+
         query_aspects = self._query_aspects_for(request)
         scored = self._score_candidates(request, query_aspects)
         preset, selections, expansion_reason = self._select_for_budget(request, scored)
@@ -142,6 +160,10 @@ class GistCompressor:
                     timestamp_seconds=selection.candidate.timestamp_seconds,
                     text=selection.candidate.text,
                     asset_path=selection.candidate.asset_path,
+                    segment_id=selection.candidate.segment_id,
+                    scene_start_seconds=selection.candidate.scene_start_seconds,
+                    scene_end_seconds=selection.candidate.scene_end_seconds,
+                    spatial_mask_path=selection.candidate.spatial_mask_path,
                     audio_anchor_timestamp_seconds=(
                         selection.candidate.audio_anchor_timestamp_seconds
                     ),
@@ -181,6 +203,8 @@ class GistCompressor:
                 estimated_token_reduction_percent=token_estimate.reduction_percent,
                 token_estimator=token_estimate.profile,
             ),
+            query_intent=request.query_intent,
+            routing_reason=request.routing_reason,
         )
 
     def _should_expand_budget(self, selections: list[Selection]) -> tuple[bool, str | None]:
@@ -251,6 +275,12 @@ class GistCompressor:
                 timestamp_seconds=candidate.timestamp_seconds,
                 text=candidate.text,
                 asset_path=str(candidate.asset_path) if candidate.asset_path else None,
+                segment_id=candidate.segment_id,
+                scene_start_seconds=candidate.scene_start_seconds,
+                scene_end_seconds=candidate.scene_end_seconds,
+                spatial_mask_path=(
+                    str(candidate.spatial_mask_path) if candidate.spatial_mask_path else None
+                ),
                 relevance_score=raw_score,
                 normalized_score=normalized_score,
                 source_score_type="model_saliency"
@@ -326,6 +356,10 @@ class GistCompressor:
                     timestamp_seconds=candidate.timestamp_seconds,
                     text=candidate.text,
                     asset_path=candidate.asset_path,
+                    segment_id=candidate.segment_id,
+                    scene_start_seconds=candidate.scene_start_seconds,
+                    scene_end_seconds=candidate.scene_end_seconds,
+                    spatial_mask_path=candidate.spatial_mask_path,
                     relevance_score=(
                         candidate.relevance_score
                         + (AUDIO_VISUAL_ANCHOR_RELEVANCE_BOOST * anchor_score)
