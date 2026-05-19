@@ -21,6 +21,21 @@ def test_build_messages_includes_images_and_prompt() -> None:
     assert "What happens?" in messages[0]["content"][2]["text"]
 
 
+def test_build_messages_includes_task_aware_prompt() -> None:
+    messages = build_messages(
+        {
+            "query": "Which item is not mentioned?",
+            "context": "Selected evidence:\n- transcript",
+            "compression": {"query_intent": "negative_evidence"},
+        },
+        images=[],
+    )
+
+    prompt = messages[0]["content"][0]["text"]
+    assert "Task guidance:" in prompt
+    assert "not shown or not mentioned" in prompt
+
+
 def test_extract_pipeline_text_supports_string_output() -> None:
     assert extract_pipeline_text("Mars") == "Mars"
 

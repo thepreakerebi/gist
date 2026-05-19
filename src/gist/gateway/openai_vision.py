@@ -7,6 +7,8 @@ import tempfile
 from typing import Any
 from urllib import error, request
 
+from gist.gateway.prompt import build_video_answer_prompt
+
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-4.1-mini"
@@ -63,43 +65,30 @@ def sample_evidence_frames(
     if max_frames <= 0:
         return []
 
-    clip_paths = [
-        Path(item["clip_path"])
-        for item in evidence
-        if isinstance(item, dict)
-        and isinstance(item.get("clip_path"), str)
-        and Path(item["clip_path"]).exists()
-    ]
-    if not clip_paths:
+    clips = _evidence_clips(evidence)
+    if not clips:
         return []
 
-    per_clip = max(1, max_frames // len(clip_paths))
+    allocations = _frame_allocations(clips, max_frames)
     output_dir.mkdir(parents=True, exist_ok=True)
     sampled: list[Path] = []
-    for clip_index, clip_path in enumerate(clip_paths):
-        pattern = output_dir / f"clip-{clip_index:03d}-%03d.jpg"
-        subprocess.run(
-            [
-                ffmpeg_bin,
-                "-hide_banner",
-                "-loglevel",
-                "error",
-                "-y",
-                "-i",
-                str(clip_path),
-                "-vf",
-                "fps=1,scale='min(768,iw)':-2",
-                "-frames:v",
-                str(per_clip),
-                str(pattern),
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
+
+    for clip_index, (clip, frame_count) in enumerate(allocations):
+        offsets = _sample_offsets(
+            duration_seconds=clip["duration_seconds"],
+            anchor_offset_seconds=clip["anchor_offset_seconds"],
+            frame_count=frame_count,
         )
-        sampled.extend(sorted(output_dir.glob(f"clip-{clip_index:03d}-*.jpg")))
-        if len(sampled) >= max_frames:
-            break
+        for frame_index, offset in enumerate(offsets):
+            frame_path = output_dir / f"clip-{clip_index:03d}-{frame_index:03d}.jpg"
+            _extract_frame(
+                ffmpeg_bin=ffmpeg_bin,
+                clip_path=clip["path"],
+                output_path=frame_path,
+                offset_seconds=offset,
+            )
+            sampled.append(frame_path)
+
     return sampled[:max_frames]
 
 
@@ -112,7 +101,7 @@ def create_responses_payload(
     content: list[dict[str, Any]] = [
         {
             "type": "input_text",
-            "text": _prompt(gateway_payload),
+            "text": build_video_answer_prompt(gateway_payload),
         }
     ]
     for frame_path in frame_paths:
@@ -181,18 +170,112 @@ def extract_output_text(response: dict[str, Any]) -> str:
     raise OpenAIVisionGatewayError("OpenAI response did not include output text")
 
 
-def _prompt(gateway_payload: dict[str, Any]) -> str:
-    query = str(gateway_payload.get("query", "")).strip()
-    context = str(gateway_payload.get("context", "")).strip()
-    return (
-        "Answer the video question using only the provided Gist evidence frames and "
-        "evidence context. If choices are visible in the question, answer with the "
-        "best choice text or letter. Keep the answer concise.\n\n"
-        f"Question: {query}\n\n"
-        f"Evidence context:\n{context}"
-    )
-
-
 def _data_url(path: Path) -> str:
     encoded = base64.b64encode(path.read_bytes()).decode()
     return f"data:image/jpeg;base64,{encoded}"
+
+
+def _evidence_clips(evidence: list[Any]) -> list[dict[str, Any]]:
+    clips: list[dict[str, Any]] = []
+    for item in evidence:
+        if not isinstance(item, dict) or not isinstance(item.get("clip_path"), str):
+            continue
+        clip_path = Path(item["clip_path"])
+        if not clip_path.exists():
+            continue
+
+        clip_start = _number(item.get("clip_start_seconds"))
+        clip_end = _number(item.get("clip_end_seconds"))
+        timestamp = _number(item.get("timestamp_seconds"))
+        duration = max(0.2, (clip_end - clip_start) if clip_start is not None and clip_end is not None else 1.0)
+        anchor = (
+            timestamp - clip_start
+            if timestamp is not None and clip_start is not None
+            else duration / 2
+        )
+        clips.append(
+            {
+                "path": clip_path,
+                "duration_seconds": duration,
+                "anchor_offset_seconds": _clamp(anchor, 0.0, duration),
+            }
+        )
+    return clips
+
+
+def _frame_allocations(
+    clips: list[dict[str, Any]],
+    max_frames: int,
+) -> list[tuple[dict[str, Any], int]]:
+    selected = clips[:max_frames] if len(clips) >= max_frames else clips
+    if not selected:
+        return []
+
+    base = max(1, max_frames // len(selected))
+    remainder = max(0, max_frames - base * len(selected))
+    return [
+        (clip, base + (1 if index < remainder else 0))
+        for index, clip in enumerate(selected)
+    ]
+
+
+def _sample_offsets(
+    duration_seconds: float,
+    anchor_offset_seconds: float,
+    frame_count: int,
+) -> list[float]:
+    if frame_count <= 0:
+        return []
+    if frame_count == 1:
+        return [_safe_offset(anchor_offset_seconds, duration_seconds)]
+
+    step = duration_seconds / (frame_count + 1)
+    offsets = [step * (index + 1) for index in range(frame_count)]
+    offsets[frame_count // 2] = anchor_offset_seconds
+    return [_safe_offset(offset, duration_seconds) for offset in offsets]
+
+
+def _extract_frame(
+    ffmpeg_bin: str,
+    clip_path: Path,
+    output_path: Path,
+    offset_seconds: float,
+) -> None:
+    subprocess.run(
+        [
+            ffmpeg_bin,
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-ss",
+            f"{offset_seconds:.3f}",
+            "-i",
+            str(clip_path),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale='min(768,iw)':-2",
+            str(output_path),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def _safe_offset(offset_seconds: float, duration_seconds: float) -> float:
+    upper = max(0.0, duration_seconds - 0.05)
+    return _clamp(offset_seconds, 0.0, upper)
+
+
+def _number(value: Any) -> float | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int | float):
+        return float(value)
+    return None
+
+
+def _clamp(value: float, minimum: float, maximum: float) -> float:
+    return max(minimum, min(value, maximum))

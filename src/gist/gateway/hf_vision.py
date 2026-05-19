@@ -4,6 +4,7 @@ import tempfile
 from typing import Any
 
 from gist.gateway.openai_vision import sample_evidence_frames
+from gist.gateway.prompt import build_video_answer_prompt
 
 
 DEFAULT_HF_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
@@ -236,15 +237,7 @@ def _text_from_messages(messages: list[Any]) -> str | None:
 
 
 def _prompt(payload: dict[str, Any]) -> str:
-    query = str(payload.get("query", "")).strip()
-    context = str(payload.get("context", "")).strip()
-    return (
-        "Answer the video question using only the provided Gist evidence frames and "
-        "evidence context. If the question is multiple choice, answer with the best "
-        "choice letter or text. Keep the answer concise.\n\n"
-        f"Question: {query}\n\n"
-        f"Evidence context:\n{context}"
-    )
+    return build_video_answer_prompt(payload)
 
 
 def _safe_json(value: Any) -> Any:
