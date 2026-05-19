@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
@@ -127,7 +128,11 @@ class LocalCompressionPipeline:
             raise ValueError(f"unsupported visual scorer: {visual_scorer}")
 
         if audio_scorer == AudioScoringMode.WHISPER:
-            audio_transcriber = FasterWhisperTranscriber()
+            audio_transcriber = FasterWhisperTranscriber(
+                model_size=os.getenv("GIST_WHISPER_MODEL_SIZE", "base"),
+                device=os.getenv("GIST_WHISPER_DEVICE", "cpu"),
+                compute_type=os.getenv("GIST_WHISPER_COMPUTE_TYPE", "int8"),
+            )
         elif audio_scorer == AudioScoringMode.CLAP:
             audio_score_adapter = HuggingFaceClapAudioScorer()
         elif audio_scorer != AudioScoringMode.BASELINE:

@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from gist.audio.errors import AudioTranscriptionError
+import gist.audio.whisper as whisper
 from gist.audio.whisper import FasterWhisperTranscriber
 from gist.media.models import AudioWindow
 
@@ -37,3 +38,29 @@ def test_whisper_transcriber_reports_missing_optional_dependencies(
                 )
             ]
         )
+
+
+def test_whisper_transcriber_reuses_cached_window_transcripts(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    audio_path = tmp_path / "audio.wav"
+    audio_path.write_bytes(b"fake")
+    calls = {"count": 0}
+
+    class FakeSegment:
+        text = "hello"
+
+    class FakeModel:
+        def transcribe(self, *_args: object, **_kwargs: object) -> tuple[list[FakeSegment], None]:
+            calls["count"] += 1
+            return [FakeSegment()], None
+
+    monkeypatch.setattr(whisper, "_TRANSCRIPT_CACHE", {})
+    transcriber = FasterWhisperTranscriber()
+    transcriber._model = FakeModel()
+    window = AudioWindow(index=0, start_seconds=0.0, duration_seconds=1.0, path=audio_path)
+
+    assert transcriber.transcribe_windows([window]) == {audio_path: "hello"}
+    assert transcriber.transcribe_windows([window]) == {audio_path: "hello"}
+    assert calls["count"] == 1

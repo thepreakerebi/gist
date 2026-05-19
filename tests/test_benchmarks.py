@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from gist.core.modes import VisualScoringMode
+from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.eval.benchmarks import (
     BenchmarkName,
     SOTA_BENCHMARK_VARIANTS,
@@ -43,6 +43,7 @@ def test_sota_benchmark_variants_include_scene_and_spatial_runs() -> None:
 
     assert variants["gist_core"].visual_scorer == VisualScoringMode.BASELINE
     assert variants["gist_scene_clip"].visual_scorer == VisualScoringMode.CLIP_SCENE
+    assert variants["gist_scene_router_adaptive_whisper"].audio_scorer == AudioScoringMode.WHISPER
     assert variants["gist_scene_spatial"].spatial_pruning is True
 
 

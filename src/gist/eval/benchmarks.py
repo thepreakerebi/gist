@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from gist.core.modes import VisualScoringMode
+from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.eval.schemas import EvalExample, EvalVariant
 
@@ -74,6 +74,13 @@ SOTA_BENCHMARK_VARIANTS = [
         name="gist_scene_router_adaptive",
         preset=CompressionPreset.BALANCED,
         visual_scorer=VisualScoringMode.CLIP_SCENE,
+        adaptive_budget=True,
+    ),
+    EvalVariant(
+        name="gist_scene_router_adaptive_whisper",
+        preset=CompressionPreset.BALANCED,
+        visual_scorer=VisualScoringMode.CLIP_SCENE,
+        audio_scorer=AudioScoringMode.WHISPER,
         adaptive_budget=True,
     ),
     EvalVariant(

@@ -126,6 +126,7 @@ def test_eval_cli_supports_benchmark_sota_sweep(tmp_path) -> None:
         "gist_core",
         "gist_scene_clip",
         "gist_scene_router_adaptive",
+        "gist_scene_router_adaptive_whisper",
         "gist_scene_spatial",
     ]
     assert payload["results"][0]["variants"][0]["answer_score"] == 0

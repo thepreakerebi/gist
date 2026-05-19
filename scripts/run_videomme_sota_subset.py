@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -23,6 +24,9 @@ def main() -> int:
     parser.add_argument("--max-frames", type=int, default=1)
     parser.add_argument("--max-new-tokens", type=int, default=24)
     parser.add_argument("--gateway-timeout", type=float, default=900.0)
+    parser.add_argument("--whisper-model-size", default="tiny")
+    parser.add_argument("--whisper-device", default="cpu")
+    parser.add_argument("--whisper-compute-type", default="int8")
     parser.add_argument("--skip-prepare", action="store_true")
     args = parser.parse_args()
 
@@ -52,6 +56,14 @@ def main() -> int:
         f"--max-frames {args.max_frames} "
         f"--max-new-tokens {args.max_new_tokens}"
     )
+    env = os.environ.copy()
+    env.update(
+        {
+            "GIST_WHISPER_MODEL_SIZE": args.whisper_model_size,
+            "GIST_WHISPER_DEVICE": args.whisper_device,
+            "GIST_WHISPER_COMPUTE_TYPE": args.whisper_compute_type,
+        }
+    )
     _run(
         [
             sys.executable,
@@ -73,15 +85,16 @@ def main() -> int:
             gateway_command,
             "--gateway-timeout",
             str(args.gateway_timeout),
-        ]
+        ],
+        env=env,
     )
     print(f"report={args.output_dir / 'sota-report.html'}")
     return 0
 
 
-def _run(command: list[str]) -> None:
+def _run(command: list[str], env: dict[str, str] | None = None) -> None:
     print("+ " + " ".join(command), flush=True)
-    subprocess.run(command, check=True)
+    subprocess.run(command, check=True, env=env)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,9 @@ from gist.audio.errors import AudioTranscriptionError
 from gist.media.models import AudioWindow
 
 
+_TRANSCRIPT_CACHE: dict[tuple[str, str, str, str, int, int], str] = {}
+
+
 class FasterWhisperTranscriber:
     def __init__(
         self,
@@ -29,12 +32,16 @@ class FasterWhisperTranscriber:
             if not window.path.exists() or not window.path.is_file():
                 raise AudioTranscriptionError(f"audio window does not exist: {window.path}")
 
-            segments, _info = self._model.transcribe(
-                str(window.path),
-                vad_filter=True,
-                beam_size=1,
-            )
-            transcript = " ".join(segment.text.strip() for segment in segments).strip()
+            cache_key = self._cache_key(window.path)
+            transcript = _TRANSCRIPT_CACHE.get(cache_key)
+            if transcript is None:
+                segments, _info = self._model.transcribe(
+                    str(window.path),
+                    vad_filter=True,
+                    beam_size=1,
+                )
+                transcript = " ".join(segment.text.strip() for segment in segments).strip()
+                _TRANSCRIPT_CACHE[cache_key] = transcript
             transcripts[window.path] = transcript
 
         return transcripts
@@ -55,4 +62,15 @@ class FasterWhisperTranscriber:
             self.model_size,
             device=self.device,
             compute_type=self.compute_type,
+        )
+
+    def _cache_key(self, path: Path) -> tuple[str, str, str, str, int, int]:
+        stat = path.stat()
+        return (
+            self.model_size,
+            self.device,
+            self.compute_type,
+            str(path.resolve()),
+            int(stat.st_mtime_ns),
+            int(stat.st_size),
         )
