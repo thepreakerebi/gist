@@ -183,6 +183,24 @@ Real-video examples use the local video pipeline, so `--output-root` stores extr
 The report compares Gist variants against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
 Use `--html-output` for a self-contained evidence inspection report.
 
+## Cloud Benchmarking
+
+Real Video-LLM benchmark runs should be executed on a GPU machine rather than a local laptop.
+The recommended first target is RunPod with an RTX 4090 24GB pod, then A100 if VRAM becomes
+the bottleneck.
+
+See [RunPod Benchmarking](docs/runpod-benchmarking.md) for the setup and benchmark workflow.
+
+Quick RunPod path:
+
+```bash
+git clone https://github.com/thepreakerebi/gist.git
+cd gist
+bash scripts/setup_runpod.sh
+source .venv/bin/activate
+bash scripts/run_runpod_videomme.sh
+```
+
 ## Token Estimates
 
 Gist reports proxy token savings in compression and evaluation outputs:
