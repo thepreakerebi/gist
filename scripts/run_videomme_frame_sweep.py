@@ -31,6 +31,13 @@ def main() -> int:
     parser.add_argument("--whisper-compute-type", default="int8")
     parser.add_argument("--frame-sampling", choices=["start", "anchor"], default="start")
     parser.add_argument("--prompt-strategy", choices=["default", "task_aware"], default="default")
+    parser.add_argument("--single-config", action="store_true")
+    parser.add_argument("--preset", default="balanced")
+    parser.add_argument("--visual-scorer", default="baseline")
+    parser.add_argument("--audio-scorer", default="baseline")
+    parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument("--task-aware-selection", action="store_true")
+    parser.add_argument("--spatial-pruning", action="store_true")
     parser.add_argument("--skip-prepare", action="store_true")
     args = parser.parse_args()
 
@@ -73,7 +80,7 @@ def main() -> int:
             args.frame_sampling,
             "--prompt-strategy",
             args.prompt_strategy,
-        ]
+        ] + _configured_eval_args(args)
         if args.skip_prepare or reports:
             command.append("--skip-prepare")
         _run(command)
@@ -101,6 +108,28 @@ def _parse_frame_counts(value: str) -> list[int]:
     if not counts:
         raise argparse.ArgumentTypeError("at least one frame count is required")
     return sorted(set(counts))
+
+
+def _configured_eval_args(args: argparse.Namespace) -> list[str]:
+    if not args.single_config:
+        return []
+
+    eval_args = [
+        "--single-config",
+        "--preset",
+        args.preset,
+        "--visual-scorer",
+        args.visual_scorer,
+        "--audio-scorer",
+        args.audio_scorer,
+    ]
+    if args.adaptive_budget:
+        eval_args.append("--adaptive-budget")
+    if args.task_aware_selection:
+        eval_args.append("--task-aware-selection")
+    if args.spatial_pruning:
+        eval_args.append("--spatial-pruning")
+    return eval_args
 
 
 def _run(command: list[str]) -> None:

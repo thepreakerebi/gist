@@ -26,6 +26,13 @@ def main() -> int:
     parser.add_argument("--gateway-timeout", type=float, default=900.0)
     parser.add_argument("--frame-sampling", choices=["start", "anchor"], default="start")
     parser.add_argument("--prompt-strategy", choices=["default", "task_aware"], default="default")
+    parser.add_argument("--single-config", action="store_true")
+    parser.add_argument("--preset", default="balanced")
+    parser.add_argument("--visual-scorer", default="baseline")
+    parser.add_argument("--audio-scorer", default="baseline")
+    parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument("--task-aware-selection", action="store_true")
+    parser.add_argument("--spatial-pruning", action="store_true")
     parser.add_argument("--whisper-model-size", default="tiny")
     parser.add_argument("--whisper-device", default="cpu")
     parser.add_argument("--whisper-compute-type", default="int8")
@@ -89,7 +96,8 @@ def main() -> int:
             gateway_command,
             "--gateway-timeout",
             str(args.gateway_timeout),
-        ],
+        ]
+        + _configured_eval_args(args),
         env=env,
     )
     print(f"report={args.output_dir / 'sota-report.html'}")
@@ -99,6 +107,28 @@ def main() -> int:
 def _run(command: list[str], env: dict[str, str] | None = None) -> None:
     print("+ " + " ".join(command), flush=True)
     subprocess.run(command, check=True, env=env)
+
+
+def _configured_eval_args(args: argparse.Namespace) -> list[str]:
+    if not args.single_config:
+        return []
+
+    eval_args = [
+        "--single-config",
+        "--preset",
+        args.preset,
+        "--visual-scorer",
+        args.visual_scorer,
+        "--audio-scorer",
+        args.audio_scorer,
+    ]
+    if args.adaptive_budget:
+        eval_args.append("--adaptive-budget")
+    if args.task_aware_selection:
+        eval_args.append("--task-aware-selection")
+    if args.spatial_pruning:
+        eval_args.append("--spatial-pruning")
+    return eval_args
 
 
 if __name__ == "__main__":
