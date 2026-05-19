@@ -29,6 +29,7 @@ def test_build_messages_includes_task_aware_prompt() -> None:
             "compression": {"query_intent": "negative_evidence"},
         },
         images=[],
+        prompt_strategy="task_aware",
     )
 
     prompt = messages[0]["content"][0]["text"]

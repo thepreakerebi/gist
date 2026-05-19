@@ -23,6 +23,8 @@ def answer_from_gateway_payload(
     torch_dtype: str = "auto",
     trust_remote_code: bool = False,
     ffmpeg_bin: str = "ffmpeg",
+    frame_sampling: str = "start",
+    prompt_strategy: str = "default",
 ) -> dict[str, str]:
     return HuggingFaceVisionSession(
         model=model,
@@ -30,7 +32,13 @@ def answer_from_gateway_payload(
         torch_dtype=torch_dtype,
         trust_remote_code=trust_remote_code,
         ffmpeg_bin=ffmpeg_bin,
-    ).answer(payload=payload, max_frames=max_frames, max_new_tokens=max_new_tokens)
+    ).answer(
+        payload=payload,
+        max_frames=max_frames,
+        max_new_tokens=max_new_tokens,
+        frame_sampling=frame_sampling,
+        prompt_strategy=prompt_strategy,
+    )
 
 
 class HuggingFaceVisionSession:
@@ -56,6 +64,8 @@ class HuggingFaceVisionSession:
         payload: dict[str, Any],
         max_frames: int = 8,
         max_new_tokens: int = 128,
+        frame_sampling: str = "start",
+        prompt_strategy: str = "default",
     ) -> dict[str, str]:
         self.load()
         assert self._processor is not None
@@ -75,10 +85,11 @@ class HuggingFaceVisionSession:
                 output_dir=Path(temp_dir),
                 max_frames=max_frames,
                 ffmpeg_bin=self.ffmpeg_bin,
+                strategy=frame_sampling,
             )
             images = [Image.open(path).convert("RGB") for path in frame_paths]
             prompt = self._processor.apply_chat_template(
-                _messages_with_image_placeholders(payload, images),
+                _messages_with_image_placeholders(payload, images, prompt_strategy),
                 add_generation_prompt=True,
             )
             inputs = self._processor(
@@ -125,7 +136,11 @@ class HuggingFaceVisionSession:
         )
 
 
-def build_messages(payload: dict[str, Any], images: list[Any]) -> list[dict[str, Any]]:
+def build_messages(
+    payload: dict[str, Any],
+    images: list[Any],
+    prompt_strategy: str = "default",
+) -> list[dict[str, Any]]:
     content: list[dict[str, Any]] = [
         {"type": "image", "image": image}
         for image in images
@@ -133,7 +148,7 @@ def build_messages(payload: dict[str, Any], images: list[Any]) -> list[dict[str,
     content.append(
         {
             "type": "text",
-            "text": _prompt(payload),
+            "text": _prompt(payload, prompt_strategy),
         }
     )
     return [
@@ -147,9 +162,10 @@ def build_messages(payload: dict[str, Any], images: list[Any]) -> list[dict[str,
 def _messages_with_image_placeholders(
     payload: dict[str, Any],
     images: list[Any],
+    prompt_strategy: str = "default",
 ) -> list[dict[str, Any]]:
     content: list[dict[str, Any]] = [{"type": "image"} for _image in images]
-    content.append({"type": "text", "text": _prompt(payload)})
+    content.append({"type": "text", "text": _prompt(payload, prompt_strategy)})
     return [{"role": "user", "content": content}]
 
 
@@ -236,8 +252,8 @@ def _text_from_messages(messages: list[Any]) -> str | None:
     return None
 
 
-def _prompt(payload: dict[str, Any]) -> str:
-    return build_video_answer_prompt(payload)
+def _prompt(payload: dict[str, Any], prompt_strategy: str = "default") -> str:
+    return build_video_answer_prompt(payload, strategy=prompt_strategy)
 
 
 def _safe_json(value: Any) -> Any:

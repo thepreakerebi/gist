@@ -1,9 +1,21 @@
 from typing import Any
 
 
-def build_video_answer_prompt(gateway_payload: dict[str, Any]) -> str:
+def build_video_answer_prompt(
+    gateway_payload: dict[str, Any],
+    strategy: str = "default",
+) -> str:
     query = str(gateway_payload.get("query", "")).strip()
     context = str(gateway_payload.get("context", "")).strip()
+    if strategy == "default":
+        return (
+            "Answer the video question using only the provided Gist evidence frames and "
+            "evidence context. If the question is multiple choice, answer with the best "
+            "choice letter or text. Keep the answer concise.\n\n"
+            f"Question: {query}\n\n"
+            f"Evidence context:\n{context}"
+        )
+
     query_intent = _query_intent(gateway_payload)
     task_instruction = _task_instruction(query_intent)
 

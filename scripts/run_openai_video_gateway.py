@@ -19,6 +19,8 @@ def main() -> int:
     parser.add_argument("--detail", choices=["low", "high", "auto"], default="low")
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--ffmpeg-bin", default="ffmpeg")
+    parser.add_argument("--frame-sampling", choices=["start", "anchor"], default="start")
+    parser.add_argument("--prompt-strategy", choices=["default", "task_aware"], default="default")
     args = parser.parse_args()
 
     try:
@@ -30,6 +32,8 @@ def main() -> int:
             detail=args.detail,
             timeout_seconds=args.timeout,
             ffmpeg_bin=args.ffmpeg_bin,
+            frame_sampling=args.frame_sampling,
+            prompt_strategy=args.prompt_strategy,
         )
     except (json.JSONDecodeError, OpenAIVisionGatewayError, OSError, ValueError) as exc:
         print(f"run_openai_video_gateway.py: {exc}", file=sys.stderr)

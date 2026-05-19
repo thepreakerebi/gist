@@ -21,6 +21,8 @@ def main() -> int:
     parser.add_argument("--torch-dtype", default="auto")
     parser.add_argument("--trust-remote-code", action="store_true")
     parser.add_argument("--ffmpeg-bin", default="ffmpeg")
+    parser.add_argument("--frame-sampling", choices=["start", "anchor"], default="start")
+    parser.add_argument("--prompt-strategy", choices=["default", "task_aware"], default="default")
     args = parser.parse_args()
 
     try:
@@ -47,6 +49,8 @@ def main() -> int:
                 payload=payload,
                 max_frames=args.max_frames,
                 max_new_tokens=args.max_new_tokens,
+                frame_sampling=args.frame_sampling,
+                prompt_strategy=args.prompt_strategy,
             )
             print(json.dumps(result), flush=True)
         except (json.JSONDecodeError, HuggingFaceVisionGatewayError, OSError, ValueError) as exc:

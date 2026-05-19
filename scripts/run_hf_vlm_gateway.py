@@ -21,6 +21,8 @@ def main() -> int:
     parser.add_argument("--torch-dtype", default="auto")
     parser.add_argument("--trust-remote-code", action="store_true")
     parser.add_argument("--ffmpeg-bin", default="ffmpeg")
+    parser.add_argument("--frame-sampling", choices=["start", "anchor"], default="start")
+    parser.add_argument("--prompt-strategy", choices=["default", "task_aware"], default="default")
     args = parser.parse_args()
 
     try:
@@ -34,6 +36,8 @@ def main() -> int:
             torch_dtype=args.torch_dtype,
             trust_remote_code=args.trust_remote_code,
             ffmpeg_bin=args.ffmpeg_bin,
+            frame_sampling=args.frame_sampling,
+            prompt_strategy=args.prompt_strategy,
         )
     except (json.JSONDecodeError, HuggingFaceVisionGatewayError, OSError, ValueError) as exc:
         print(f"run_hf_vlm_gateway.py: {exc}", file=sys.stderr)

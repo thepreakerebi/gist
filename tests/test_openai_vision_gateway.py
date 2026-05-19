@@ -44,6 +44,7 @@ def test_create_responses_payload_includes_task_guidance(tmp_path: Path) -> None
         frame_paths=[frame],
         model="gpt-test",
         detail="low",
+        prompt_strategy="task_aware",
     )
 
     prompt = payload["input"][0]["content"][0]["text"]
@@ -83,6 +84,7 @@ def test_sample_evidence_frames_uses_anchor_offsets(tmp_path: Path, monkeypatch:
         ],
         output_dir=tmp_path / "frames",
         max_frames=2,
+        strategy="anchor",
     )
 
     assert len(frames) == 2
@@ -90,7 +92,7 @@ def test_sample_evidence_frames_uses_anchor_offsets(tmp_path: Path, monkeypatch:
     assert calls[1][calls[1].index("-ss") + 1] == "1.000"
 
 
-def test_sample_evidence_frames_spreads_budget_over_top_clips(
+def test_sample_evidence_frames_defaults_to_start_sampling(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -114,6 +116,7 @@ def test_sample_evidence_frames_spreads_budget_over_top_clips(
 
     assert len(frames) == 2
     assert [Path(call[call.index("-i") + 1]) for call in calls] == clips[:2]
+    assert all("-ss" not in call for call in calls)
 
 
 def test_extract_output_text_supports_output_text_shortcut() -> None:

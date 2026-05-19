@@ -26,6 +26,8 @@ def answer_from_gateway_payload(
     detail: str = "low",
     timeout_seconds: float = 120.0,
     ffmpeg_bin: str = "ffmpeg",
+    frame_sampling: str = "start",
+    prompt_strategy: str = "default",
 ) -> dict[str, str]:
     resolved_api_key = api_key or os.getenv("OPENAI_API_KEY")
     if not resolved_api_key:
@@ -37,12 +39,14 @@ def answer_from_gateway_payload(
             output_dir=Path(temp_dir),
             max_frames=max_frames,
             ffmpeg_bin=ffmpeg_bin,
+            strategy=frame_sampling,
         )
         response_payload = create_responses_payload(
             gateway_payload=payload,
             frame_paths=frame_paths,
             model=model,
             detail=detail,
+            prompt_strategy=prompt_strategy,
         )
         response = post_openai_response(
             payload=response_payload,
@@ -61,6 +65,7 @@ def sample_evidence_frames(
     output_dir: Path,
     max_frames: int,
     ffmpeg_bin: str = "ffmpeg",
+    strategy: str = "start",
 ) -> list[Path]:
     if max_frames <= 0:
         return []
@@ -72,6 +77,16 @@ def sample_evidence_frames(
     allocations = _frame_allocations(clips, max_frames)
     output_dir.mkdir(parents=True, exist_ok=True)
     sampled: list[Path] = []
+
+    if strategy == "start":
+        return _sample_start_frames(
+            allocations=allocations,
+            output_dir=output_dir,
+            max_frames=max_frames,
+            ffmpeg_bin=ffmpeg_bin,
+        )
+    if strategy != "anchor":
+        raise ValueError("frame sampling strategy must be 'start' or 'anchor'")
 
     for clip_index, (clip, frame_count) in enumerate(allocations):
         offsets = _sample_offsets(
@@ -97,11 +112,12 @@ def create_responses_payload(
     frame_paths: list[Path],
     model: str,
     detail: str,
+    prompt_strategy: str = "default",
 ) -> dict[str, Any]:
     content: list[dict[str, Any]] = [
         {
             "type": "input_text",
-            "text": build_video_answer_prompt(gateway_payload),
+            "text": build_video_answer_prompt(gateway_payload, strategy=prompt_strategy),
         }
     ]
     for frame_path in frame_paths:
@@ -173,6 +189,40 @@ def extract_output_text(response: dict[str, Any]) -> str:
 def _data_url(path: Path) -> str:
     encoded = base64.b64encode(path.read_bytes()).decode()
     return f"data:image/jpeg;base64,{encoded}"
+
+
+def _sample_start_frames(
+    allocations: list[tuple[dict[str, Any], int]],
+    output_dir: Path,
+    max_frames: int,
+    ffmpeg_bin: str,
+) -> list[Path]:
+    sampled: list[Path] = []
+    for clip_index, (clip, frame_count) in enumerate(allocations):
+        pattern = output_dir / f"clip-{clip_index:03d}-%03d.jpg"
+        subprocess.run(
+            [
+                ffmpeg_bin,
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-i",
+                str(clip["path"]),
+                "-vf",
+                "fps=1,scale='min(768,iw)':-2",
+                "-frames:v",
+                str(frame_count),
+                str(pattern),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        sampled.extend(sorted(output_dir.glob(f"clip-{clip_index:03d}-*.jpg")))
+        if len(sampled) >= max_frames:
+            break
+    return sampled[:max_frames]
 
 
 def _evidence_clips(evidence: list[Any]) -> list[dict[str, Any]]:
