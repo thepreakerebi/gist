@@ -15,7 +15,7 @@ def answer_score(predicted: str | None, expected: str | None, choices: list[str]
     if choices:
         expected_choice = _resolve_choice(expected, choices)
         predicted_choice = _resolve_choice(predicted, choices)
-        if expected_choice is not None and predicted_choice is not None:
+        if expected_choice is not None:
             return 1.0 if predicted_choice == expected_choice else 0.0
 
     return 1.0 if normalized_expected in normalized_predicted else 0.0
@@ -26,6 +26,12 @@ def _resolve_choice(value: str, choices: list[str]) -> int | None:
     letter_match = re.fullmatch(r"[a-z]", normalized_value)
     if letter_match:
         index = ord(normalized_value) - ord("a")
+        if 0 <= index < len(choices):
+            return index
+
+    prefixed_letter = re.search(r"\b(?:answer|option|choice|letter)\s+([a-z])\b", normalized_value)
+    if prefixed_letter:
+        index = ord(prefixed_letter.group(1)) - ord("a")
         if 0 <= index < len(choices):
             return index
 

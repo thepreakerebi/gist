@@ -38,6 +38,7 @@ def run(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument("--task-aware-selection", action="store_true")
     parser.add_argument("--spatial-pruning", action="store_true")
     parser.add_argument("--spatial-retention-ratio", type=float, default=0.35)
     parser.add_argument("--spatial-grid-size", type=int, default=14)
@@ -90,6 +91,7 @@ def run(argv: list[str] | None = None) -> None:
         decompose_query=args.decompose_query,
         adaptive_budget=args.adaptive_budget,
         token_estimator=TokenEstimatorProfile(args.token_estimator),
+        task_aware_selection=args.task_aware_selection,
         spatial_pruning=args.spatial_pruning,
         spatial_retention_ratio=args.spatial_retention_ratio,
         spatial_grid_size=args.spatial_grid_size,

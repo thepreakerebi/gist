@@ -46,6 +46,7 @@ class LocalCompressionPipeline:
         adaptive_budget: bool = False,
         decompose_query: bool = False,
         token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC,
+        task_aware_selection: bool = False,
     ) -> tuple[IngestedVideo, CompressionResponse]:
         ingested, candidates = self.prepare_candidates(
             video_path=video_path,
@@ -65,6 +66,7 @@ class LocalCompressionPipeline:
                 adaptive_budget=adaptive_budget,
                 decompose_query=decompose_query,
                 token_estimator=token_estimator,
+                task_aware_selection=task_aware_selection,
                 visual_candidates=candidates.visual,
                 audio_candidates=candidates.audio,
             )

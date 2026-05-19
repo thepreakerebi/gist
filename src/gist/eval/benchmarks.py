@@ -84,6 +84,14 @@ SOTA_BENCHMARK_VARIANTS = [
         adaptive_budget=True,
     ),
     EvalVariant(
+        name="gist_task_router_adaptive_whisper",
+        preset=CompressionPreset.BALANCED,
+        visual_scorer=VisualScoringMode.CLIP_SCENE,
+        audio_scorer=AudioScoringMode.WHISPER,
+        adaptive_budget=True,
+        task_aware_selection=True,
+    ),
+    EvalVariant(
         name="gist_scene_spatial",
         preset=CompressionPreset.BALANCED,
         visual_scorer=VisualScoringMode.CLIP_SCENE,

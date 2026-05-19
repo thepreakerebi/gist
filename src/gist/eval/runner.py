@@ -4,6 +4,7 @@ import time
 
 from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
+from gist.core.query_intent import QueryIntent, route_query_intent
 from gist.core.schemas import (
     CompressionMetrics,
     CompressionRequest,
@@ -128,7 +129,9 @@ class EvalRunner:
                 output_root=self.output_root / example.id
             ).run(
                 video_path=example.video_path,
-                query=example.query,
+                query=_retrieval_query(example)
+                if variant.task_aware_selection
+                else example.query,
                 preset=variant.preset,
                 sample_count=example.sample_count,
                 audio_window_seconds=example.audio_window_seconds,
@@ -137,6 +140,7 @@ class EvalRunner:
                 adaptive_budget=variant.adaptive_budget,
                 decompose_query=variant.decompose_query,
                 token_estimator=variant.token_estimator,
+                task_aware_selection=variant.task_aware_selection,
             )
             gist = self._attach_evidence_clips(
                 compression=gist,
@@ -154,12 +158,13 @@ class EvalRunner:
             gist = self.compressor.compress(
                 CompressionRequest(
                     video_id=example.video_id,
-                    query=example.query,
+                    query=_retrieval_query(example),
                     duration_seconds=example.duration_seconds,
                     preset=variant.preset,
                     adaptive_budget=variant.adaptive_budget,
                     decompose_query=variant.decompose_query,
                     token_estimator=variant.token_estimator,
+                    task_aware_selection=variant.task_aware_selection,
                     visual_candidates=example.visual_candidates,
                     audio_candidates=example.audio_candidates,
                 )
@@ -401,6 +406,7 @@ def _variants_from_settings(settings: EvalSettings | None) -> list[EvalVariant] 
             decompose_query=settings.decompose_query,
             adaptive_budget=settings.adaptive_budget,
             token_estimator=settings.token_estimator,
+            task_aware_selection=settings.task_aware_selection,
             spatial_pruning=settings.spatial_pruning,
             spatial_retention_ratio=settings.spatial_retention_ratio,
             spatial_grid_size=settings.spatial_grid_size,
@@ -419,3 +425,12 @@ def _question_with_choices(example: EvalExample) -> str:
     if not choices:
         return example.query
     return f"{example.query}\n\nChoices:\n{choices}"
+
+
+def _retrieval_query(example: EvalExample) -> str:
+    if not example.choices:
+        return example.query
+    intent, _reason = route_query_intent(example.query)
+    if intent == QueryIntent.NEGATIVE_EVIDENCE:
+        return _question_with_choices(example)
+    return example.query

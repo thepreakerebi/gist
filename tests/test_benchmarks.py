@@ -44,6 +44,7 @@ def test_sota_benchmark_variants_include_scene_and_spatial_runs() -> None:
     assert variants["gist_core"].visual_scorer == VisualScoringMode.BASELINE
     assert variants["gist_scene_clip"].visual_scorer == VisualScoringMode.CLIP_SCENE
     assert variants["gist_scene_router_adaptive_whisper"].audio_scorer == AudioScoringMode.WHISPER
+    assert variants["gist_task_router_adaptive_whisper"].task_aware_selection is True
     assert variants["gist_scene_spatial"].spatial_pruning is True
 
 

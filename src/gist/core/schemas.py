@@ -60,6 +60,7 @@ class CompressionRequest(BaseModel):
     adaptive_budget: bool = False
     decompose_query: bool = False
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
+    task_aware_selection: bool = False
     query_intent: QueryIntent | None = None
     routing_reason: str | None = None
     visual_candidates: list[Candidate] = Field(default_factory=list)

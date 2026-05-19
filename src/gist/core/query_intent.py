@@ -8,6 +8,8 @@ class QueryIntent(StrEnum):
     TEMPORAL_BEFORE_AFTER = "temporal_before_after"
     GLOBAL_SUMMARY = "global_summary"
     SOUND_EVENT = "sound_event"
+    COUNTING_COMPARISON = "counting_comparison"
+    NEGATIVE_EVIDENCE = "negative_evidence"
     MIXED_AV = "mixed_av"
 
 
@@ -60,6 +62,41 @@ _SOUND_TERMS = {
     "gunshot",
     "footsteps",
 }
+_COUNTING_TERMS = {
+    "count",
+    "counting",
+    "many",
+    "number",
+    "largest",
+    "smallest",
+    "more",
+    "most",
+    "least",
+    "total",
+}
+_NEGATIVE_TERMS = {
+    "not",
+    "except",
+    "neither",
+    "none",
+    "without",
+    "didn",
+    "doesn",
+    "isn",
+    "aren",
+    "absent",
+    "missing",
+    "undiscussed",
+}
+_NEGATIVE_PHRASES = {
+    "not discussed",
+    "not mentioned",
+    "does not",
+    "did not",
+    "is not",
+    "are not",
+    "which of the following is not",
+}
 
 
 def route_query_intent(query: str) -> tuple[QueryIntent, str]:
@@ -72,7 +109,21 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
     has_temporal = bool(tokens & _TEMPORAL_TERMS)
     has_global = bool(tokens & _GLOBAL_TERMS)
     has_sound = bool(tokens & _SOUND_TERMS)
+    has_counting = bool(tokens & _COUNTING_TERMS) or "how many" in query.lower()
+    has_negative = bool(tokens & _NEGATIVE_TERMS) or any(
+        phrase in query.lower() for phrase in _NEGATIVE_PHRASES
+    )
 
+    if has_negative:
+        return (
+            QueryIntent.NEGATIVE_EVIDENCE,
+            "negative query terms require coverage of mentioned and unmentioned alternatives",
+        )
+    if has_counting:
+        return (
+            QueryIntent.COUNTING_COMPARISON,
+            "counting/comparison terms require denser visual evidence around relevant moments",
+        )
     if has_global and not (has_speech or has_visual or has_sound):
         return QueryIntent.GLOBAL_SUMMARY, "global summary terms favor broad segment coverage"
     if has_temporal and (has_speech or has_visual or has_sound):

@@ -60,6 +60,7 @@ def run(argv: list[str] | None = None) -> None:
     )
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument("--task-aware-selection", action="store_true")
     parser.add_argument("--spatial-pruning", action="store_true")
     parser.add_argument("--spatial-retention-ratio", type=float, default=0.35)
     parser.add_argument("--spatial-grid-size", type=int, default=14)
@@ -141,6 +142,8 @@ def run(argv: list[str] | None = None) -> None:
             eval_args.append("--decompose-query")
         if args.adaptive_budget:
             eval_args.append("--adaptive-budget")
+        if args.task_aware_selection:
+            eval_args.append("--task-aware-selection")
         if args.spatial_pruning:
             eval_args.append("--spatial-pruning")
     else:

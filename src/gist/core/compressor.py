@@ -6,7 +6,7 @@ from gist.core.decomposition import (
     RuleBasedQueryDecomposer,
 )
 from gist.core.presets import PRESETS, CompressionPreset
-from gist.core.query_intent import route_query_intent
+from gist.core.query_intent import QueryIntent, route_query_intent
 from gist.core.schemas import (
     Candidate,
     CompressionMetrics,
@@ -99,9 +99,21 @@ class GistCompressor:
         scored: list[ScoredCandidate],
     ) -> tuple[CompressionPreset, list[Selection], str | None]:
         if not request.adaptive_budget:
-            return request.preset, self._select_with_preset(request.preset, scored), None
+            return (
+                request.preset,
+                self._select_with_preset(
+                    request.preset,
+                    scored,
+                    request.query_intent if request.task_aware_selection else None,
+                ),
+                None,
+            )
 
-        aggressive = self._select_with_preset(CompressionPreset.AGGRESSIVE, scored)
+        aggressive = self._select_with_preset(
+            CompressionPreset.AGGRESSIVE,
+            scored,
+            request.query_intent if request.task_aware_selection else None,
+        )
         should_expand, reason = self._should_expand_budget(aggressive)
         if not should_expand:
             return CompressionPreset.AGGRESSIVE, aggressive, None
@@ -111,21 +123,43 @@ class GistCompressor:
             if request.preset == CompressionPreset.CONSERVATIVE
             else CompressionPreset.BALANCED
         )
-        return expanded_preset, self._select_with_preset(expanded_preset, scored), reason
+        return (
+            expanded_preset,
+            self._select_with_preset(
+                expanded_preset,
+                scored,
+                request.query_intent if request.task_aware_selection else None,
+            ),
+            reason,
+        )
 
     def _select_with_preset(
         self,
         preset: CompressionPreset,
         scored: list[ScoredCandidate],
+        query_intent: QueryIntent | None,
     ) -> list[Selection]:
         config = PRESETS[preset]
         scored = self._apply_scene_aware_visual_budget(scored, config.max_items)
-        return self._select_with_mmr(
+        selections = self._select_with_mmr(
             candidates=scored,
             max_items=config.max_items,
             relevance_weight=config.relevance_weight,
             temporal_sigma_seconds=config.temporal_sigma_seconds,
         )
+        if query_intent == QueryIntent.COUNTING_COMPARISON:
+            selections = self._ensure_counting_visual_neighbors(
+                selections=selections,
+                candidates=scored,
+                max_items=config.max_items,
+            )
+        if query_intent == QueryIntent.NEGATIVE_EVIDENCE:
+            selections = self._ensure_negative_audio_coverage(
+                selections=selections,
+                candidates=scored,
+                max_items=config.max_items,
+            )
+        return selections
 
     def _apply_scene_aware_visual_budget(
         self,
@@ -581,6 +615,122 @@ class GistCompressor:
 
         return self._rerank_selections(balanced)
 
+    def _ensure_counting_visual_neighbors(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[Selection]:
+        selected_ids = {selection.candidate.id for selection in selections}
+        selected_visuals = [
+            selection.candidate
+            for selection in selections
+            if selection.candidate.modality == Modality.VISUAL
+        ]
+        if not selected_visuals:
+            return selections
+
+        visual_candidates = [
+            candidate for candidate in candidates if candidate.modality == Modality.VISUAL
+        ]
+        if len(visual_candidates) <= len(selected_visuals):
+            return selections
+
+        neighbors: list[ScoredCandidate] = []
+        for selected in sorted(
+            selected_visuals,
+            key=lambda candidate: (candidate.normalized_score, candidate.relevance_score),
+            reverse=True,
+        ):
+            nearby = [
+                candidate
+                for candidate in visual_candidates
+                if candidate.id not in selected_ids
+                and abs(candidate.timestamp_seconds - selected.timestamp_seconds) <= 12.0
+            ]
+            nearby.sort(
+                key=lambda candidate: (
+                    abs(candidate.timestamp_seconds - selected.timestamp_seconds),
+                    -candidate.normalized_score,
+                )
+            )
+            for candidate in nearby:
+                if candidate.id in selected_ids:
+                    continue
+                neighbors.append(candidate)
+                selected_ids.add(candidate.id)
+                break
+
+        if not neighbors:
+            return selections
+
+        balanced = list(selections)
+        for candidate in neighbors:
+            if len(balanced) >= max_items and not self._drop_weakest_audio_or_visual(balanced):
+                break
+            balanced.append(
+                Selection(
+                    candidate=candidate,
+                    selection_rank=0,
+                    mmr_score=candidate.normalized_score,
+                    reason=(
+                        "Included as neighboring visual evidence because counting/comparison "
+                        "queries need denser frames around relevant moments."
+                    ),
+                )
+            )
+        return self._rerank_selections(balanced)
+
+    def _ensure_negative_audio_coverage(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[Selection]:
+        selected_ids = {selection.candidate.id for selection in selections}
+        selected_audio = sum(
+            selection.candidate.modality == Modality.AUDIO for selection in selections
+        )
+        target_audio = min(max_items, max(3, max_items // 2))
+        if selected_audio >= target_audio:
+            return selections
+
+        audio_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.AUDIO and candidate.id not in selected_ids
+        ]
+        audio_candidates.sort(
+            key=lambda candidate: (
+                candidate.normalized_score,
+                candidate.relevance_score,
+                -candidate.timestamp_seconds,
+            ),
+            reverse=True,
+        )
+        if not audio_candidates:
+            return selections
+
+        balanced = list(selections)
+        for candidate in audio_candidates:
+            if selected_audio >= target_audio:
+                break
+            if len(balanced) >= max_items and not self._drop_weakest_visual(balanced):
+                break
+            balanced.append(
+                Selection(
+                    candidate=candidate,
+                    selection_rank=0,
+                    mmr_score=candidate.normalized_score,
+                    reason=(
+                        "Included for negative-evidence coverage so the model can compare "
+                        "which alternatives are discussed versus absent."
+                    ),
+                )
+            )
+            selected_audio += 1
+        return self._rerank_selections(balanced)
+
     def _drop_weakest_anchored_visual(self, selections: list[Selection]) -> bool:
         removable = [
             selection
@@ -594,6 +744,31 @@ class GistCompressor:
         weakest = min(removable, key=lambda selection: selection.mmr_score)
         selections.remove(weakest)
         return True
+
+    def _drop_weakest_visual(self, selections: list[Selection]) -> bool:
+        removable = [
+            selection
+            for selection in selections
+            if selection.candidate.modality == Modality.VISUAL
+        ]
+        if not removable:
+            return False
+
+        weakest = min(removable, key=lambda selection: selection.mmr_score)
+        selections.remove(weakest)
+        return True
+
+    def _drop_weakest_audio_or_visual(self, selections: list[Selection]) -> bool:
+        removable_audio = [
+            selection
+            for selection in selections
+            if selection.candidate.modality == Modality.AUDIO
+        ]
+        if removable_audio:
+            weakest = min(removable_audio, key=lambda selection: selection.mmr_score)
+            selections.remove(weakest)
+            return True
+        return self._drop_weakest_visual(selections)
 
     def _rerank_selections(self, selections: list[Selection]) -> list[Selection]:
         return [

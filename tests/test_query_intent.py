@@ -29,6 +29,20 @@ def test_routes_global_query() -> None:
     assert "global" in reason
 
 
+def test_routes_counting_query() -> None:
+    intent, reason = route_query_intent("how many red socks are above the fireplace")
+
+    assert intent == QueryIntent.COUNTING_COMPARISON
+    assert "counting" in reason
+
+
+def test_routes_negative_evidence_query() -> None:
+    intent, reason = route_query_intent("which option is not discussed in the video")
+
+    assert intent == QueryIntent.NEGATIVE_EVIDENCE
+    assert "negative" in reason
+
+
 def test_routes_mixed_query_when_no_dominant_signal_exists() -> None:
     intent, reason = route_query_intent("pricing")
 

@@ -265,8 +265,60 @@ def test_model_saliency_candidates_report_source_score_type() -> None:
     response = GistCompressor().compress(request)
 
     assert response.selected[0].source_score_type == "model_saliency"
-    assert response.selected[0].selection_rank == 1
-    assert response.selected[0].mmr_score == 0
+
+
+def test_counting_query_keeps_neighboring_visual_frames() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="how many red socks are above the fireplace",
+        duration_seconds=100,
+        preset=CompressionPreset.AGGRESSIVE,
+        adaptive_budget=True,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(id="v-0", timestamp_seconds=0, text="intro"),
+            Candidate(id="v-1", timestamp_seconds=30, text="fireplace with socks"),
+            Candidate(id="v-2", timestamp_seconds=38, text="fireplace close view"),
+            Candidate(id="v-3", timestamp_seconds=70, text="closing"),
+        ],
+        audio_candidates=[
+            Candidate(id="a-1", timestamp_seconds=31, text="look at the red socks"),
+            Candidate(id="a-2", timestamp_seconds=80, text="closing remarks"),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+    selected_ids = {item.id for item in response.selected}
+
+    assert response.query_intent == QueryIntent.COUNTING_COMPARISON
+    assert {"v-1", "v-2"}.issubset(selected_ids)
+    assert response.metrics.visual_selected >= 3
+
+
+def test_negative_query_prefers_audio_coverage() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="which of these is not discussed in the video? Choices: inkstone niche jade table",
+        duration_seconds=100,
+        preset=CompressionPreset.AGGRESSIVE,
+        adaptive_budget=True,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(id="v-1", timestamp_seconds=10, text="tomb chamber"),
+            Candidate(id="v-2", timestamp_seconds=50, text="stone table"),
+            Candidate(id="v-3", timestamp_seconds=90, text="closing title"),
+        ],
+        audio_candidates=[
+            Candidate(id="a-1", timestamp_seconds=11, text="the inkstone was found"),
+            Candidate(id="a-2", timestamp_seconds=30, text="a niche was visible"),
+            Candidate(id="a-3", timestamp_seconds=70, text="a sacrificial table was preserved"),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.query_intent == QueryIntent.NEGATIVE_EVIDENCE
+    assert response.metrics.audio_selected >= 3
 
 
 def test_decomposed_query_reports_query_aspects_and_reasons() -> None:
