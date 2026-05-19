@@ -27,3 +27,25 @@ def test_answer_score_accepts_prefixed_choice_letter() -> None:
     choices = ["A. News report", "B. Documentary", "C. Travel vlog", "D. Tutorial"]
 
     assert answer_score("Answer: D", "D", choices) == 1.0
+
+
+def test_answer_score_accepts_answer_is_choice_letter() -> None:
+    choices = ["A. News report", "B. Documentary", "C. Travel vlog", "D. Tutorial"]
+
+    assert answer_score("The answer is D. Tutorial.", "D", choices) == 1.0
+
+
+def test_answer_score_accepts_choice_text_without_letter() -> None:
+    choices = [
+        "A. It is a news report that introduces the history behind Christmas decorations.",
+        "B. It is a documentary on the evolution of Christmas holiday recipes.",
+    ]
+
+    assert (
+        answer_score(
+            "The genre is a news report that introduces the history behind Christmas decorations.",
+            "A",
+            choices,
+        )
+        == 1.0
+    )

@@ -49,6 +49,7 @@ def test_create_responses_payload_includes_task_guidance(tmp_path: Path) -> None
     prompt = payload["input"][0]["content"][0]["text"]
     assert "Task guidance:" in prompt
     assert "Count or compare visible entities" in prompt
+    assert "answer with only the single best choice letter" in prompt
 
 
 def test_sample_evidence_frames_uses_anchor_offsets(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -10,8 +10,9 @@ def build_video_answer_prompt(gateway_payload: dict[str, Any]) -> str:
     return (
         "Answer the video question using only the provided Gist evidence frames and "
         "evidence context. Treat evidence frames as ordered by relevance and timestamp. "
-        "If the question is multiple choice, answer with the single best choice letter "
-        "and a very short justification. Do not use outside knowledge.\n\n"
+        "If the question is multiple choice, answer with only the single best choice "
+        "letter. Do not add explanation for multiple-choice answers. Do not use outside "
+        "knowledge.\n\n"
         f"Task guidance: {task_instruction}\n\n"
         f"Question: {query}\n\n"
         f"Evidence context:\n{context}"

@@ -29,7 +29,10 @@ def _resolve_choice(value: str, choices: list[str]) -> int | None:
         if 0 <= index < len(choices):
             return index
 
-    prefixed_letter = re.search(r"\b(?:answer|option|choice|letter)\s+([a-z])\b", normalized_value)
+    prefixed_letter = re.search(
+        r"\b(?:answer|option|choice|letter)(?:\s+is)?\s+([a-z])\b",
+        normalized_value,
+    )
     if prefixed_letter:
         index = ord(prefixed_letter.group(1)) - ord("a")
         if 0 <= index < len(choices):
@@ -37,10 +40,65 @@ def _resolve_choice(value: str, choices: list[str]) -> int | None:
 
     for index, choice in enumerate(choices):
         normalized_choice = _normalize_answer(choice)
-        if normalized_value == normalized_choice or normalized_choice in normalized_value:
+        normalized_choice_text = _strip_choice_prefix(normalized_choice)
+        if (
+            normalized_value == normalized_choice
+            or normalized_choice in normalized_value
+            or (
+                normalized_choice_text
+                and (
+                    normalized_value == normalized_choice_text
+                    or normalized_choice_text in normalized_value
+                    or normalized_value in normalized_choice_text
+                )
+            )
+        ):
             return index
+
+    best_index: int | None = None
+    best_overlap = 0.0
+    for index, choice in enumerate(choices):
+        overlap = _token_overlap(
+            _content_tokens(normalized_value),
+            _content_tokens(_strip_choice_prefix(_normalize_answer(choice))),
+        )
+        if overlap > best_overlap:
+            best_index = index
+            best_overlap = overlap
+    if best_index is not None and best_overlap >= 0.6:
+        return best_index
     return None
 
 
 def _normalize_answer(value: str) -> str:
     return " ".join(re.findall(r"[a-z0-9]+", value.lower()))
+
+
+def _strip_choice_prefix(normalized_choice: str) -> str:
+    return re.sub(r"^[a-z]\s+", "", normalized_choice, count=1)
+
+
+def _content_tokens(normalized_value: str) -> set[str]:
+    stopwords = {
+        "a",
+        "an",
+        "and",
+        "are",
+        "because",
+        "is",
+        "it",
+        "of",
+        "or",
+        "that",
+        "the",
+        "this",
+        "to",
+        "with",
+    }
+    return {token for token in normalized_value.split() if token not in stopwords}
+
+
+def _token_overlap(predicted_tokens: set[str], choice_tokens: set[str]) -> float:
+    if not predicted_tokens or not choice_tokens:
+        return 0.0
+    return len(predicted_tokens & choice_tokens) / len(choice_tokens)
