@@ -24,6 +24,8 @@ def main() -> int:
     parser.add_argument("--max-frames", type=int, default=1)
     parser.add_argument("--max-new-tokens", type=int, default=24)
     parser.add_argument("--gateway-timeout", type=float, default=900.0)
+    parser.add_argument("--frame-sampling", choices=["start", "anchor"], default="start")
+    parser.add_argument("--prompt-strategy", choices=["default", "task_aware"], default="default")
     parser.add_argument("--whisper-model-size", default="tiny")
     parser.add_argument("--whisper-device", default="cpu")
     parser.add_argument("--whisper-compute-type", default="int8")
@@ -54,7 +56,9 @@ def main() -> int:
         f"{sys.executable} scripts/run_hf_vlm_gateway_server.py "
         f"--model {args.model} "
         f"--max-frames {args.max_frames} "
-        f"--max-new-tokens {args.max_new_tokens}"
+        f"--max-new-tokens {args.max_new_tokens} "
+        f"--frame-sampling {args.frame_sampling} "
+        f"--prompt-strategy {args.prompt_strategy}"
     )
     env = os.environ.copy()
     env.update(
