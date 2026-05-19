@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 gist-eval = "gist.eval.cli:main"
+gist-failure-analysis = "gist.eval.failure_analysis:main"
 gist-smoke-test = "gist.eval.smoke:main"
 gist-sota-benchmark = "gist.eval.sota:main"
 
