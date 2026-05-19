@@ -23,6 +23,8 @@ def main() -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--max-frames", type=int, default=1)
     parser.add_argument("--max-new-tokens", type=int, default=24)
+    parser.add_argument("--device-map", default="auto")
+    parser.add_argument("--torch-dtype", default="auto")
     parser.add_argument("--gateway-timeout", type=float, default=900.0)
     parser.add_argument("--frame-sampling", choices=["start", "anchor"], default="start")
     parser.add_argument("--prompt-strategy", choices=["default", "task_aware"], default="default")
@@ -64,6 +66,8 @@ def main() -> int:
         f"--model {args.model} "
         f"--max-frames {args.max_frames} "
         f"--max-new-tokens {args.max_new_tokens} "
+        f"--device-map {args.device_map} "
+        f"--torch-dtype {args.torch_dtype} "
         f"--frame-sampling {args.frame_sampling} "
         f"--prompt-strategy {args.prompt_strategy}"
     )

@@ -25,6 +25,8 @@ def main() -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--frame-counts", default="1,4,8")
     parser.add_argument("--max-new-tokens", type=int, default=24)
+    parser.add_argument("--device-map", default="auto")
+    parser.add_argument("--torch-dtype", default="auto")
     parser.add_argument("--gateway-timeout", type=float, default=900.0)
     parser.add_argument("--whisper-model-size", default="tiny")
     parser.add_argument("--whisper-device", default="cpu")
@@ -68,6 +70,10 @@ def main() -> int:
             str(frame_count),
             "--max-new-tokens",
             str(args.max_new_tokens),
+            "--device-map",
+            args.device_map,
+            "--torch-dtype",
+            args.torch_dtype,
             "--gateway-timeout",
             str(args.gateway_timeout),
             "--whisper-model-size",
