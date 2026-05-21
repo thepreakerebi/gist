@@ -1,15 +1,23 @@
 from html import escape
 from pathlib import Path
 
+from gist.core.schemas import Modality
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.media.models import IngestedVideo
+
+
+MOMENT_GROUP_SECONDS = 15.0
+MAX_DISPLAY_MOMENTS = 6
 
 
 def render_local_compression_report(
     ingestion: IngestedVideo,
     compression: CompressionResponse,
 ) -> str:
-    evidence = "\n".join(_render_evidence(item) for item in compression.selected)
+    moments = _display_moments(_evidence_moments(compression.selected))
+    evidence = "\n".join(
+        _render_evidence_moment(index, moment) for index, moment in enumerate(moments, start=1)
+    )
     settings = ingestion.settings
     settings_rows = ""
     if settings is not None:
@@ -67,7 +75,7 @@ def render_local_compression_report(
   </section>
 
   <section class="grid">
-    <div class="card"><div class="metric">{compression.metrics.selected_candidates}</div><div class="muted">selected evidence items</div></div>
+    <div class="card"><div class="metric">{len(moments)}</div><div class="muted">video evidence moments</div></div>
     <div class="card"><div class="metric">{compression.metrics.estimated_candidate_reduction_percent:.1f}%</div><div class="muted">candidate reduction</div></div>
     <div class="card"><div class="metric">{compression.metrics.estimated_token_reduction_percent:.1f}%</div><div class="muted">estimated token reduction</div></div>
     <div class="card"><div class="metric">{ingestion.metadata.duration_seconds / 60:.1f}m</div><div class="muted">video duration</div></div>
@@ -94,21 +102,123 @@ def render_local_compression_report(
 """
 
 
-def _render_evidence(item: SelectedCandidate) -> str:
-    asset = _render_asset(item)
+def _evidence_moments(
+    selected: list[SelectedCandidate],
+    group_seconds: float = MOMENT_GROUP_SECONDS,
+) -> list[list[SelectedCandidate]]:
+    moments: list[list[SelectedCandidate]] = []
+    for item in sorted(selected, key=lambda candidate: candidate.timestamp_seconds):
+        if not moments:
+            moments.append([item])
+            continue
+        previous = moments[-1]
+        previous_center = sum(candidate.timestamp_seconds for candidate in previous) / len(previous)
+        overlaps = any(_clip_ranges_overlap(item, candidate) for candidate in previous)
+        if overlaps or abs(item.timestamp_seconds - previous_center) <= group_seconds:
+            previous.append(item)
+            continue
+        moments.append([item])
+    return moments
+
+
+def _display_moments(
+    moments: list[list[SelectedCandidate]],
+    max_moments: int = MAX_DISPLAY_MOMENTS,
+) -> list[list[SelectedCandidate]]:
+    transcript_backed = [moment for moment in moments if _has_transcript(moment)]
+    ranked = sorted(
+        transcript_backed,
+        key=lambda moment: (
+            max(item.relevance_score for item in moment),
+            max(item.mmr_score for item in moment),
+        ),
+        reverse=True,
+    )[:max_moments]
+    return sorted(ranked, key=_moment_timestamp)
+
+
+def _has_transcript(moment: list[SelectedCandidate]) -> bool:
+    return any(item.modality == Modality.AUDIO and item.text.strip() for item in moment)
+
+
+def _clip_ranges_overlap(left: SelectedCandidate, right: SelectedCandidate) -> bool:
+    if (
+        left.clip_start_seconds is None
+        or left.clip_end_seconds is None
+        or right.clip_start_seconds is None
+        or right.clip_end_seconds is None
+    ):
+        return False
+    return left.clip_start_seconds <= right.clip_end_seconds and right.clip_start_seconds <= left.clip_end_seconds
+
+
+def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
+    representative = _representative_video(moment)
+    asset = _render_asset(representative)
+    transcript = _moment_transcript(moment)
+    timestamp = _moment_timestamp(moment)
+    item_ids = ", ".join(item.id for item in moment)
+    score = max((item.relevance_score for item in moment), default=0.0)
+    mmr = max((item.mmr_score for item in moment), default=0.0)
+    segment_ids = ", ".join(
+        sorted({item.segment_id for item in moment if item.segment_id is not None})
+    ) or "n/a"
     clip_range = ""
-    if item.clip_start_seconds is not None and item.clip_end_seconds is not None:
-        clip_range = f"clip {item.clip_start_seconds:.2f}s-{item.clip_end_seconds:.2f}s"
+    if representative.clip_start_seconds is not None and representative.clip_end_seconds is not None:
+        clip_range = (
+            f"clip {representative.clip_start_seconds:.2f}s-"
+            f"{representative.clip_end_seconds:.2f}s"
+        )
     return f"""
     <article class="card evidence">
-      <h3>{escape(item.id)}</h3>
-      <p><strong>{escape(item.modality.value)}</strong> at <code>{item.timestamp_seconds:.2f}s</code> <span class="muted">{escape(clip_range)}</span></p>
+      <h3>Video evidence {index}</h3>
+      <p><strong>video</strong> around <code>{timestamp:.2f}s</code> <span class="muted">{escape(clip_range)}</span></p>
       {asset}
-      <p>{escape(item.text)}</p>
-      <p class="muted">{escape(item.reason)}</p>
-      <p class="muted">segment={escape(str(item.segment_id or "n/a"))}; score={item.relevance_score:.3f}; mmr={item.mmr_score:.3f}</p>
+      <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
+      <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
+      <p class="muted">segments={escape(segment_ids)}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
     </article>
     """
+
+
+def _representative_video(moment: list[SelectedCandidate]) -> SelectedCandidate:
+    visual_items = [
+        item
+        for item in moment
+        if item.modality == Modality.VISUAL and item.clip_path is not None
+    ]
+    if visual_items:
+        return max(
+            visual_items,
+            key=lambda item: (item.audio_anchor_score, item.relevance_score, item.mmr_score),
+        )
+    with_clips = [item for item in moment if item.clip_path is not None]
+    if with_clips:
+        return max(with_clips, key=lambda item: (item.relevance_score, item.mmr_score))
+    return max(moment, key=lambda item: (item.relevance_score, item.mmr_score))
+
+
+def _moment_transcript(moment: list[SelectedCandidate]) -> str:
+    snippets = []
+    seen = set()
+    for item in sorted(moment, key=lambda candidate: candidate.timestamp_seconds):
+        if item.modality != Modality.AUDIO:
+            continue
+        text = item.text.strip()
+        if not text or text in seen:
+            continue
+        snippets.append(text)
+        seen.add(text)
+    if snippets:
+        return " ".join(snippets)
+    return "Transcript unavailable for this visual-only moment."
+
+
+def _moment_timestamp(moment: list[SelectedCandidate]) -> float:
+    audio_items = [item for item in moment if item.modality == Modality.AUDIO]
+    if audio_items:
+        return min(audio_items, key=lambda item: item.timestamp_seconds).timestamp_seconds
+    return min(moment, key=lambda item: item.timestamp_seconds).timestamp_seconds
 
 
 def _render_asset(item: SelectedCandidate) -> str:
