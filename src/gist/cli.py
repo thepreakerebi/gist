@@ -110,6 +110,7 @@ def _attach_evidence_clips(
 ) -> CompressionResponse:
     processor = FfmpegMediaProcessor()
     duration_seconds = processor.probe(video_path).duration_seconds
+    _clear_previous_clips(output_dir)
     selected = [
         _with_evidence_clip(
             item=item,
@@ -122,6 +123,13 @@ def _attach_evidence_clips(
         for item in compression.selected
     ]
     return compression.model_copy(update={"selected": selected})
+
+
+def _clear_previous_clips(output_dir: Path) -> None:
+    if not output_dir.exists():
+        return
+    for path in output_dir.glob("*.mp4"):
+        path.unlink(missing_ok=True)
 
 
 def _with_evidence_clip(
