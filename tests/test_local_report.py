@@ -33,6 +33,7 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     compression = CompressionResponse(
         video_id="video-1",
         query="refund policy",
+        answer="Refunds are available for eligible plans.",
         preset=CompressionPreset.BALANCED,
         selected=[
             SelectedCandidate(
@@ -74,6 +75,7 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
 
     assert "<html" in html
     assert "refund policy" in html
+    assert "Refunds are available for eligible plans." in html
     assert "long processing selected" in html
     assert "evidence" in html
     assert "<video" in html

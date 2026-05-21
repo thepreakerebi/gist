@@ -7,6 +7,7 @@ from gist.audio.whisper import FasterWhisperTranscriber
 from gist.candidates.baseline import BaselineCandidateGenerator, CandidateSet
 from gist.candidates.hierarchical import shortlist_relevant_segments
 from gist.candidates.moments import fuse_transcript_moments
+from gist.core.answering import answer_from_evidence
 from gist.core.cache import (
     DiskCache,
     candidate_cache_key,
@@ -91,6 +92,7 @@ class LocalCompressionPipeline:
             raw_visual_count=len(ingested.frames),
             raw_audio_count=len(ingested.audio_windows),
         )
+        compression = compression.model_copy(update={"answer": answer_from_evidence(compression)})
         if progress is not None:
             progress(f"compression complete: selected={compression.metrics.selected_candidates}")
         return ingested, compression

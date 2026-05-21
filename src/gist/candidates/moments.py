@@ -1,4 +1,5 @@
 from gist.candidates.baseline import CandidateSet
+from gist.core.answering import WHY_ANSWER_TERMS
 from gist.core.schemas import Candidate
 from gist.core.scoring import lexical_relevance
 
@@ -39,9 +40,14 @@ def fuse_transcript_moments(
         visual = _nearest_visual(audio, candidates.visual, visual_radius_seconds)
         if visual is not None:
             used_visual_ids.add(visual.id)
-            scored_audio.append((audio_relevance, _audio_with_visual_grounding(audio, visual)))
+            scored_audio.append(
+                (
+                    _moment_relevance(query, audio, audio_relevance),
+                    _audio_with_visual_grounding(audio, visual),
+                )
+            )
         else:
-            scored_audio.append((audio_relevance, audio))
+            scored_audio.append((_moment_relevance(query, audio, audio_relevance), audio))
 
     fused_audio = [
         candidate
@@ -80,6 +86,14 @@ def _nearest_visual(
             -float(visual.saliency_score or 0.0),
         ),
     )
+
+
+def _moment_relevance(query: str, audio: Candidate, base_relevance: float) -> float:
+    if not query.lower().strip().startswith("why"):
+        return base_relevance
+    text = audio.text.lower()
+    answer_signal = sum(0.2 for term in WHY_ANSWER_TERMS if term in text)
+    return base_relevance + answer_signal
 
 
 def _audio_with_visual_grounding(audio: Candidate, visual: Candidate) -> Candidate:

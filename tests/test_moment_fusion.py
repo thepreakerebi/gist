@@ -74,3 +74,26 @@ def test_fuse_transcript_moments_caps_audio_moments_by_relevance() -> None:
     fused = fuse_transcript_moments(candidates, query="why afraid robot hand", max_audio_moments=1)
 
     assert [candidate.id for candidate in fused.audio] == ["a-high"]
+
+
+def test_fuse_transcript_moments_reranks_why_answer_signals() -> None:
+    candidates = CandidateSet(
+        visual=[],
+        audio=[
+            Candidate(id="a-keyword", timestamp_seconds=10, text="robot hand robot hand"),
+            Candidate(
+                id="a-answer",
+                timestamp_seconds=20,
+                text="he is freaked out and has nightmares about being chased",
+            ),
+        ],
+    )
+
+    fused = fuse_transcript_moments(
+        candidates,
+        query="Why is the man afraid of the robot hand?",
+        min_audio_relevance=0.0,
+        max_audio_moments=1,
+    )
+
+    assert [candidate.id for candidate in fused.audio] == ["a-answer"]
