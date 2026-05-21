@@ -2,6 +2,7 @@ from pathlib import Path
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
+from gist.core.schemas import Candidate
 from gist.media.longform import ProcessingMode
 from gist.media.models import (
     AudioWindow,
@@ -112,3 +113,84 @@ def test_local_pipeline_reuses_disk_cache_on_repeated_runs(tmp_path: Path) -> No
 
     assert ingestor.calls == 1
     assert candidate_generator.calls == 1
+
+
+def test_local_pipeline_shortlists_longform_candidates_before_compression(tmp_path: Path) -> None:
+    class LongIngestor(FakeIngestor):
+        def ingest(
+            self,
+            video_path: Path,
+            sample_count: int | None,
+            audio_window_seconds: float | None,
+            processing_mode: ProcessingMode = ProcessingMode.LONG,
+        ) -> IngestedVideo:
+            ingested = super().ingest(
+                video_path=video_path,
+                sample_count=sample_count,
+                audio_window_seconds=audio_window_seconds,
+                processing_mode=ProcessingMode.LONG,
+            )
+            return ingested.model_copy(
+                update={
+                    "metadata": VideoMetadata(duration_seconds=90 * 60, has_audio=True),
+                    "frames": [
+                        ExtractedFrame(
+                            index=index,
+                            timestamp_seconds=float(index * 250),
+                            path=Path(f"frame-{index}.jpg"),
+                        )
+                        for index in range(20)
+                    ],
+                    "audio_windows": [
+                        AudioWindow(
+                            index=index,
+                            start_seconds=float(index * 250),
+                            duration_seconds=60,
+                            path=Path(f"audio-{index}.wav"),
+                        )
+                        for index in range(20)
+                    ],
+                }
+            )
+
+    class LongCandidateGenerator:
+        def generate(self, ingested_video: IngestedVideo, query: str):
+            from gist.candidates.baseline import CandidateSet
+
+            return CandidateSet(
+                visual=[
+                    Candidate(
+                        id=f"v-{index}",
+                        timestamp_seconds=frame.timestamp_seconds,
+                        text="refund policy" if index == 10 else "unrelated",
+                        asset_path=frame.path,
+                    )
+                    for index, frame in enumerate(ingested_video.frames)
+                ],
+                audio=[
+                    Candidate(
+                        id=f"a-{index}",
+                        timestamp_seconds=window.start_seconds,
+                        text="refund policy" if index == 10 else "unrelated",
+                        asset_path=window.path,
+                    )
+                    for index, window in enumerate(ingested_video.audio_windows)
+                ],
+            )
+
+    pipeline = LocalCompressionPipeline(
+        output_root=tmp_path,
+        ingestor=LongIngestor(),
+        candidate_generator=LongCandidateGenerator(),
+    )
+
+    _ingestion, compression = pipeline.run(
+        video_path=tmp_path / "long.mp4",
+        query="refund policy",
+        processing_mode=ProcessingMode.LONG,
+        sample_count=None,
+        audio_window_seconds=None,
+    )
+
+    assert compression.metrics.input_candidates < 40
+    assert {item.id for item in compression.selected} >= {"v-10", "a-10"}

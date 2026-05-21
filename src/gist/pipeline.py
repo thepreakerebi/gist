@@ -4,6 +4,7 @@ import os
 from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
 from gist.candidates.baseline import BaselineCandidateGenerator, CandidateSet
+from gist.candidates.hierarchical import shortlist_relevant_segments
 from gist.core.cache import (
     DiskCache,
     candidate_cache_key,
@@ -119,6 +120,11 @@ class LocalCompressionPipeline:
         candidates = self.cache.get_candidates(candidates_key)
         if candidates is None:
             candidates = candidate_generator.generate(ingested, query=query)
+            candidates = _maybe_shortlist_longform_segments(
+                candidates=candidates,
+                ingested=ingested,
+                query=query,
+            )
             self.cache.set_candidates(candidates_key, candidates)
 
         return ingested, candidates
@@ -176,3 +182,18 @@ def _audio_context_window_count(ingested: IngestedVideo) -> int:
     if ingested.settings is None:
         return 1
     return ingested.settings.audio_context_window_count
+
+
+def _maybe_shortlist_longform_segments(
+    candidates: CandidateSet,
+    ingested: IngestedVideo,
+    query: str,
+) -> CandidateSet:
+    if ingested.settings is None or ingested.settings.processing_mode != ProcessingMode.LONG:
+        return candidates
+
+    return shortlist_relevant_segments(
+        candidates=candidates,
+        query=query,
+        duration_seconds=ingested.metadata.duration_seconds,
+    )
