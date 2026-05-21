@@ -9,6 +9,7 @@ from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline
+from gist.reports import render_local_compression_report
 
 
 def main() -> int:
@@ -43,6 +44,7 @@ def main() -> int:
     parser.add_argument("--adaptive-budget", action="store_true")
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--no-clips", action="store_true")
+    parser.add_argument("--html-report", action="store_true")
     args = parser.parse_args()
 
     run_dir = args.output_root / _safe_stem(args.video_path) / _safe_stem(args.query)
@@ -80,6 +82,10 @@ def main() -> int:
         )
         + "\n"
     )
+    html_path = None
+    if args.html_report:
+        html_path = run_dir / "report.html"
+        html_path.write_text(render_local_compression_report(ingestion, compression))
 
     print(f"video_id={compression.video_id}")
     if ingestion.settings is not None:
@@ -92,6 +98,8 @@ def main() -> int:
     print(f"candidate_reduction={compression.metrics.estimated_candidate_reduction_percent:.2f}%")
     print(f"token_reduction={compression.metrics.estimated_token_reduction_percent:.2f}%")
     print(f"output={response_path}")
+    if html_path is not None:
+        print(f"html_report={html_path}")
     return 0
 
 
