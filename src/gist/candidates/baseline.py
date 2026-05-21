@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 from gist.audio.scorers import AudioWindowScorer
 from gist.audio.transcribers import AudioTranscriber
+from gist.core.progress import ProgressCallback
 from gist.core.schemas import Candidate
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
 from gist.vision.scene import SceneSegment, detect_scene_segments, scene_by_frame_index
@@ -36,13 +37,26 @@ class BaselineCandidateGenerator:
         self.audio_context_window_count = audio_context_window_count
         self.scene_aware_visuals = scene_aware_visuals
 
-    def generate(self, ingested_video: IngestedVideo, query: str) -> CandidateSet:
+    def generate(
+        self,
+        ingested_video: IngestedVideo,
+        query: str,
+        progress: ProgressCallback | None = None,
+    ) -> CandidateSet:
+        if progress is not None:
+            progress("scoring visual frames")
         visual_scores = self._score_visual_frames(ingested_video, query)
+        if progress is not None:
+            progress("detecting visual scenes")
         visual_scenes = self._scene_segments(ingested_video, visual_scores)
         scene_by_frame = scene_by_frame_index(visual_scenes)
+        if progress is not None:
+            progress("transcribing audio windows")
         audio_transcripts = self._transcribe_audio_windows(ingested_video)
+        if progress is not None:
+            progress("scoring audio windows")
         audio_scores = self._score_audio_windows(ingested_video, query)
-        return CandidateSet(
+        candidate_set = CandidateSet(
             visual=[
                 self._visual_candidate(
                     ingested_video.video_id,
@@ -66,6 +80,12 @@ class BaselineCandidateGenerator:
                 for window in ingested_video.audio_windows
             ],
         )
+        if progress is not None:
+            progress(
+                f"candidates ready: visual={len(candidate_set.visual)}, "
+                f"audio={len(candidate_set.audio)}"
+            )
+        return candidate_set
 
     def _score_visual_frames(
         self,

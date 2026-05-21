@@ -4,6 +4,7 @@ from pathlib import Path
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
+from gist.core.progress import StepLogger
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
@@ -45,11 +46,14 @@ def main() -> int:
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--no-clips", action="store_true")
     parser.add_argument("--html-report", action="store_true")
+    parser.add_argument("--quiet", action="store_true", help="Disable progress logging.")
     args = parser.parse_args()
 
+    progress = StepLogger(enabled=not args.quiet)
     run_dir = args.output_root / _safe_stem(args.video_path) / _safe_stem(args.query)
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    progress(f"starting run: video={args.video_path}, query={args.query!r}")
     pipeline = LocalCompressionPipeline(output_root=args.output_root)
     ingestion, compression = pipeline.run(
         video_path=args.video_path,
@@ -63,15 +67,19 @@ def main() -> int:
         adaptive_budget=args.adaptive_budget,
         decompose_query=args.decompose_query,
         task_aware_selection=True,
+        progress=progress,
     )
     if not args.no_clips:
+        progress("rendering evidence clips")
         compression = _attach_evidence_clips(
             compression=compression,
             video_path=args.video_path,
             output_dir=run_dir / "clips",
+            progress=progress,
         )
 
     response_path = run_dir / "compression.json"
+    progress(f"writing JSON output: {response_path}")
     response_path.write_text(
         json.dumps(
             {
@@ -85,6 +93,7 @@ def main() -> int:
     html_path = None
     if args.html_report:
         html_path = run_dir / "report.html"
+        progress(f"writing HTML report: {html_path}")
         html_path.write_text(render_local_compression_report(ingestion, compression))
 
     print(f"video_id={compression.video_id}")
@@ -107,21 +116,26 @@ def _attach_evidence_clips(
     compression: CompressionResponse,
     video_path: Path,
     output_dir: Path,
+    progress: StepLogger | None = None,
 ) -> CompressionResponse:
     processor = FfmpegMediaProcessor()
     duration_seconds = processor.probe(video_path).duration_seconds
     _clear_previous_clips(output_dir)
-    selected = [
-        _with_evidence_clip(
+    selected = []
+    total = len(compression.selected)
+    for index, item in enumerate(compression.selected, start=1):
+        if progress is not None:
+            progress(f"rendering evidence clip {index}/{total}: {item.id}")
+        selected.append(
+            _with_evidence_clip(
             item=item,
             compression=compression,
             video_path=video_path,
             output_dir=output_dir,
             video_duration_seconds=duration_seconds,
             processor=processor,
+            )
         )
-        for item in compression.selected
-    ]
     return compression.model_copy(update={"selected": selected})
 
 

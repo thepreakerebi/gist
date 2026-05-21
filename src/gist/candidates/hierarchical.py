@@ -151,7 +151,7 @@ def _candidate_group_id(
     duration_seconds: float,
     segment_seconds: float,
 ) -> str:
-    if candidate.segment_id:
+    if candidate.segment_id and not candidate.segment_id.startswith("audio-window-"):
         return candidate.segment_id
 
     max_index = max(math.ceil(duration_seconds / segment_seconds) - 1, 0)

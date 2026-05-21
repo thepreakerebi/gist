@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import inspect
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
@@ -13,6 +14,7 @@ from gist.core.cache import (
 from gist.core.compressor import GistCompressor
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
+from gist.core.progress import ProgressCallback
 from gist.core.schemas import CompressionRequest, CompressionResponse
 from gist.core.token_estimation import TokenEstimatorProfile
 from gist.media.ingestion import MediaIngestor
@@ -51,7 +53,10 @@ class LocalCompressionPipeline:
         decompose_query: bool = False,
         token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC,
         task_aware_selection: bool = False,
+        progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CompressionResponse]:
+        if progress is not None:
+            progress("preparing candidates")
         ingested, candidates = self.prepare_candidates(
             video_path=video_path,
             query=query,
@@ -60,8 +65,11 @@ class LocalCompressionPipeline:
             processing_mode=processing_mode,
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
+            progress=progress,
         )
 
+        if progress is not None:
+            progress("compressing candidate set")
         compression = self.compressor.compress(
             CompressionRequest(
                 video_id=ingested.video_id,
@@ -76,6 +84,8 @@ class LocalCompressionPipeline:
                 audio_candidates=candidates.audio,
             )
         )
+        if progress is not None:
+            progress(f"compression complete: selected={compression.metrics.selected_candidates}")
         return ingested, compression
 
     def prepare_candidates(
@@ -87,6 +97,7 @@ class LocalCompressionPipeline:
         processing_mode: ProcessingMode = ProcessingMode.SHORT,
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+        progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CandidateSet]:
         ingestion_key = ingestion_cache_key(
             video_path=video_path,
@@ -96,13 +107,21 @@ class LocalCompressionPipeline:
         )
         ingested = self.cache.get_ingestion(ingestion_key)
         if ingested is None:
-            ingested = self.ingestor.ingest(
+            if progress is not None:
+                progress("ingestion cache miss")
+            ingested = _call_with_optional_progress(
+                self.ingestor.ingest,
+                progress=progress,
                 video_path=video_path,
                 sample_count=sample_count,
                 audio_window_seconds=audio_window_seconds,
                 processing_mode=processing_mode,
             )
             self.cache.set_ingestion(ingestion_key, ingested)
+            if progress is not None:
+                progress("ingestion cached")
+        elif progress is not None:
+            progress("ingestion cache hit")
 
         audio_context_window_count = _audio_context_window_count(ingested)
         candidate_generator = self._candidate_generator_for(
@@ -119,13 +138,25 @@ class LocalCompressionPipeline:
         )
         candidates = self.cache.get_candidates(candidates_key)
         if candidates is None:
-            candidates = candidate_generator.generate(ingested, query=query)
+            if progress is not None:
+                progress("candidate cache miss")
+            candidates = _call_with_optional_progress(
+                candidate_generator.generate,
+                progress=progress,
+                ingested_video=ingested,
+                query=query,
+            )
             candidates = _maybe_shortlist_longform_segments(
                 candidates=candidates,
                 ingested=ingested,
                 query=query,
+                progress=progress,
             )
             self.cache.set_candidates(candidates_key, candidates)
+            if progress is not None:
+                progress("candidates cached")
+        elif progress is not None:
+            progress("candidate cache hit")
 
         return ingested, candidates
 
@@ -188,12 +219,21 @@ def _maybe_shortlist_longform_segments(
     candidates: CandidateSet,
     ingested: IngestedVideo,
     query: str,
+    progress: ProgressCallback | None = None,
 ) -> CandidateSet:
     if ingested.settings is None or ingested.settings.processing_mode != ProcessingMode.LONG:
         return candidates
 
+    if progress is not None:
+        progress("shortlisting relevant long-form segments")
     return shortlist_relevant_segments(
         candidates=candidates,
         query=query,
         duration_seconds=ingested.metadata.duration_seconds,
     )
+
+
+def _call_with_optional_progress(function, progress: ProgressCallback | None, **kwargs):
+    if "progress" in inspect.signature(function).parameters:
+        return function(**kwargs, progress=progress)
+    return function(**kwargs)

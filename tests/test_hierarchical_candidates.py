@@ -88,6 +88,37 @@ def test_shortlist_relevant_segments_handles_segment_ids_without_bounds() -> Non
     assert shortlisted.visual[0].scene_end_seconds == 240
 
 
+def test_shortlist_relevant_segments_groups_audio_windows_by_time_bucket() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(id="v-near", timestamp_seconds=125, text="speaker close-up"),
+            Candidate(id="v-far", timestamp_seconds=260, text="unrelated"),
+        ],
+        audio=[
+            Candidate(
+                id="a-hit",
+                timestamp_seconds=135,
+                text="robot hand explanation",
+                segment_id="audio-window-4",
+            )
+        ],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="robot hand",
+        duration_seconds=360,
+        segment_seconds=120,
+        max_segments=1,
+    )
+
+    assert [candidate.id for candidate in shortlisted.visual] == ["v-near"]
+    assert [candidate.id for candidate in shortlisted.audio] == ["a-hit"]
+    assert shortlisted.audio[0].segment_id == "audio-window-4"
+    assert shortlisted.audio[0].scene_start_seconds == 120
+    assert shortlisted.audio[0].scene_end_seconds == 240
+
+
 def test_shortlist_relevant_segments_uses_model_saliency_when_available() -> None:
     candidates = CandidateSet(
         visual=[

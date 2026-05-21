@@ -4,6 +4,7 @@ from pathlib import Path
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode, plan_ingestion
 from gist.media.models import IngestedVideo, IngestionSettings
+from gist.core.progress import ProgressCallback
 
 
 class MediaIngestor:
@@ -21,12 +22,15 @@ class MediaIngestor:
         sample_count: int | None = 128,
         audio_window_seconds: float | None = 1.0,
         processing_mode: ProcessingMode = ProcessingMode.SHORT,
+        progress: ProgressCallback | None = None,
     ) -> IngestedVideo:
         video_id = stable_video_id(video_path)
         ingest_dir = self.output_root / video_id
         frames_dir = ingest_dir / "frames"
         audio_dir = ingest_dir / "audio"
 
+        if progress is not None:
+            progress(f"probing video metadata: {video_path}")
         metadata = self.processor.probe(video_path)
         plan = plan_ingestion(
             duration_seconds=metadata.duration_seconds,
@@ -34,16 +38,28 @@ class MediaIngestor:
             sample_count=sample_count,
             audio_window_seconds=audio_window_seconds,
         )
+        if progress is not None:
+            progress(
+                "ingestion plan: "
+                f"mode={plan.mode.value}, frames={plan.sample_count}, "
+                f"audio_window={plan.audio_window_seconds:g}s"
+            )
+            progress("extracting/reusing sampled frames")
         frames = self.processor.extract_frames(
             video_path=video_path,
             output_dir=frames_dir,
             sample_count=plan.sample_count,
         )
+        if progress is not None:
+            progress(f"frames ready: {len(frames)}")
+            progress("extracting/reusing audio windows")
         audio_windows = self.processor.extract_audio_windows(
             video_path=video_path,
             output_dir=audio_dir,
             window_seconds=plan.audio_window_seconds,
         )
+        if progress is not None:
+            progress(f"audio windows ready: {len(audio_windows)}")
 
         return IngestedVideo(
             video_id=video_id,
