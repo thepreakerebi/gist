@@ -38,6 +38,19 @@ def test_adaptive_clip_span_uses_scene_bounds_for_visual_evidence() -> None:
     assert "scene" in span.reason
 
 
+def test_adaptive_clip_span_centers_inside_oversized_scene_bounds() -> None:
+    span = adaptive_clip_span(
+        item=_selected(timestamp_seconds=43.0, scene_start_seconds=0.0, scene_end_seconds=120.0),
+        query="show the robot hand",
+        query_intent=QueryIntent.VISUAL_OBJECT_ACTION,
+        video_duration_seconds=200.0,
+    )
+
+    assert span.start_seconds == 37.0
+    assert span.end_seconds == 49.0
+    assert "timestamp-centered" in span.reason
+
+
 def test_adaptive_clip_span_keeps_pre_context_for_before_queries() -> None:
     span = adaptive_clip_span(
         item=_selected(timestamp_seconds=50.0),

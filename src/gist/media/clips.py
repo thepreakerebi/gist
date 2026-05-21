@@ -93,9 +93,21 @@ def _scene_span(
 ) -> ClipSpan:
     assert item.scene_start_seconds is not None
     assert item.scene_end_seconds is not None
+    scene_start = max(item.scene_start_seconds, 0.0)
+    scene_end = min(max(item.scene_end_seconds, scene_start + 1.0), video_duration_seconds)
+    if scene_end - scene_start > max_duration_seconds:
+        half_duration = max_duration_seconds / 2
+        start = max(item.timestamp_seconds - half_duration, scene_start)
+        end = min(start + max_duration_seconds, scene_end)
+        start = max(end - max_duration_seconds, scene_start)
+        return ClipSpan(
+            start_seconds=start,
+            end_seconds=end,
+            reason="visual evidence used timestamp-centered window inside long scene bounds",
+        )
     return _bounded_span(
-        start=item.scene_start_seconds,
-        end=max(item.scene_end_seconds, item.scene_start_seconds + 1.0),
+        start=scene_start,
+        end=scene_end,
         video_duration_seconds=video_duration_seconds,
         max_duration_seconds=max_duration_seconds,
         reason="visual evidence used scene-aware clip bounds",
