@@ -340,6 +340,8 @@ class GistCompressor:
 
         modalities = {selection.candidate.modality for selection in selections}
         if len(selections) > 1 and len(modalities) == 1:
+            if all(_is_grounded_transcript_moment(selection.candidate) for selection in selections):
+                return False, None
             return True, "aggressive budget selected only one modality"
 
         return False, None
@@ -906,3 +908,12 @@ class GistCompressor:
             f"{item.audio_anchor_timestamp_seconds:.2f}s "
             f"(anchor score {item.audio_anchor_score:.2f})."
         )
+
+
+def _is_grounded_transcript_moment(candidate: ScoredCandidate) -> bool:
+    return (
+        candidate.modality == Modality.AUDIO
+        and ":audio:" in candidate.id
+        and ":visual:" in candidate.id
+        and candidate.asset_path is not None
+    )

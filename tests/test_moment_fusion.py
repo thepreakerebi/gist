@@ -1,0 +1,76 @@
+from pathlib import Path
+
+import pytest
+
+from gist.candidates.baseline import CandidateSet
+from gist.candidates.moments import fuse_transcript_moments
+from gist.core.schemas import Candidate
+
+
+def test_fuse_transcript_moments_attaches_nearest_visual_grounding() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id="v-near",
+                timestamp_seconds=44,
+                text="visual frame sampled",
+                asset_path=Path("frame.jpg"),
+                segment_id="scene-1",
+            ),
+            Candidate(id="v-far", timestamp_seconds=90, text="visual frame sampled"),
+        ],
+        audio=[
+            Candidate(
+                id="a-hit",
+                timestamp_seconds=45,
+                text="the speaker is freaked out by the robot hand",
+                asset_path=Path("audio.wav"),
+                scene_start_seconds=30,
+                scene_end_seconds=60,
+            )
+        ],
+    )
+
+    fused = fuse_transcript_moments(candidates, query="why is he afraid of robot hand")
+
+    assert fused.visual == []
+    assert len(fused.audio) == 1
+    moment = fused.audio[0]
+    assert moment.id == "a-hit+v-near"
+    assert moment.asset_path == Path("frame.jpg")
+    assert moment.segment_id == "scene-1"
+    assert moment.scene_start_seconds == 30
+    assert moment.scene_end_seconds == 60
+
+
+def test_fuse_transcript_moments_drops_weak_audio_noise() -> None:
+    candidates = CandidateSet(
+        visual=[],
+        audio=[
+            Candidate(id="a-noise", timestamp_seconds=10, text="ambient music"),
+            Candidate(id="a-hit", timestamp_seconds=20, text="robot hand explanation"),
+        ],
+    )
+
+    fused = fuse_transcript_moments(candidates, query="robot hand")
+
+    assert [candidate.id for candidate in fused.audio] == ["a-hit"]
+
+
+def test_fuse_transcript_moments_validates_radius() -> None:
+    with pytest.raises(ValueError, match="visual_radius_seconds"):
+        fuse_transcript_moments(CandidateSet(visual=[], audio=[]), query="x", visual_radius_seconds=0)
+
+
+def test_fuse_transcript_moments_caps_audio_moments_by_relevance() -> None:
+    candidates = CandidateSet(
+        visual=[],
+        audio=[
+            Candidate(id="a-low", timestamp_seconds=10, text="robot hand"),
+            Candidate(id="a-high", timestamp_seconds=20, text="robot hand afraid chased nightmares"),
+        ],
+    )
+
+    fused = fuse_transcript_moments(candidates, query="why afraid robot hand", max_audio_moments=1)
+
+    assert [candidate.id for candidate in fused.audio] == ["a-high"]

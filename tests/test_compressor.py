@@ -432,3 +432,28 @@ def test_adaptive_budget_expands_when_anchored_visuals_crowd_out_audio() -> None
         == "aggressive budget underrepresented source audio evidence"
     )
     assert response.metrics.audio_selected >= 2
+
+
+def test_adaptive_budget_keeps_aggressive_for_grounded_transcript_moments() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="why is he afraid of the robot hand",
+        duration_seconds=120,
+        preset=CompressionPreset.BALANCED,
+        adaptive_budget=True,
+        audio_candidates=[
+            Candidate(
+                id=f"demo:audio:{index}+demo:visual:{index}",
+                timestamp_seconds=float(index * 20),
+                text="he is freaked out by the robot hand",
+                asset_path=f"frame-{index}.jpg",
+            )
+            for index in range(8)
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.preset == CompressionPreset.AGGRESSIVE
+    assert response.metrics.budget_expanded is False
+    assert response.metrics.selected_candidates == 6

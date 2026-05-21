@@ -193,4 +193,4 @@ def test_local_pipeline_shortlists_longform_candidates_before_compression(tmp_pa
     )
 
     assert compression.metrics.input_candidates < 40
-    assert {item.id for item in compression.selected} >= {"v-10", "a-10"}
+    assert "a-10+v-10" in {item.id for item in compression.selected}

@@ -6,6 +6,7 @@ from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
 from gist.candidates.baseline import BaselineCandidateGenerator, CandidateSet
 from gist.candidates.hierarchical import shortlist_relevant_segments
+from gist.candidates.moments import fuse_transcript_moments
 from gist.core.cache import (
     DiskCache,
     candidate_cache_key,
@@ -152,6 +153,12 @@ class LocalCompressionPipeline:
                 query=query,
                 progress=progress,
             )
+            candidates = _maybe_fuse_longform_moments(
+                candidates=candidates,
+                ingested=ingested,
+                query=query,
+                progress=progress,
+            )
             self.cache.set_candidates(candidates_key, candidates)
             if progress is not None:
                 progress("candidates cached")
@@ -231,6 +238,22 @@ def _maybe_shortlist_longform_segments(
         query=query,
         duration_seconds=ingested.metadata.duration_seconds,
     )
+
+
+def _maybe_fuse_longform_moments(
+    candidates: CandidateSet,
+    ingested: IngestedVideo,
+    query: str,
+    progress: ProgressCallback | None = None,
+) -> CandidateSet:
+    if ingested.settings is None or ingested.settings.processing_mode != ProcessingMode.LONG:
+        return candidates
+    if not candidates.audio:
+        return candidates
+
+    if progress is not None:
+        progress("fusing transcript-centered evidence moments")
+    return fuse_transcript_moments(candidates=candidates, query=query)
 
 
 def _call_with_optional_progress(function, progress: ProgressCallback | None, **kwargs):
