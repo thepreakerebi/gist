@@ -17,7 +17,7 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.progress import ProgressCallback
 from gist.core.schemas import CompressionRequest, CompressionResponse
-from gist.core.token_estimation import TokenEstimatorProfile
+from gist.core.token_estimation import TokenEstimatorProfile, estimate_tokens
 from gist.media.ingestion import MediaIngestor
 from gist.media.longform import ProcessingMode, plan_ingestion
 from gist.media.models import IngestedVideo
@@ -58,7 +58,7 @@ class LocalCompressionPipeline:
     ) -> tuple[IngestedVideo, CompressionResponse]:
         if progress is not None:
             progress("preparing candidates")
-        ingested, candidates = self.prepare_candidates(
+        ingested, candidates, raw_candidate_count = self.prepare_candidates(
             video_path=video_path,
             query=query,
             sample_count=sample_count,
@@ -85,6 +85,12 @@ class LocalCompressionPipeline:
                 audio_candidates=candidates.audio,
             )
         )
+        compression = _with_raw_reduction_metrics(
+            compression=compression,
+            raw_candidate_count=raw_candidate_count,
+            raw_visual_count=len(ingested.frames),
+            raw_audio_count=len(ingested.audio_windows),
+        )
         if progress is not None:
             progress(f"compression complete: selected={compression.metrics.selected_candidates}")
         return ingested, compression
@@ -99,7 +105,7 @@ class LocalCompressionPipeline:
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
         progress: ProgressCallback | None = None,
-    ) -> tuple[IngestedVideo, CandidateSet]:
+    ) -> tuple[IngestedVideo, CandidateSet, int]:
         ingestion_key = ingestion_cache_key(
             video_path=video_path,
             sample_count=sample_count,
@@ -137,6 +143,7 @@ class LocalCompressionPipeline:
             audio_scorer=audio_scorer,
             audio_context_window_count=audio_context_window_count,
         )
+        raw_candidate_count = len(ingested.frames) + len(ingested.audio_windows)
         candidates = self.cache.get_candidates(candidates_key)
         if candidates is None:
             if progress is not None:
@@ -165,7 +172,7 @@ class LocalCompressionPipeline:
         elif progress is not None:
             progress("candidate cache hit")
 
-        return ingested, candidates
+        return ingested, candidates, raw_candidate_count
 
     def _candidate_generator_for(
         self,
@@ -254,6 +261,42 @@ def _maybe_fuse_longform_moments(
     if progress is not None:
         progress("fusing transcript-centered evidence moments")
     return fuse_transcript_moments(candidates=candidates, query=query)
+
+
+def _with_raw_reduction_metrics(
+    compression: CompressionResponse,
+    raw_candidate_count: int,
+    raw_visual_count: int,
+    raw_audio_count: int,
+) -> CompressionResponse:
+    selected_count = compression.metrics.selected_candidates
+    if raw_candidate_count <= 0:
+        return compression
+
+    reduction_ratio = selected_count / raw_candidate_count
+    reduction_percent = (1.0 - reduction_ratio) * 100
+    raw_token_estimate = estimate_tokens(
+        input_visual_candidates=raw_visual_count,
+        input_audio_candidates=raw_audio_count,
+        selected_modalities=[item.modality for item in compression.selected],
+        profile=compression.metrics.token_estimator,
+    )
+    metrics = compression.metrics.model_copy(
+        update={
+            "raw_input_candidates": raw_candidate_count,
+            "fused_input_candidates": compression.metrics.input_candidates,
+            "estimated_candidate_reduction_ratio": reduction_ratio,
+            "estimated_candidate_reduction_percent": reduction_percent,
+            "dropped_candidates": max(raw_candidate_count - selected_count, 0),
+            "estimated_baseline_tokens": raw_token_estimate.baseline_tokens,
+            "estimated_raw_baseline_tokens": raw_token_estimate.baseline_tokens,
+            "estimated_compressed_tokens": raw_token_estimate.compressed_tokens,
+            "estimated_saved_tokens": raw_token_estimate.saved_tokens,
+            "estimated_token_reduction_ratio": raw_token_estimate.reduction_ratio,
+            "estimated_token_reduction_percent": raw_token_estimate.reduction_percent,
+        }
+    )
+    return compression.model_copy(update={"metrics": metrics})
 
 
 def _call_with_optional_progress(function, progress: ProgressCallback | None, **kwargs):

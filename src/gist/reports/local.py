@@ -45,6 +45,12 @@ def render_local_compression_report(
           <tr><th>Audio window</th><td>{settings.audio_window_seconds:.2f}s</td></tr>
           <tr><th>Audio windows</th><td>{len(ingestion.audio_windows)}</td></tr>
         """
+    raw_rows = ""
+    if compression.metrics.raw_input_candidates is not None:
+        raw_rows = f"""
+        <tr><th>Raw input candidates</th><td>{compression.metrics.raw_input_candidates}</td></tr>
+        <tr><th>Fused candidate moments</th><td>{compression.metrics.fused_input_candidates or compression.metrics.input_candidates}</td></tr>
+        """
 
     return f"""<!doctype html>
 <html lang="en">
@@ -103,7 +109,8 @@ def render_local_compression_report(
     <table>
       <tbody>
         {settings_rows}
-        <tr><th>Input candidates</th><td>{compression.metrics.input_candidates}</td></tr>
+        {raw_rows}
+        <tr><th>Compressor input candidates</th><td>{compression.metrics.input_candidates}</td></tr>
         <tr><th>Dropped candidates</th><td>{compression.metrics.dropped_candidates}</td></tr>
         <tr><th>Budget</th><td>{escape(compression.metrics.budget_mode)} / {escape(compression.metrics.budget_preset_used.value)}</td></tr>
       </tbody>

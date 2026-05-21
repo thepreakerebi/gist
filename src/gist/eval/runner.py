@@ -105,7 +105,7 @@ class EvalRunner:
     def _example_with_baseline_candidates(self, example: EvalExample) -> EvalExample:
         if example.video_path is None:
             return example
-        ingested, candidates = LocalCompressionPipeline(
+        ingested, candidates, _raw_candidate_count = LocalCompressionPipeline(
             output_root=self.output_root / example.id
         ).prepare_candidates(
             video_path=example.video_path,

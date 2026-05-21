@@ -86,6 +86,7 @@ def test_local_pipeline_ingests_generates_candidates_and_compresses(tmp_path: Pa
     assert ingestion.video_id == "video-1"
     assert compression.video_id == "video-1"
     assert compression.metrics.input_candidates == 3
+    assert compression.metrics.raw_input_candidates == 3
     assert compression.metrics.selected_candidates == 3
 
 
@@ -193,4 +194,6 @@ def test_local_pipeline_shortlists_longform_candidates_before_compression(tmp_pa
     )
 
     assert compression.metrics.input_candidates < 40
+    assert compression.metrics.raw_input_candidates == 40
+    assert compression.metrics.fused_input_candidates == compression.metrics.input_candidates
     assert "a-10+v-10" in {item.id for item in compression.selected}

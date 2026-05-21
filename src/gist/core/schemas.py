@@ -80,6 +80,8 @@ class CompressionMetrics(BaseModel):
     selected_candidates: int
     visual_selected: int
     audio_selected: int
+    raw_input_candidates: int | None = None
+    fused_input_candidates: int | None = None
     estimated_candidate_reduction_ratio: float
     estimated_candidate_reduction_percent: float
     dropped_candidates: int
@@ -88,6 +90,7 @@ class CompressionMetrics(BaseModel):
     budget_expanded: bool = False
     expansion_reason: str | None = None
     estimated_baseline_tokens: int = 0
+    estimated_raw_baseline_tokens: int | None = None
     estimated_compressed_tokens: int = 0
     estimated_saved_tokens: int = 0
     estimated_token_reduction_ratio: float = 0.0
