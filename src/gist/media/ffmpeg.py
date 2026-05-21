@@ -1,4 +1,5 @@
 import json
+import math
 import shutil
 import subprocess
 from pathlib import Path
@@ -45,27 +46,29 @@ class FfmpegMediaProcessor:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         timestamps = evenly_spaced_timestamps(metadata.duration_seconds, sample_count)
+        _remove_stale_outputs(output_dir, "frame_*.jpg", expected_count=len(timestamps))
         frames: list[ExtractedFrame] = []
         for index, timestamp in enumerate(timestamps):
             frame_path = output_dir / f"frame_{index:04d}.jpg"
-            self._run(
-                [
-                    self.ffmpeg_bin,
-                    "-hide_banner",
-                    "-loglevel",
-                    "error",
-                    "-y",
-                    "-ss",
-                    f"{timestamp:.3f}",
-                    "-i",
-                    str(video_path),
-                    "-frames:v",
-                    "1",
-                    "-q:v",
-                    "2",
-                    str(frame_path),
-                ]
-            )
+            if not _usable_file(frame_path):
+                self._run(
+                    [
+                        self.ffmpeg_bin,
+                        "-hide_banner",
+                        "-loglevel",
+                        "error",
+                        "-y",
+                        "-ss",
+                        f"{timestamp:.3f}",
+                        "-i",
+                        str(video_path),
+                        "-frames:v",
+                        "1",
+                        "-q:v",
+                        "2",
+                        str(frame_path),
+                    ]
+                )
             frames.append(
                 ExtractedFrame(index=index, timestamp_seconds=timestamp, path=frame_path)
             )
@@ -88,33 +91,36 @@ class FfmpegMediaProcessor:
             return []
 
         output_dir.mkdir(parents=True, exist_ok=True)
+        expected_windows = _audio_window_count(metadata.duration_seconds, window_seconds)
+        _remove_stale_outputs(output_dir, "audio_*.wav", expected_count=expected_windows)
         windows: list[AudioWindow] = []
         start = 0.0
         index = 0
         while start < metadata.duration_seconds:
             duration = min(window_seconds, metadata.duration_seconds - start)
             audio_path = output_dir / f"audio_{index:04d}.wav"
-            self._run(
-                [
-                    self.ffmpeg_bin,
-                    "-hide_banner",
-                    "-loglevel",
-                    "error",
-                    "-y",
-                    "-ss",
-                    f"{start:.3f}",
-                    "-i",
-                    str(video_path),
-                    "-t",
-                    f"{duration:.3f}",
-                    "-vn",
-                    "-ac",
-                    "1",
-                    "-ar",
-                    "16000",
-                    str(audio_path),
-                ]
-            )
+            if not _usable_file(audio_path):
+                self._run(
+                    [
+                        self.ffmpeg_bin,
+                        "-hide_banner",
+                        "-loglevel",
+                        "error",
+                        "-y",
+                        "-ss",
+                        f"{start:.3f}",
+                        "-i",
+                        str(video_path),
+                        "-t",
+                        f"{duration:.3f}",
+                        "-vn",
+                        "-ac",
+                        "1",
+                        "-ar",
+                        "16000",
+                        str(audio_path),
+                    ]
+                )
             windows.append(
                 AudioWindow(
                     index=index,
@@ -250,6 +256,28 @@ def evenly_spaced_timestamps(duration_seconds: float, sample_count: int) -> list
 
     step = duration_seconds / sample_count
     return [min(duration_seconds, step * index) for index in range(sample_count)]
+
+
+def _audio_window_count(duration_seconds: float, window_seconds: float) -> int:
+    return math.ceil(duration_seconds / window_seconds)
+
+
+def _remove_stale_outputs(output_dir: Path, pattern: str, expected_count: int) -> None:
+    for path in output_dir.glob(pattern):
+        index = _output_index(path)
+        if index is None or index >= expected_count:
+            path.unlink(missing_ok=True)
+
+
+def _output_index(path: Path) -> int | None:
+    try:
+        return int(path.stem.rsplit("_", maxsplit=1)[-1])
+    except ValueError:
+        return None
+
+
+def _usable_file(path: Path) -> bool:
+    return path.exists() and path.is_file() and path.stat().st_size > 0
 
 
 def _safe_float(value: object) -> float | None:
