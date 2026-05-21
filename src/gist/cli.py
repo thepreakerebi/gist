@@ -7,6 +7,8 @@ from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.gateway.evidence_package import build_evidence_package
+from gist.gateway.local_text import LocalTextEvidenceGateway
+from gist.gateway.schemas import GatewayRequest
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode
@@ -48,6 +50,11 @@ def main() -> int:
     parser.add_argument("--no-clips", action="store_true")
     parser.add_argument("--html-report", action="store_true")
     parser.add_argument("--export-evidence-package", action="store_true")
+    parser.add_argument(
+        "--answer-with",
+        choices=["extractive", "local-text"],
+        default="extractive",
+    )
     parser.add_argument("--quiet", action="store_true", help="Disable progress logging.")
     args = parser.parse_args()
 
@@ -79,6 +86,13 @@ def main() -> int:
             output_dir=run_dir / "clips",
             progress=progress,
         )
+
+    if args.answer_with == "local-text":
+        progress("answering with local text evidence gateway")
+        gateway_response = LocalTextEvidenceGateway().answer(
+            GatewayRequest(query=args.query, compression=compression)
+        )
+        compression = compression.model_copy(update={"answer": gateway_response.answer})
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")

@@ -4,6 +4,7 @@ from gist.core.compressor import GistCompressor
 from gist.core.schemas import Candidate, CompressionRequest
 from gist.gateway.context import render_evidence_context
 from gist.gateway.echo import EchoGateway
+from gist.gateway.local_text import LocalTextEvidenceGateway
 from gist.gateway.schemas import GatewayRequest
 from gist.gateway.subprocess import PersistentSubprocessVideoLlmGateway, SubprocessVideoLlmGateway
 
@@ -43,6 +44,31 @@ def test_echo_gateway_returns_context() -> None:
 
     assert response.provider == "echo"
     assert "pricing starts" in response.context
+
+
+def test_local_text_gateway_answers_from_selected_evidence() -> None:
+    compression = GistCompressor().compress(
+        CompressionRequest(
+            video_id="demo",
+            query="Why is he afraid?",
+            duration_seconds=60,
+            audio_candidates=[
+                Candidate(
+                    id="a1",
+                    timestamp_seconds=10,
+                    text="He is freaked out because he has nightmares.",
+                )
+            ],
+        )
+    )
+
+    response = LocalTextEvidenceGateway().answer(
+        GatewayRequest(query="Why is he afraid?", compression=compression)
+    )
+
+    assert response.provider == "local-text-evidence"
+    assert "nightmares" in response.answer
+    assert "freaked out" in response.context
 
 
 def test_subprocess_gateway_reads_stdin_and_parses_json_stdout() -> None:
