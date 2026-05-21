@@ -7,6 +7,7 @@ from gist.core.schemas import Modality, SelectedCandidate
 
 DEFAULT_CLIP_DURATION_SECONDS = 8.0
 MAX_CLIP_DURATION_SECONDS = 12.0
+MAX_AUDIO_TRANSCRIPT_CLIP_DURATION_SECONDS = 30.0
 
 _PRE_CONTEXT_TERMS = {"before", "prior"}
 _POST_CONTEXT_TERMS = {"after", "then", "next", "following"}
@@ -66,12 +67,31 @@ def adaptive_clip_span(
             reason="temporal query kept wider continuity context",
         )
 
-    if item.modality == Modality.AUDIO or query_intent == QueryIntent.SPEECH_SEMANTIC:
+    if item.modality == Modality.AUDIO:
+        if _has_scene_bounds(item):
+            return _bounded_span(
+                start=item.scene_start_seconds or item.timestamp_seconds,
+                end=item.scene_end_seconds or item.timestamp_seconds + default_duration_seconds,
+                video_duration_seconds=video_duration_seconds,
+                max_duration_seconds=max(
+                    max_duration_seconds,
+                    MAX_AUDIO_TRANSCRIPT_CLIP_DURATION_SECONDS,
+                ),
+                reason="speech evidence used transcript-window video bounds",
+            )
         return _centered_span(
             center_seconds=item.timestamp_seconds,
             duration_seconds=min(max_duration_seconds, default_duration_seconds + 2.0),
             video_duration_seconds=video_duration_seconds,
             reason="speech evidence kept a wider transcript-aligned window",
+        )
+
+    if query_intent == QueryIntent.SPEECH_SEMANTIC:
+        return _centered_span(
+            center_seconds=item.timestamp_seconds,
+            duration_seconds=min(max_duration_seconds, default_duration_seconds + 2.0),
+            video_duration_seconds=video_duration_seconds,
+            reason="speech query kept a wider visual grounding window",
         )
 
     return _centered_span(

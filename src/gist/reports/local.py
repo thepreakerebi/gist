@@ -3,18 +3,35 @@ from pathlib import Path
 
 from gist.core.schemas import Modality
 from gist.core.schemas import CompressionResponse, SelectedCandidate
+from gist.core.scoring import text_similarity
 from gist.media.models import IngestedVideo
 
 
 MOMENT_GROUP_SECONDS = 15.0
 MAX_DISPLAY_MOMENTS = 6
+NEAR_DUPLICATE_TRANSCRIPT_THRESHOLD = 0.35
+WHY_ANSWER_TERMS = {
+    "afraid",
+    "because",
+    "chased",
+    "chasing",
+    "fear",
+    "freaked",
+    "nightmare",
+    "nightmares",
+    "reason",
+    "scared",
+}
 
 
 def render_local_compression_report(
     ingestion: IngestedVideo,
     compression: CompressionResponse,
 ) -> str:
-    moments = _display_moments(_evidence_moments(compression.selected))
+    moments = _display_moments(
+        _evidence_moments(compression.selected),
+        query=compression.query,
+    )
     evidence = "\n".join(
         _render_evidence_moment(index, moment) for index, moment in enumerate(moments, start=1)
     )
@@ -123,18 +140,39 @@ def _evidence_moments(
 
 def _display_moments(
     moments: list[list[SelectedCandidate]],
+    query: str,
     max_moments: int = MAX_DISPLAY_MOMENTS,
 ) -> list[list[SelectedCandidate]]:
     transcript_backed = [moment for moment in moments if _has_transcript(moment)]
     ranked = sorted(
         transcript_backed,
-        key=lambda moment: (
-            max(item.relevance_score for item in moment),
-            max(item.mmr_score for item in moment),
-        ),
+        key=lambda moment: _display_quality(moment, query),
         reverse=True,
-    )[:max_moments]
-    return sorted(ranked, key=_moment_timestamp)
+    )
+    deduped: list[list[SelectedCandidate]] = []
+    for moment in ranked:
+        transcript = _moment_transcript(moment)
+        if any(
+            text_similarity(transcript, _moment_transcript(existing))
+            >= NEAR_DUPLICATE_TRANSCRIPT_THRESHOLD
+            for existing in deduped
+        ):
+            continue
+        deduped.append(moment)
+        if len(deduped) >= max_moments:
+            break
+    return sorted(deduped, key=_moment_timestamp)
+
+
+def _display_quality(moment: list[SelectedCandidate], query: str) -> tuple[float, float, float]:
+    transcript = _moment_transcript(moment).lower()
+    best_relevance = max(item.relevance_score for item in moment)
+    best_mmr = max(item.mmr_score for item in moment)
+    answer_signal = 0.0
+    if query.lower().strip().startswith("why"):
+        answer_signal = sum(1 for term in WHY_ANSWER_TERMS if term in transcript) * 0.25
+    transcript_length_bonus = min(len(transcript.split()) / 80, 1.0) * 0.1
+    return best_relevance + answer_signal + transcript_length_bonus, best_relevance, best_mmr
 
 
 def _has_transcript(moment: list[SelectedCandidate]) -> bool:
@@ -182,6 +220,14 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
 
 
 def _representative_video(moment: list[SelectedCandidate]) -> SelectedCandidate:
+    audio_items = [
+        item
+        for item in moment
+        if item.modality == Modality.AUDIO and item.clip_path is not None
+    ]
+    if audio_items:
+        return max(audio_items, key=lambda item: (item.relevance_score, item.mmr_score))
+
     visual_items = [
         item
         for item in moment

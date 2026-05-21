@@ -157,8 +157,8 @@ def test_render_local_compression_report_groups_audio_and_visual_into_video_mome
     assert "Video evidence 1" in html
     assert "<strong>video</strong>" in html
     assert "<strong>audio</strong>" not in html
-    assert visual_clip_path.resolve().as_uri() in html
-    assert audio_clip_path.resolve().as_uri() not in html
+    assert audio_clip_path.resolve().as_uri() in html
+    assert visual_clip_path.resolve().as_uri() not in html
     assert "He is freaked out by my robot hand." in html
 
 
@@ -174,6 +174,16 @@ def test_render_local_compression_report_hides_visual_only_and_caps_moments(
         settings=None,
     )
     selected = []
+    transcripts = [
+        "refund policy overview",
+        "launch sequence explanation",
+        "battery replacement steps",
+        "patient intake workflow",
+        "warehouse safety checklist",
+        "robot hand fear answer",
+        "invoice approval process",
+        "thermal camera calibration",
+    ]
     for index in range(8):
         clip_path = tmp_path / f"audio-{index}.mp4"
         clip_path.write_bytes(b"fake")
@@ -182,7 +192,7 @@ def test_render_local_compression_report_hides_visual_only_and_caps_moments(
                 id=f"a-{index}",
                 modality=Modality.AUDIO,
                 timestamp_seconds=100 + (index * 60),
-                text=f"relevant transcript {index}",
+                text=transcripts[index],
                 clip_path=clip_path,
                 clip_start_seconds=96 + (index * 60),
                 clip_end_seconds=104 + (index * 60),
@@ -242,5 +252,5 @@ def test_render_local_compression_report_hides_visual_only_and_caps_moments(
     assert html.count("Video evidence") == 6
     assert "visual frame sampled" not in html
     assert visual_clip_path.resolve().as_uri() not in html
-    assert "relevant transcript 0" not in html
-    assert "relevant transcript 7" in html
+    assert transcripts[0] not in html
+    assert transcripts[7] in html
