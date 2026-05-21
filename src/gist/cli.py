@@ -6,6 +6,7 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
 from gist.core.schemas import CompressionResponse, SelectedCandidate
+from gist.gateway.evidence_package import build_evidence_package
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode
@@ -46,6 +47,7 @@ def main() -> int:
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument("--no-clips", action="store_true")
     parser.add_argument("--html-report", action="store_true")
+    parser.add_argument("--export-evidence-package", action="store_true")
     parser.add_argument("--quiet", action="store_true", help="Disable progress logging.")
     args = parser.parse_args()
 
@@ -95,6 +97,13 @@ def main() -> int:
         html_path = run_dir / "report.html"
         progress(f"writing HTML report: {html_path}")
         html_path.write_text(render_local_compression_report(ingestion, compression))
+    package_path = None
+    if args.export_evidence_package:
+        package_path = run_dir / "evidence_package.json"
+        progress(f"writing evidence package: {package_path}")
+        package_path.write_text(
+            json.dumps(build_evidence_package(ingestion, compression), indent=2) + "\n"
+        )
 
     print(f"video_id={compression.video_id}")
     if ingestion.settings is not None:
@@ -109,6 +118,8 @@ def main() -> int:
     print(f"output={response_path}")
     if html_path is not None:
         print(f"html_report={html_path}")
+    if package_path is not None:
+        print(f"evidence_package={package_path}")
     return 0
 
 
