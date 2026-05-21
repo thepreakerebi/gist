@@ -166,4 +166,7 @@ class BaselineCandidateGenerator:
             text=text,
             saliency_score=saliency_score,
             asset_path=window.path,
+            segment_id=f"audio-window-{window.index}",
+            scene_start_seconds=window.start_seconds,
+            scene_end_seconds=end_seconds,
         )

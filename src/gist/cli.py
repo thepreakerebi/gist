@@ -1,0 +1,159 @@
+import argparse
+import json
+from pathlib import Path
+
+from gist.core.modes import AudioScoringMode, VisualScoringMode
+from gist.core.presets import CompressionPreset
+from gist.core.schemas import CompressionResponse, SelectedCandidate
+from gist.media.clips import adaptive_clip_span
+from gist.media.ffmpeg import FfmpegMediaProcessor
+from gist.media.longform import ProcessingMode
+from gist.pipeline import LocalCompressionPipeline
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Compress a local video into query-relevant Gist evidence clips."
+    )
+    parser.add_argument("video_path", type=Path)
+    parser.add_argument("--query", required=True)
+    parser.add_argument("--output-root", type=Path, default=Path(".gist/runs"))
+    parser.add_argument(
+        "--preset",
+        choices=list(CompressionPreset),
+        default=CompressionPreset.BALANCED,
+    )
+    parser.add_argument(
+        "--processing-mode",
+        choices=list(ProcessingMode),
+        default=ProcessingMode.AUTO,
+    )
+    parser.add_argument("--sample-count", type=int)
+    parser.add_argument("--audio-window-seconds", type=float)
+    parser.add_argument(
+        "--visual-scorer",
+        choices=list(VisualScoringMode),
+        default=VisualScoringMode.BASELINE,
+    )
+    parser.add_argument(
+        "--audio-scorer",
+        choices=list(AudioScoringMode),
+        default=AudioScoringMode.BASELINE,
+    )
+    parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument("--decompose-query", action="store_true")
+    parser.add_argument("--no-clips", action="store_true")
+    args = parser.parse_args()
+
+    run_dir = args.output_root / _safe_stem(args.video_path) / _safe_stem(args.query)
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    pipeline = LocalCompressionPipeline(output_root=args.output_root)
+    ingestion, compression = pipeline.run(
+        video_path=args.video_path,
+        query=args.query,
+        preset=CompressionPreset(args.preset),
+        sample_count=args.sample_count,
+        audio_window_seconds=args.audio_window_seconds,
+        processing_mode=ProcessingMode(args.processing_mode),
+        visual_scorer=VisualScoringMode(args.visual_scorer),
+        audio_scorer=AudioScoringMode(args.audio_scorer),
+        adaptive_budget=args.adaptive_budget,
+        decompose_query=args.decompose_query,
+        task_aware_selection=True,
+    )
+    if not args.no_clips:
+        compression = _attach_evidence_clips(
+            compression=compression,
+            video_path=args.video_path,
+            output_dir=run_dir / "clips",
+        )
+
+    response_path = run_dir / "compression.json"
+    response_path.write_text(
+        json.dumps(
+            {
+                "ingestion": ingestion.model_dump(mode="json"),
+                "compression": compression.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+
+    print(f"video_id={compression.video_id}")
+    if ingestion.settings is not None:
+        print(f"processing_mode={ingestion.settings.processing_mode}")
+        print(f"frames={ingestion.settings.sample_count}")
+        print(f"audio_window_seconds={ingestion.settings.audio_window_seconds:g}")
+        print(f"audio_windows={len(ingestion.audio_windows)}")
+        print(f"plan={ingestion.settings.reason}")
+    print(f"selected={compression.metrics.selected_candidates}")
+    print(f"candidate_reduction={compression.metrics.estimated_candidate_reduction_percent:.2f}%")
+    print(f"token_reduction={compression.metrics.estimated_token_reduction_percent:.2f}%")
+    print(f"output={response_path}")
+    return 0
+
+
+def _attach_evidence_clips(
+    compression: CompressionResponse,
+    video_path: Path,
+    output_dir: Path,
+) -> CompressionResponse:
+    processor = FfmpegMediaProcessor()
+    duration_seconds = processor.probe(video_path).duration_seconds
+    selected = [
+        _with_evidence_clip(
+            item=item,
+            compression=compression,
+            video_path=video_path,
+            output_dir=output_dir,
+            video_duration_seconds=duration_seconds,
+            processor=processor,
+        )
+        for item in compression.selected
+    ]
+    return compression.model_copy(update={"selected": selected})
+
+
+def _with_evidence_clip(
+    item: SelectedCandidate,
+    compression: CompressionResponse,
+    video_path: Path,
+    output_dir: Path,
+    video_duration_seconds: float,
+    processor: FfmpegMediaProcessor,
+) -> SelectedCandidate:
+    span = adaptive_clip_span(
+        item=item,
+        query=compression.query,
+        query_intent=compression.query_intent,
+        video_duration_seconds=video_duration_seconds,
+    )
+    clip_name = f"{_safe_stem(item.id)}_{span.start_seconds:.2f}-{span.end_seconds:.2f}s.mp4"
+    clip_path = output_dir / clip_name
+    if not clip_path.exists():
+        processor.extract_clip(
+            video_path=video_path,
+            output_path=clip_path,
+            start_seconds=span.start_seconds,
+            duration_seconds=span.duration_seconds,
+        )
+    return item.model_copy(
+        update={
+            "clip_path": clip_path,
+            "clip_start_seconds": span.start_seconds,
+            "clip_end_seconds": span.end_seconds,
+            "reason": f"{item.reason}; {span.reason}",
+        }
+    )
+
+
+def _safe_stem(value: str | Path) -> str:
+    raw = Path(value).stem if isinstance(value, Path) else value
+    normalized = "".join(char if char.isalnum() else "-" for char in raw.lower()).strip("-")
+    return normalized[:80] or "gist"
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

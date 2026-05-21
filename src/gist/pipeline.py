@@ -15,6 +15,7 @@ from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionRequest, CompressionResponse
 from gist.core.token_estimation import TokenEstimatorProfile
 from gist.media.ingestion import MediaIngestor
+from gist.media.longform import ProcessingMode, plan_ingestion
 from gist.media.models import IngestedVideo
 from gist.vision.clip import HuggingFaceClipFrameScorer
 
@@ -30,6 +31,7 @@ class LocalCompressionPipeline:
     ) -> None:
         self.output_root = output_root
         self.ingestor = ingestor or MediaIngestor(output_root=output_root)
+        self._uses_default_candidate_generator = candidate_generator is None
         self.candidate_generator = candidate_generator or BaselineCandidateGenerator()
         self.compressor = compressor or GistCompressor()
         self.cache = cache or DiskCache(output_root / "cache")
@@ -39,8 +41,9 @@ class LocalCompressionPipeline:
         video_path: Path,
         query: str,
         preset: CompressionPreset = CompressionPreset.BALANCED,
-        sample_count: int = 128,
-        audio_window_seconds: float = 1.0,
+        sample_count: int | None = 128,
+        audio_window_seconds: float | None = 1.0,
+        processing_mode: ProcessingMode = ProcessingMode.SHORT,
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
         adaptive_budget: bool = False,
@@ -53,6 +56,7 @@ class LocalCompressionPipeline:
             query=query,
             sample_count=sample_count,
             audio_window_seconds=audio_window_seconds,
+            processing_mode=processing_mode,
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
         )
@@ -77,8 +81,9 @@ class LocalCompressionPipeline:
         self,
         video_path: Path,
         query: str,
-        sample_count: int = 128,
-        audio_window_seconds: float = 1.0,
+        sample_count: int | None = 128,
+        audio_window_seconds: float | None = 1.0,
+        processing_mode: ProcessingMode = ProcessingMode.SHORT,
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
     ) -> tuple[IngestedVideo, CandidateSet]:
@@ -86,6 +91,7 @@ class LocalCompressionPipeline:
             video_path=video_path,
             sample_count=sample_count,
             audio_window_seconds=audio_window_seconds,
+            processing_mode=processing_mode.value,
         )
         ingested = self.cache.get_ingestion(ingestion_key)
         if ingested is None:
@@ -93,18 +99,22 @@ class LocalCompressionPipeline:
                 video_path=video_path,
                 sample_count=sample_count,
                 audio_window_seconds=audio_window_seconds,
+                processing_mode=processing_mode,
             )
             self.cache.set_ingestion(ingestion_key, ingested)
 
+        audio_context_window_count = _audio_context_window_count(ingested)
         candidate_generator = self._candidate_generator_for(
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
+            audio_context_window_count=audio_context_window_count,
         )
         candidates_key = candidate_cache_key(
             ingestion=ingested,
             query=query,
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
+            audio_context_window_count=audio_context_window_count,
         )
         candidates = self.cache.get_candidates(candidates_key)
         if candidates is None:
@@ -117,6 +127,7 @@ class LocalCompressionPipeline:
         self,
         visual_scorer: VisualScoringMode,
         audio_scorer: AudioScoringMode,
+        audio_context_window_count: int = 1,
     ) -> BaselineCandidateGenerator:
         visual_adapter = None
         audio_transcriber = None
@@ -141,11 +152,27 @@ class LocalCompressionPipeline:
             raise ValueError(f"unsupported audio scorer: {audio_scorer}")
 
         if visual_adapter is None and audio_transcriber is None and audio_score_adapter is None:
+            if self._uses_default_candidate_generator:
+                return BaselineCandidateGenerator(
+                    audio_context_window_count=audio_context_window_count
+                )
             return self.candidate_generator
 
         return BaselineCandidateGenerator(
             visual_scorer=visual_adapter,
             audio_transcriber=audio_transcriber,
             audio_scorer=audio_score_adapter,
+            audio_context_window_count=audio_context_window_count,
             scene_aware_visuals=scene_aware_visuals,
         )
+
+
+def recommended_processing_mode(video_path: Path, ingestor: MediaIngestor) -> ProcessingMode:
+    metadata = ingestor.processor.probe(video_path)
+    return plan_ingestion(metadata.duration_seconds, mode=ProcessingMode.AUTO).mode
+
+
+def _audio_context_window_count(ingested: IngestedVideo) -> int:
+    if ingested.settings is None:
+        return 1
+    return ingested.settings.audio_context_window_count

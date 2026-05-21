@@ -2,7 +2,14 @@ from pathlib import Path
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
-from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo, VideoMetadata
+from gist.media.longform import ProcessingMode
+from gist.media.models import (
+    AudioWindow,
+    ExtractedFrame,
+    IngestedVideo,
+    IngestionSettings,
+    VideoMetadata,
+)
 from gist.pipeline import LocalCompressionPipeline
 
 
@@ -13,10 +20,13 @@ class FakeIngestor:
     def ingest(
         self,
         video_path: Path,
-        sample_count: int,
-        audio_window_seconds: float,
+        sample_count: int | None,
+        audio_window_seconds: float | None,
+        processing_mode: ProcessingMode = ProcessingMode.SHORT,
     ) -> IngestedVideo:
         self.calls += 1
+        resolved_sample_count = sample_count or 2
+        resolved_audio_window_seconds = audio_window_seconds or 10.0
         return IngestedVideo(
             video_id="video-1",
             source_path=video_path,
@@ -29,10 +39,20 @@ class FakeIngestor:
                 AudioWindow(
                     index=0,
                     start_seconds=0.0,
-                    duration_seconds=audio_window_seconds,
+                    duration_seconds=resolved_audio_window_seconds,
                     path=Path("audio-0.wav"),
                 )
             ],
+            settings=IngestionSettings(
+                processing_mode=processing_mode.value,
+                sample_count=resolved_sample_count,
+                audio_window_seconds=resolved_audio_window_seconds,
+                audio_context_window_count=0
+                if processing_mode == ProcessingMode.LONG
+                else 1,
+                max_audio_windows=1,
+                reason="test settings",
+            ),
         )
 
 

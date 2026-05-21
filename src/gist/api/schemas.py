@@ -7,14 +7,16 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionResponse
 from gist.core.token_estimation import TokenEstimatorProfile
+from gist.media.longform import ProcessingMode
 from gist.media.models import IngestedVideo
 
 
 class MediaIngestionRequest(BaseModel):
     video_path: Path
     output_root: Path = Path(".gist/ingestions")
-    sample_count: Annotated[int, Field(gt=0, le=512)] = 128
-    audio_window_seconds: Annotated[float, Field(gt=0, le=30)] = 1.0
+    processing_mode: ProcessingMode = ProcessingMode.SHORT
+    sample_count: Annotated[int | None, Field(gt=0, le=800)] = 128
+    audio_window_seconds: Annotated[float | None, Field(gt=0, le=300)] = 1.0
 
 
 class LocalVideoCompressionRequest(MediaIngestionRequest):

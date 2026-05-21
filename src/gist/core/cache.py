@@ -7,7 +7,7 @@ from gist.core.schemas import Candidate
 from gist.media.models import IngestedVideo
 
 
-CANDIDATE_CACHE_VERSION = "v4"
+CANDIDATE_CACHE_VERSION = "v5"
 
 
 @dataclass(slots=True)
@@ -61,12 +61,14 @@ class DiskCache:
 
 def ingestion_cache_key(
     video_path: Path,
-    sample_count: int,
-    audio_window_seconds: float,
+    sample_count: int | None,
+    audio_window_seconds: float | None,
+    processing_mode: str = "short",
 ) -> str:
     absolute_path = video_path.expanduser().resolve(strict=False)
     fingerprint = (
-        f"{absolute_path}|samples={sample_count}|audio_window={audio_window_seconds:.6f}"
+        f"{absolute_path}|mode={processing_mode}|samples={sample_count}|"
+        f"audio_window={audio_window_seconds}"
     )
     return _sha256_short(fingerprint)
 
@@ -76,10 +78,20 @@ def candidate_cache_key(
     query: str,
     visual_scorer: VisualScoringMode,
     audio_scorer: AudioScoringMode,
+    audio_context_window_count: int | None = None,
 ) -> str:
+    context_count = (
+        audio_context_window_count
+        if audio_context_window_count is not None
+        else (
+            ingestion.settings.audio_context_window_count
+            if ingestion.settings is not None
+            else 1
+        )
+    )
     fingerprint = (
         f"{CANDIDATE_CACHE_VERSION}|{ingestion.video_id}|query={query.strip()}|"
-        f"visual={visual_scorer}|audio={audio_scorer}"
+        f"visual={visual_scorer}|audio={audio_scorer}|audio_context={context_count}"
     )
     return _sha256_short(fingerprint)
 

@@ -34,6 +34,7 @@ def create_ingestion(request: MediaIngestionRequest) -> IngestedVideo:
         video_path=request.video_path,
         sample_count=request.sample_count,
         audio_window_seconds=request.audio_window_seconds,
+        processing_mode=request.processing_mode,
     )
 
 
@@ -52,6 +53,7 @@ def create_local_video_compression(
             preset=request.preset,
             sample_count=request.sample_count,
             audio_window_seconds=request.audio_window_seconds,
+            processing_mode=request.processing_mode,
             visual_scorer=request.visual_scorer,
             audio_scorer=request.audio_scorer,
             adaptive_budget=request.adaptive_budget,

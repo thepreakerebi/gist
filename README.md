@@ -88,6 +88,23 @@ This endpoint is intended for local development and controlled backend usage. Pu
 
 ## Compress a Local Video End-to-End
 
+CLI path:
+
+```bash
+gist /absolute/path/to/video.mp4 \
+  --query "where does the speaker explain the refund policy?" \
+  --processing-mode auto \
+  --visual-scorer baseline \
+  --audio-scorer baseline
+```
+
+For long videos, leave `--processing-mode auto` unless you need strict control. Auto mode
+switches 1+ hour videos to a bounded long-form plan instead of creating one audio file per
+second. A typical 90-minute video uses coarse audio windows and a capped frame budget before
+final evidence selection.
+
+API path:
+
 ```bash
 curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
   -H "content-type: application/json" \
@@ -95,6 +112,7 @@ curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
     "video_path": "/absolute/path/to/video.mp4",
     "output_root": ".gist/ingestions",
     "query": "when does the speaker mention pricing?",
+    "processing_mode": "auto",
     "preset": "balanced",
     "visual_scorer": "baseline",
     "audio_scorer": "baseline",
@@ -114,6 +132,38 @@ Use `"audio_scorer": "clap"` to score extracted audio windows against sound-even
 Use `"decompose_query": true` to split compound questions into independently scoreable aspects before compression. The current decomposer is deterministic and rule-based; an LLM decomposer can replace it later without changing the response shape.
 
 Use `"adaptive_budget": true` to start with the aggressive preset and automatically expand to a larger budget when the aggressive evidence looks weak or one-sided.
+
+## Long-Form Local Processing
+
+Gist now has explicit processing modes:
+
+- `short`: short controlled videos, default API-compatible behavior
+- `medium`: 10-60 minute videos with coarser audio windows
+- `long`: 60+ minute videos with bounded coarse audio windows
+- `auto`: choose mode from video duration
+
+Long-form mode is designed to avoid exploding a 1+ hour video into thousands of one-second
+audio files. Instead, it uses a coarse-to-fine friendly ingestion plan:
+
+- capped frame candidates
+- coarse audio windows
+- no neighboring transcript expansion by default for long chunks
+- reusable ingestion and candidate caches keyed by processing mode
+
+Example:
+
+```bash
+gist /absolute/path/to/one-hour-video.mp4 \
+  --query "what happens after the alarm starts?" \
+  --processing-mode auto \
+  --adaptive-budget
+```
+
+Outputs are written under `.gist/runs` by default:
+
+- `compression.json`
+- selected video evidence clips
+- reusable extracted media/cache artifacts
 
 ## Caching
 

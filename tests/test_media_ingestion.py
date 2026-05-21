@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from gist.media.ingestion import MediaIngestor, stable_video_id
+from gist.media.longform import ProcessingMode
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo, VideoMetadata
 
 
@@ -16,7 +17,11 @@ class FakeProcessor:
     ) -> list[ExtractedFrame]:
         output_dir.mkdir(parents=True, exist_ok=True)
         return [
-            ExtractedFrame(index=index, timestamp_seconds=float(index), path=output_dir / f"{index}.jpg")
+            ExtractedFrame(
+                index=index,
+                timestamp_seconds=float(index),
+                path=output_dir / f"{index}.jpg",
+            )
             for index in range(sample_count)
         ]
 
@@ -55,3 +60,44 @@ def test_media_ingestor_returns_structured_manifest(tmp_path: Path) -> None:
     assert len(manifest.audio_windows) == 1
     assert manifest.frames[0].path.parent.name == "frames"
     assert manifest.audio_windows[0].path.parent.name == "audio"
+    assert manifest.settings is not None
+    assert manifest.settings.sample_count == 3
+    assert manifest.settings.audio_window_seconds == 0.5
+
+
+def test_media_ingestor_auto_long_mode_bounds_audio_windows(tmp_path: Path) -> None:
+    class LongFakeProcessor(FakeProcessor):
+        def probe(self, video_path: Path) -> VideoMetadata:
+            return VideoMetadata(duration_seconds=90 * 60, width=320, height=240, has_audio=True)
+
+        def extract_audio_windows(
+            self,
+            video_path: Path,
+            output_dir: Path,
+            window_seconds: float,
+        ) -> list[AudioWindow]:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            return [
+                AudioWindow(
+                    index=index,
+                    start_seconds=index * window_seconds,
+                    duration_seconds=window_seconds,
+                    path=output_dir / f"{index}.wav",
+                )
+                for index in range(int((90 * 60) / window_seconds))
+            ]
+
+    ingestor = MediaIngestor(output_root=tmp_path / "ingested", processor=LongFakeProcessor())
+
+    manifest = ingestor.ingest(
+        tmp_path / "long.mp4",
+        sample_count=None,
+        audio_window_seconds=None,
+        processing_mode=ProcessingMode.AUTO,
+    )
+
+    assert manifest.settings is not None
+    assert manifest.settings.processing_mode == "long"
+    assert manifest.settings.sample_count == 512
+    assert manifest.settings.audio_window_seconds >= 30.0
+    assert len(manifest.audio_windows) <= 240
