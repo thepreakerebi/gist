@@ -8,6 +8,7 @@ from gist.core.progress import StepLogger
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.gateway.evidence_package import build_evidence_package
 from gist.gateway.local_text import LocalTextEvidenceGateway
+from gist.gateway.ollama import DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL, OllamaTextGateway
 from gist.gateway.schemas import GatewayRequest
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
@@ -52,9 +53,11 @@ def main() -> int:
     parser.add_argument("--export-evidence-package", action="store_true")
     parser.add_argument(
         "--answer-with",
-        choices=["extractive", "local-text"],
+        choices=["extractive", "local-text", "ollama"],
         default="extractive",
     )
+    parser.add_argument("--ollama-model", default=DEFAULT_OLLAMA_MODEL)
+    parser.add_argument("--ollama-url", default=DEFAULT_OLLAMA_URL)
     parser.add_argument("--quiet", action="store_true", help="Disable progress logging.")
     args = parser.parse_args()
 
@@ -87,11 +90,18 @@ def main() -> int:
             progress=progress,
         )
 
+    gateway_response = None
     if args.answer_with == "local-text":
         progress("answering with local text evidence gateway")
-        gateway_response = LocalTextEvidenceGateway().answer(
-            GatewayRequest(query=args.query, compression=compression)
-        )
+        gateway_response = LocalTextEvidenceGateway().answer(_gateway_request(args.query, compression))
+    elif args.answer_with == "ollama":
+        progress(f"answering with Ollama model: {args.ollama_model}")
+        gateway_response = OllamaTextGateway(
+            model=args.ollama_model,
+            base_url=args.ollama_url,
+        ).answer(_gateway_request(args.query, compression))
+
+    if gateway_response is not None:
         compression = compression.model_copy(update={"answer": gateway_response.answer})
 
     response_path = run_dir / "compression.json"
@@ -162,6 +172,10 @@ def _attach_evidence_clips(
             )
         )
     return compression.model_copy(update={"selected": selected})
+
+
+def _gateway_request(query: str, compression: CompressionResponse) -> GatewayRequest:
+    return GatewayRequest(query=query, compression=compression)
 
 
 def _clear_previous_clips(output_dir: Path) -> None:
