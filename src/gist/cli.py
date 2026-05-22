@@ -115,8 +115,8 @@ def main() -> int:
         if after_prune_ids != before_prune_ids:
             progress("re-answering from pruned evidence")
             compression = _answer_compression(args, compression, progress)
-            progress("pruning uncited final evidence")
-            compression = prune_evidence_to_answer_citations(compression)
+        progress("pruning uncited final evidence")
+        compression = prune_evidence_to_answer_citations(compression)
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")

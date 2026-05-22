@@ -187,6 +187,75 @@ def test_prune_evidence_to_answer_citations_keeps_only_cited_evidence() -> None:
     assert all("final answer cited" in item.reason for item in pruned.selected)
 
 
+def test_prune_evidence_to_answer_citations_parses_inline_citation_lists() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="Why is he afraid?",
+        answer="He is afraid because of nightmares (Evidence 1, 2, and 4).",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("first", 10, "nightmares"),
+            _item("second", 20, "freaked out"),
+            _item("uncited", 30, "unrelated context"),
+            _item("fourth", 40, "chased by a robot"),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=4,
+            visual_selected=0,
+            audio_selected=4,
+            estimated_candidate_reduction_ratio=0.2,
+            estimated_candidate_reduction_percent=80,
+            dropped_candidates=16,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=128,
+            estimated_saved_tokens=512,
+            estimated_token_reduction_ratio=0.2,
+            estimated_token_reduction_percent=80,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer_citations(compression)
+
+    assert [item.id for item in pruned.selected] == ["first", "second", "fourth"]
+
+
+def test_prune_evidence_to_answer_citations_allows_single_cited_evidence() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What kills startups?",
+        answer="The mistake is building something users do not like. Evidence: 3.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("context", 10, "customer problem"),
+            _item("more-context", 20, "startup framing"),
+            _item("answer", 30, "users do not like the product"),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=3,
+            visual_selected=0,
+            audio_selected=3,
+            estimated_candidate_reduction_ratio=0.15,
+            estimated_candidate_reduction_percent=85,
+            dropped_candidates=17,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=96,
+            estimated_saved_tokens=544,
+            estimated_token_reduction_ratio=0.15,
+            estimated_token_reduction_percent=85,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer_citations(compression)
+
+    assert [item.id for item in pruned.selected] == ["answer"]
+
+
 def _item(id_: str, timestamp_seconds: float, text: str) -> SelectedCandidate:
     return SelectedCandidate(
         id=id_,

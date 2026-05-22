@@ -65,7 +65,7 @@ def prune_evidence_to_answer(
 
 def prune_evidence_to_answer_citations(
     compression: CompressionResponse,
-    min_items: int = DEFAULT_MIN_PRUNED_EVIDENCE,
+    min_items: int = 1,
 ) -> CompressionResponse:
     """Drop uncited evidence when the generated answer explicitly cites evidence ranks."""
 
@@ -126,8 +126,11 @@ def _cited_evidence_ranks(answer: str, selected_count: int) -> set[int]:
         return set()
 
     cited: set[int] = set()
-    for match in re.finditer(r"(?i)\bevidence\s*(?:number\s*)?#?\s*(\d+)\b", answer):
-        cited.add(int(match.group(1)))
+    for citation in re.finditer(
+        r"(?is)\bevidences?\s*(?:number\s*)?#?\s*[:.]?\s*((?:\d+|and|,|\s)+)",
+        answer,
+    ):
+        cited.update(int(value) for value in re.findall(r"\d+", citation.group(1)))
 
     evidence_section = re.search(r"(?is)\bevidence\s*:\s*(.+)$", answer)
     if evidence_section is not None:
