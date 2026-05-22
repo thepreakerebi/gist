@@ -1,7 +1,7 @@
 import re
 
 from gist.core.schemas import CompressionResponse, SelectedCandidate
-from gist.core.scoring import text_similarity
+from gist.core.scoring import text_similarity, unique_token_count
 
 
 WHY_ANSWER_TERMS = {
@@ -16,6 +16,8 @@ WHY_ANSWER_TERMS = {
     "reason",
     "scared",
 }
+MIN_CLAIM_SUPPORT_SCORE = 0.12
+MIN_CLAIM_CONTENT_TOKENS = 4
 
 
 def answer_from_evidence(compression: CompressionResponse) -> str | None:
@@ -36,12 +38,90 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
     return sentence
 
 
+def verify_answer_claims(
+    answer: str | None,
+    compression: CompressionResponse,
+    min_support_score: float = MIN_CLAIM_SUPPORT_SCORE,
+) -> str | None:
+    """Remove unsupported answer claims using selected evidence text."""
+
+    if answer is None:
+        return None
+    cleaned_answer = answer.strip()
+    if not cleaned_answer or not compression.selected:
+        return cleaned_answer or None
+    if min_support_score < 0:
+        raise ValueError("min_support_score must be non-negative")
+
+    answer_body, evidence_section = _split_evidence_section(cleaned_answer)
+    claims = _answer_claims(answer_body)
+    if len(claims) <= 1:
+        return cleaned_answer
+
+    supported = [
+        claim
+        for claim in claims
+        if _is_non_claim_line(claim)
+        or _claim_support_score(claim, compression.selected) >= min_support_score
+    ]
+    if not supported:
+        return cleaned_answer
+    verified_body = " ".join(supported).strip()
+    if not evidence_section:
+        return verified_body
+    if not verified_body:
+        return evidence_section
+    return f"{verified_body}\n\n{evidence_section}"
+
+
 def _answer_score(query: str, item: SelectedCandidate) -> float:
     score = text_similarity(query, item.text)
     text = item.text.lower()
     if query.lower().strip().startswith("why"):
         score += sum(0.25 for term in WHY_ANSWER_TERMS if term in text)
     return score
+
+
+def _answer_claims(answer: str) -> list[str]:
+    claims: list[str] = []
+    for line in answer.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if re.match(r"^\d+[.)]\s+", stripped):
+            claims.append(stripped)
+            continue
+        parts = [
+            part.strip()
+            for part in re.split(r"(?<=[.!?])\s+", stripped)
+            if part.strip()
+        ]
+        claims.extend(parts or [stripped])
+    return claims
+
+
+def _split_evidence_section(answer: str) -> tuple[str, str]:
+    match = re.search(
+        r"^\s*evidence\s*:\s*$|\bevidence\s*:",
+        answer,
+        flags=re.IGNORECASE | re.MULTILINE,
+    )
+    if not match:
+        return answer, ""
+    body = answer[: match.start()].strip()
+    evidence = answer[match.start() :].strip()
+    return body, evidence
+
+
+def _is_non_claim_line(claim: str) -> bool:
+    normalized = claim.strip().lower()
+    return normalized in {"evidence:", "evidence"} or re.match(r"^\d+[.)]\s*", claim) is not None
+
+
+def _claim_support_score(claim: str, selected: list[SelectedCandidate]) -> float:
+    if unique_token_count(claim) < MIN_CLAIM_CONTENT_TOKENS:
+        return 1.0
+    return max(text_similarity(claim, item.text) for item in selected)
 
 
 def _temporal_target_score(

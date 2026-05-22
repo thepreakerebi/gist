@@ -2,7 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
-from gist.core.answering import answer_from_evidence
+from gist.core.answering import answer_from_evidence, verify_answer_claims
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.evidence_pruning import (
     consolidate_redundant_evidence,
@@ -215,7 +215,10 @@ def _answer_compression(
     progress: StepLogger,
 ) -> CompressionResponse:
     if args.answer_with == "extractive":
-        return compression.model_copy(update={"answer": answer_from_evidence(compression)})
+        answer = answer_from_evidence(compression)
+        return compression.model_copy(
+            update={"answer": verify_answer_claims(answer, compression)}
+        )
     if args.answer_with == "local-text":
         progress("answering with local text evidence gateway")
         gateway_response = LocalTextEvidenceGateway().answer(
@@ -232,7 +235,7 @@ def _answer_compression(
 
     return compression.model_copy(
         update={
-            "answer": gateway_response.answer,
+            "answer": verify_answer_claims(gateway_response.answer, compression),
             "answer_provider": gateway_response.provider,
         }
     )
