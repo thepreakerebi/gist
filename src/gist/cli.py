@@ -4,7 +4,10 @@ from pathlib import Path
 
 from gist.core.answering import answer_from_evidence
 from gist.core.modes import AudioScoringMode, VisualScoringMode
-from gist.core.evidence_pruning import prune_evidence_to_answer
+from gist.core.evidence_pruning import (
+    prune_evidence_to_answer,
+    prune_evidence_to_answer_citations,
+)
 from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
 from gist.core.schemas import CompressionResponse, SelectedCandidate
@@ -112,6 +115,8 @@ def main() -> int:
         if after_prune_ids != before_prune_ids:
             progress("re-answering from pruned evidence")
             compression = _answer_compression(args, compression, progress)
+            progress("pruning uncited final evidence")
+            compression = prune_evidence_to_answer_citations(compression)
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")

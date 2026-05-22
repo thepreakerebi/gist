@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+import re
 
 from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
 from gist.core.scoring import text_similarity
 from gist.core.token_estimation import TOKEN_ESTIMATE_PROFILES
 
 
-DEFAULT_MAX_PRUNED_EVIDENCE = 6
+DEFAULT_MAX_PRUNED_EVIDENCE = 4
 DEFAULT_MIN_PRUNED_EVIDENCE = 3
+ANSWER_SUPPORT_RELATIVE_THRESHOLD = 0.55
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,7 +43,7 @@ def prune_evidence_to_answer(
         reverse=True,
     )
     best_score = ranked[0].score if ranked else 0.0
-    threshold = max(0.05, best_score * 0.35)
+    threshold = max(0.05, best_score * ANSWER_SUPPORT_RELATIVE_THRESHOLD)
     retained = [support for support in ranked if support.score >= threshold][:max_items]
     if len(retained) < min_items:
         retained = ranked[: min(min_items, len(ranked))]
@@ -50,6 +52,40 @@ def prune_evidence_to_answer(
         _with_pruning_reason(index, support)
         for index, support in enumerate(
             sorted(retained, key=lambda support: support.item.timestamp_seconds),
+            start=1,
+        )
+    ]
+    return compression.model_copy(
+        update={
+            "selected": selected,
+            "metrics": _metrics_for_pruned_selection(compression.metrics, selected),
+        }
+    )
+
+
+def prune_evidence_to_answer_citations(
+    compression: CompressionResponse,
+    min_items: int = DEFAULT_MIN_PRUNED_EVIDENCE,
+) -> CompressionResponse:
+    """Drop uncited evidence when the generated answer explicitly cites evidence ranks."""
+
+    if min_items < 0:
+        raise ValueError("min_items must be non-negative")
+    if not compression.answer or len(compression.selected) <= min_items:
+        return compression
+
+    cited_ranks = _cited_evidence_ranks(compression.answer, len(compression.selected))
+    if len(cited_ranks) < min_items:
+        return compression
+
+    selected = [
+        _with_citation_reason(index, item)
+        for index, item in enumerate(
+            [
+                item
+                for rank, item in enumerate(compression.selected, start=1)
+                if rank in cited_ranks
+            ],
             start=1,
         )
     ]
@@ -77,6 +113,28 @@ def _with_pruning_reason(index: int, support: EvidenceSupport) -> SelectedCandid
         f"(support score {support.score:.3f})"
     )
     return support.item.model_copy(update={"selection_rank": index, "reason": reason})
+
+
+def _with_citation_reason(index: int, item: SelectedCandidate) -> SelectedCandidate:
+    reason = f"{item.reason}; retained because the final answer cited this evidence"
+    return item.model_copy(update={"selection_rank": index, "reason": reason})
+
+
+def _cited_evidence_ranks(answer: str, selected_count: int) -> set[int]:
+    lower = answer.lower()
+    if "evidence" not in lower:
+        return set()
+
+    cited: set[int] = set()
+    for match in re.finditer(r"(?i)\bevidence\s*(?:number\s*)?#?\s*(\d+)\b", answer):
+        cited.add(int(match.group(1)))
+
+    evidence_section = re.search(r"(?is)\bevidence\s*:\s*(.+)$", answer)
+    if evidence_section is not None:
+        for match in re.finditer(r"(?m)^\s*(\d+)[.)]\s+", evidence_section.group(1)):
+            cited.add(int(match.group(1)))
+
+    return {rank for rank in cited if 1 <= rank <= selected_count}
 
 
 def _metrics_for_pruned_selection(

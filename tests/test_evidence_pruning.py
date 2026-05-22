@@ -1,4 +1,7 @@
-from gist.core.evidence_pruning import prune_evidence_to_answer
+from gist.core.evidence_pruning import (
+    prune_evidence_to_answer,
+    prune_evidence_to_answer_citations,
+)
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import (
     CompressionMetrics,
@@ -81,6 +84,107 @@ def test_prune_evidence_to_answer_keeps_short_selection_unchanged() -> None:
     )
 
     assert prune_evidence_to_answer(compression) == compression
+
+
+def test_prune_evidence_to_answer_drops_loose_answer_overlap_by_default() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do top builders use AI to do the work of hundreds of engineers?",
+        answer=(
+            "Top builders use AI for research, writing, code generation, and "
+            "analysis to produce work that previously required many people."
+        ),
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item(
+                "research",
+                10,
+                "AI does research, reads books, annotates sources, and writes articles.",
+            ),
+            _item(
+                "code",
+                20,
+                "Token maxing applies to writing code and other knowledge work.",
+            ),
+            _item(
+                "analysis",
+                30,
+                "AI analysis lets builders make decisions quickly and efficiently.",
+            ),
+            _item(
+                "personal-ai",
+                40,
+                "Next year everyone may have their own personal AI with integrations.",
+            ),
+            _item(
+                "machine-time",
+                50,
+                "Machine consciousness can create a time billionaire feeling.",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=5,
+            visual_selected=0,
+            audio_selected=5,
+            estimated_candidate_reduction_ratio=0.25,
+            estimated_candidate_reduction_percent=75,
+            dropped_candidates=15,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=160,
+            estimated_saved_tokens=480,
+            estimated_token_reduction_ratio=0.25,
+            estimated_token_reduction_percent=75,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression)
+
+    assert [item.id for item in pruned.selected] == ["research", "code", "analysis"]
+
+
+def test_prune_evidence_to_answer_citations_keeps_only_cited_evidence() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do builders use AI?",
+        answer=(
+            "Builders use AI for research and code.\n\n"
+            "Evidence:\n"
+            "1. Research automation is described.\n"
+            "3. Code generation is described.\n"
+        ),
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("research", 10, "AI automates research."),
+            _item("weak", 20, "Everyone may have a personal AI."),
+            _item("code", 30, "AI writes code."),
+            _item("noise", 40, "Closing remarks."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=4,
+            visual_selected=0,
+            audio_selected=4,
+            estimated_candidate_reduction_ratio=0.2,
+            estimated_candidate_reduction_percent=80,
+            dropped_candidates=16,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=128,
+            estimated_saved_tokens=512,
+            estimated_token_reduction_ratio=0.2,
+            estimated_token_reduction_percent=80,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer_citations(compression, min_items=2)
+
+    assert [item.id for item in pruned.selected] == ["research", "code"]
+    assert pruned.metrics.selected_candidates == 2
+    assert all("final answer cited" in item.reason for item in pruned.selected)
 
 
 def _item(id_: str, timestamp_seconds: float, text: str) -> SelectedCandidate:
