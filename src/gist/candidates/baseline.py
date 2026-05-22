@@ -7,6 +7,7 @@ from gist.audio.transcribers import AudioTranscriber
 from gist.core.progress import ProgressCallback
 from gist.core.schemas import Candidate
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
+from gist.vision.ocr_protocol import FrameOcr
 from gist.vision.scene import SceneSegment, detect_scene_segments, scene_by_frame_index
 from gist.vision.scorers import VisualFrameScorer
 
@@ -26,6 +27,7 @@ class BaselineCandidateGenerator:
         visual_scorer: VisualFrameScorer | None = None,
         audio_transcriber: AudioTranscriber | None = None,
         audio_scorer: AudioWindowScorer | None = None,
+        frame_ocr: FrameOcr | None = None,
         audio_context_window_count: int = 1,
         scene_aware_visuals: bool = False,
     ) -> None:
@@ -34,6 +36,7 @@ class BaselineCandidateGenerator:
         self.visual_scorer = visual_scorer
         self.audio_transcriber = audio_transcriber
         self.audio_scorer = audio_scorer
+        self.frame_ocr = frame_ocr
         self.audio_context_window_count = audio_context_window_count
         self.scene_aware_visuals = scene_aware_visuals
 
@@ -51,6 +54,9 @@ class BaselineCandidateGenerator:
         visual_scenes = self._scene_segments(ingested_video, visual_scores)
         scene_by_frame = scene_by_frame_index(visual_scenes)
         if progress is not None:
+            progress("extracting visual OCR")
+        frame_ocr_text = self._extract_frame_ocr(ingested_video)
+        if progress is not None:
             progress("transcribing audio windows")
         audio_transcripts = self._transcribe_audio_windows(ingested_video)
         if progress is not None:
@@ -62,6 +68,7 @@ class BaselineCandidateGenerator:
                     ingested_video.video_id,
                     frame,
                     visual_scores.get(frame.path),
+                    frame_ocr_text.get(frame.path),
                     scene_by_frame.get(frame.index),
                 )
                 for frame in ingested_video.frames
@@ -131,6 +138,11 @@ class BaselineCandidateGenerator:
             return {}
         return self.audio_scorer.score_windows(ingested_video.audio_windows, query=query)
 
+    def _extract_frame_ocr(self, ingested_video: IngestedVideo) -> dict[Path, str]:
+        if self.frame_ocr is None:
+            return {}
+        return self.frame_ocr.extract_text(ingested_video.frames)
+
     def _audio_transcript_context(
         self,
         windows: list[AudioWindow],
@@ -154,12 +166,16 @@ class BaselineCandidateGenerator:
         video_id: str,
         frame: ExtractedFrame,
         saliency_score: float | None,
+        ocr_text: str | None,
         scene: SceneSegment | None,
     ) -> Candidate:
+        text = f"visual frame sampled at {frame.timestamp_seconds:.2f} seconds"
+        if ocr_text:
+            text = f"on-screen text near {frame.timestamp_seconds:.2f} seconds: {ocr_text}"
         return Candidate(
             id=f"{video_id}:visual:{frame.index}",
             timestamp_seconds=frame.timestamp_seconds,
-            text=f"visual frame sampled at {frame.timestamp_seconds:.2f} seconds",
+            text=text,
             saliency_score=saliency_score,
             asset_path=frame.path,
             segment_id=scene.id if scene else None,

@@ -29,6 +29,19 @@ _SPEECH_TERMS = {
     "voice",
     "transcript",
 }
+_CONCEPTUAL_SPEECH_TERMS = {
+    "according",
+    "answer",
+    "claim",
+    "claims",
+    "explain",
+    "explains",
+    "idea",
+    "mean",
+    "means",
+    "reason",
+    "why",
+}
 _VISUAL_TERMS = {
     "show",
     "shows",
@@ -105,6 +118,9 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
         return QueryIntent.MIXED_AV, "blank or tokenless query defaults to mixed audio-visual routing"
 
     has_speech = bool(tokens & _SPEECH_TERMS)
+    has_conceptual_speech = bool(tokens & _CONCEPTUAL_SPEECH_TERMS) or (
+        bool(tokens & {"what", "how"}) and not bool(tokens & _VISUAL_TERMS)
+    )
     has_visual = bool(tokens & _VISUAL_TERMS)
     has_temporal = bool(tokens & _TEMPORAL_TERMS)
     has_global = bool(tokens & _GLOBAL_TERMS)
@@ -130,6 +146,11 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
         return QueryIntent.TEMPORAL_BEFORE_AFTER, "temporal markers require continuity around relevant moments"
     if has_speech and has_visual:
         return QueryIntent.MIXED_AV, "speech and visual terms require cross-modal evidence"
+    if has_conceptual_speech and not (has_visual or has_sound):
+        return (
+            QueryIntent.SPEECH_SEMANTIC,
+            "conceptual question terms favor transcript-first retrieval",
+        )
     if has_speech:
         return QueryIntent.SPEECH_SEMANTIC, "speech terms favor transcript-first retrieval"
     if has_sound:

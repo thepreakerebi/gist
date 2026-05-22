@@ -23,6 +23,7 @@ from gist.media.ingestion import MediaIngestor
 from gist.media.longform import ProcessingMode, plan_ingestion
 from gist.media.models import IngestedVideo
 from gist.vision.clip import HuggingFaceClipFrameScorer
+from gist.vision.ocr import TesseractFrameOcr
 
 
 class LocalCompressionPipeline:
@@ -55,6 +56,7 @@ class LocalCompressionPipeline:
         decompose_query: bool = False,
         token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC,
         task_aware_selection: bool = False,
+        visual_ocr: bool = True,
         progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CompressionResponse]:
         if progress is not None:
@@ -67,6 +69,7 @@ class LocalCompressionPipeline:
             processing_mode=processing_mode,
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
+            visual_ocr=visual_ocr,
             progress=progress,
         )
 
@@ -106,6 +109,7 @@ class LocalCompressionPipeline:
         processing_mode: ProcessingMode = ProcessingMode.SHORT,
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+        visual_ocr: bool = True,
         progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CandidateSet, int]:
         ingestion_key = ingestion_cache_key(
@@ -137,6 +141,7 @@ class LocalCompressionPipeline:
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
             audio_context_window_count=audio_context_window_count,
+            visual_ocr=visual_ocr,
         )
         candidates_key = candidate_cache_key(
             ingestion=ingested,
@@ -144,6 +149,7 @@ class LocalCompressionPipeline:
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
             audio_context_window_count=audio_context_window_count,
+            visual_ocr=visual_ocr,
         )
         raw_candidate_count = len(ingested.frames) + len(ingested.audio_windows)
         candidates = self.cache.get_candidates(candidates_key)
@@ -181,10 +187,12 @@ class LocalCompressionPipeline:
         visual_scorer: VisualScoringMode,
         audio_scorer: AudioScoringMode,
         audio_context_window_count: int = 1,
+        visual_ocr: bool = True,
     ) -> BaselineCandidateGenerator:
         visual_adapter = None
         audio_transcriber = None
         audio_score_adapter = None
+        frame_ocr = TesseractFrameOcr() if visual_ocr else None
 
         scene_aware_visuals = False
         if visual_scorer in {VisualScoringMode.CLIP, VisualScoringMode.CLIP_SCENE}:
@@ -207,7 +215,8 @@ class LocalCompressionPipeline:
         if visual_adapter is None and audio_transcriber is None and audio_score_adapter is None:
             if self._uses_default_candidate_generator:
                 return BaselineCandidateGenerator(
-                    audio_context_window_count=audio_context_window_count
+                    frame_ocr=frame_ocr,
+                    audio_context_window_count=audio_context_window_count,
                 )
             return self.candidate_generator
 
@@ -215,6 +224,7 @@ class LocalCompressionPipeline:
             visual_scorer=visual_adapter,
             audio_transcriber=audio_transcriber,
             audio_scorer=audio_score_adapter,
+            frame_ocr=frame_ocr,
             audio_context_window_count=audio_context_window_count,
             scene_aware_visuals=scene_aware_visuals,
         )

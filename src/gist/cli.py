@@ -48,6 +48,11 @@ def main() -> int:
     )
     parser.add_argument("--adaptive-budget", action="store_true")
     parser.add_argument("--decompose-query", action="store_true")
+    parser.add_argument(
+        "--no-visual-ocr",
+        action="store_true",
+        help="Disable OCR extraction from sampled frames.",
+    )
     parser.add_argument("--no-clips", action="store_true")
     parser.add_argument("--html-report", action="store_true")
     parser.add_argument("--export-evidence-package", action="store_true")
@@ -79,6 +84,7 @@ def main() -> int:
         adaptive_budget=args.adaptive_budget,
         decompose_query=args.decompose_query,
         task_aware_selection=True,
+        visual_ocr=not args.no_visual_ocr,
         progress=progress,
     )
     if not args.no_clips:

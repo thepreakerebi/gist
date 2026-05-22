@@ -20,6 +20,11 @@ class FakeAudioScorer:
         return {window.path: 0.8 for window in windows}
 
 
+class FakeFrameOcr:
+    def extract_text(self, frames: list[ExtractedFrame]) -> dict[Path, str]:
+        return {frame.path: "Conductor ships code with AI" for frame in frames}
+
+
 class FakeSceneAwareVisualScorer(FakeVisualScorer):
     def embed_frames(self, frames: list[ExtractedFrame]) -> list[FrameEmbedding]:
         vectors = {
@@ -82,6 +87,27 @@ def test_baseline_candidate_generator_can_attach_visual_saliency_scores() -> Non
     )
 
     assert candidates.visual[0].saliency_score == 0.9
+
+
+def test_baseline_candidate_generator_uses_frame_ocr_as_visual_text() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=2.0, has_audio=False),
+        frames=[
+            ExtractedFrame(index=0, timestamp_seconds=5.0, path=Path("frame.jpg")),
+        ],
+        audio_windows=[],
+    )
+
+    candidates = BaselineCandidateGenerator(frame_ocr=FakeFrameOcr()).generate(
+        manifest,
+        query="Conductor AI",
+    )
+
+    assert candidates.visual[0].text == (
+        "on-screen text near 5.00 seconds: Conductor ships code with AI"
+    )
 
 
 def test_scene_aware_candidate_generator_attaches_scene_metadata() -> None:

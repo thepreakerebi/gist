@@ -5,6 +5,35 @@ from collections.abc import Iterable
 from gist.core.schemas import Candidate
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "do",
+    "does",
+    "for",
+    "from",
+    "how",
+    "in",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "that",
+    "the",
+    "their",
+    "this",
+    "to",
+    "use",
+    "what",
+    "with",
+}
 
 
 def lexical_relevance(query: str, candidate: Candidate) -> float:
@@ -57,4 +86,8 @@ def unique_token_count(value: str) -> int:
 
 
 def _tokens(value: str) -> list[str]:
-    return TOKEN_PATTERN.findall(value.lower())
+    return [
+        token
+        for token in TOKEN_PATTERN.findall(value.lower())
+        if token not in STOPWORDS
+    ]

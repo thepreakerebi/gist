@@ -7,7 +7,7 @@ from gist.core.schemas import Candidate
 from gist.media.models import IngestedVideo
 
 
-CANDIDATE_CACHE_VERSION = "v6"
+CANDIDATE_CACHE_VERSION = "v8"
 
 
 @dataclass(slots=True)
@@ -79,6 +79,7 @@ def candidate_cache_key(
     visual_scorer: VisualScoringMode,
     audio_scorer: AudioScoringMode,
     audio_context_window_count: int | None = None,
+    visual_ocr: bool = False,
 ) -> str:
     context_count = (
         audio_context_window_count
@@ -91,7 +92,8 @@ def candidate_cache_key(
     )
     fingerprint = (
         f"{CANDIDATE_CACHE_VERSION}|{ingestion.video_id}|query={query.strip()}|"
-        f"visual={visual_scorer}|audio={audio_scorer}|audio_context={context_count}"
+        f"visual={visual_scorer}|audio={audio_scorer}|audio_context={context_count}|"
+        f"visual_ocr={visual_ocr}"
     )
     return _sha256_short(fingerprint)
 

@@ -43,6 +43,15 @@ def test_routes_negative_evidence_query() -> None:
     assert "negative" in reason
 
 
+def test_routes_conceptual_question_to_speech_semantic() -> None:
+    intent, reason = route_query_intent(
+        "How do top builders use AI to do the work of hundreds of engineers?"
+    )
+
+    assert intent == QueryIntent.SPEECH_SEMANTIC
+    assert "transcript-first" in reason
+
+
 def test_routes_mixed_query_when_no_dominant_signal_exists() -> None:
     intent, reason = route_query_intent("pricing")
 
