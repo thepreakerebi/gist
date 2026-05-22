@@ -295,6 +295,35 @@ def test_counting_query_keeps_neighboring_visual_frames() -> None:
     assert response.metrics.visual_selected >= 3
 
 
+def test_visual_query_reserves_budget_for_direct_visual_evidence() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="show the robot hand on screen",
+        duration_seconds=120,
+        preset=CompressionPreset.AGGRESSIVE,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(id="v-hand", timestamp_seconds=10, text="robot hand close-up"),
+            Candidate(id="v-person", timestamp_seconds=20, text="person reacting"),
+            Candidate(id="v-room", timestamp_seconds=30, text="room wide shot"),
+        ],
+        audio_candidates=[
+            Candidate(
+                id=f"a-{index}",
+                timestamp_seconds=float(40 + index),
+                text="speaker says robot hand on screen",
+            )
+            for index in range(8)
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.query_intent == QueryIntent.VISUAL_OBJECT_ACTION
+    assert response.metrics.visual_selected >= 3
+    assert "v-hand" in {item.id for item in response.selected}
+
+
 def test_negative_query_prefers_audio_coverage() -> None:
     request = CompressionRequest(
         video_id="demo",

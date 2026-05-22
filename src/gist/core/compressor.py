@@ -153,6 +153,12 @@ class GistCompressor:
                 candidates=scored,
                 max_items=config.max_items,
             )
+        if query_intent == QueryIntent.VISUAL_OBJECT_ACTION:
+            selections = self._ensure_visual_query_coverage(
+                selections=selections,
+                candidates=scored,
+                max_items=config.max_items,
+            )
         if query_intent == QueryIntent.NEGATIVE_EVIDENCE:
             selections = self._ensure_negative_audio_coverage(
                 selections=selections,
@@ -681,6 +687,58 @@ class GistCompressor:
                     ),
                 )
             )
+        return self._rerank_selections(balanced)
+
+    def _ensure_visual_query_coverage(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[Selection]:
+        visual_candidates = [
+            candidate for candidate in candidates if candidate.modality == Modality.VISUAL
+        ]
+        if not visual_candidates:
+            return selections
+
+        target_visual = min(len(visual_candidates), max(2, max_items // 2))
+        selected_visual = sum(
+            selection.candidate.modality == Modality.VISUAL for selection in selections
+        )
+        if selected_visual >= target_visual:
+            return selections
+
+        selected_ids = {selection.candidate.id for selection in selections}
+        remaining_visuals = [
+            candidate for candidate in visual_candidates if candidate.id not in selected_ids
+        ]
+        remaining_visuals.sort(
+            key=lambda candidate: (
+                candidate.normalized_score,
+                candidate.relevance_score,
+                -candidate.timestamp_seconds,
+            ),
+            reverse=True,
+        )
+
+        balanced = list(selections)
+        for candidate in remaining_visuals:
+            if selected_visual >= target_visual:
+                break
+            if len(balanced) >= max_items and not self._drop_weakest_audio_or_visual(balanced):
+                break
+            balanced.append(
+                Selection(
+                    candidate=candidate,
+                    selection_rank=0,
+                    mmr_score=candidate.normalized_score,
+                    reason=(
+                        "Included because visual-object/action queries need enough "
+                        "direct visual evidence, not only transcript context."
+                    ),
+                )
+            )
+            selected_visual += 1
         return self._rerank_selections(balanced)
 
     def _ensure_negative_audio_coverage(

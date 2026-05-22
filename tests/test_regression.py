@@ -50,6 +50,7 @@ def test_evaluate_case_passes_when_evidence_ranges_overlap_expected_ranges(
     assert result.passed is True
     assert result.timestamp_hit_rate == 1.0
     assert result.selected_evidence == 2
+    assert result.audio_evidence == 2
 
 
 def test_evaluate_case_reports_failures_for_missing_timestamp_and_answer_terms(
@@ -100,6 +101,26 @@ def test_run_regression_cases_and_markdown_summary(tmp_path: Path) -> None:
 
     assert report.passed is True
     assert "| pricing | pass |" in markdown
+
+
+def test_evaluate_case_enforces_visual_evidence_floor(tmp_path: Path) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        selected=[_item("a-1", timestamp=10, clip_start=0, clip_end=20)],
+        answer="A robot hand appears on screen.",
+        token_reduction=99.0,
+    )
+    case = RegressionCase(
+        id="visual-case",
+        compression_path=compression_path,
+        expected_evidence_ranges=[TimeRange(start_seconds=5, end_seconds=15)],
+        min_visual_evidence=1,
+    )
+
+    result = evaluate_case(case)
+
+    assert result.passed is False
+    assert any("visual evidence" in failure for failure in result.failures)
 
 
 def test_time_range_rejects_negative_tolerance() -> None:

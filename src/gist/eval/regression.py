@@ -29,6 +29,8 @@ class RegressionCase(BaseModel):
     min_timestamp_hit_rate: Annotated[float, Field(ge=0, le=1)] = 1.0
     min_token_reduction_percent: Annotated[float, Field(ge=0, le=100)] = 0.0
     max_selected_evidence: Annotated[int, Field(gt=0)] | None = None
+    min_visual_evidence: Annotated[int, Field(ge=0)] = 0
+    min_audio_evidence: Annotated[int, Field(ge=0)] = 0
     required_answer_terms: list[str] = Field(default_factory=list)
 
 
@@ -38,6 +40,8 @@ class RegressionResult(BaseModel):
     timestamp_hit_rate: float
     token_reduction_percent: float
     selected_evidence: int
+    visual_evidence: int
+    audio_evidence: int
     failures: list[str] = Field(default_factory=list)
 
 
@@ -103,6 +107,16 @@ def evaluate_case(case: RegressionCase) -> RegressionResult:
             "selected evidence "
             f"{compression.metrics.selected_candidates} exceeds limit {case.max_selected_evidence}"
         )
+    if compression.metrics.visual_selected < case.min_visual_evidence:
+        failures.append(
+            "visual evidence "
+            f"{compression.metrics.visual_selected} is below required {case.min_visual_evidence}"
+        )
+    if compression.metrics.audio_selected < case.min_audio_evidence:
+        failures.append(
+            "audio evidence "
+            f"{compression.metrics.audio_selected} is below required {case.min_audio_evidence}"
+        )
 
     answer = (compression.answer or "").lower()
     missing_terms = [
@@ -117,6 +131,8 @@ def evaluate_case(case: RegressionCase) -> RegressionResult:
         timestamp_hit_rate=hit_rate,
         token_reduction_percent=token_reduction,
         selected_evidence=compression.metrics.selected_candidates,
+        visual_evidence=compression.metrics.visual_selected,
+        audio_evidence=compression.metrics.audio_selected,
         failures=failures,
     )
 
@@ -128,8 +144,8 @@ def render_regression_markdown(report: RegressionReport) -> str:
         f"- Cases: {report.cases}",
         f"- Passed: {'yes' if report.passed else 'no'}",
         "",
-        "| Case | Status | Timestamp Hit Rate | Token Reduction | Selected | Failures |",
-        "|---|---:|---:|---:|---:|---|",
+        "| Case | Status | Timestamp Hit Rate | Token Reduction | Selected | Visual | Audio | Failures |",
+        "|---|---:|---:|---:|---:|---:|---:|---|",
     ]
     for result in report.results:
         failures = "; ".join(result.failures) if result.failures else ""
@@ -137,7 +153,9 @@ def render_regression_markdown(report: RegressionReport) -> str:
             f"| {result.id} | {'pass' if result.passed else 'fail'} | "
             f"{result.timestamp_hit_rate:.2f} | "
             f"{result.token_reduction_percent:.2f}% | "
-            f"{result.selected_evidence} | {failures} |"
+            f"{result.selected_evidence} | "
+            f"{result.visual_evidence} | "
+            f"{result.audio_evidence} | {failures} |"
         )
     return "\n".join(lines).strip() + "\n"
 
@@ -165,7 +183,8 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{result.id}: {status}, hit_rate={result.timestamp_hit_rate:.2f}, "
             f"token_reduction={result.token_reduction_percent:.2f}%, "
-            f"selected={result.selected_evidence}"
+            f"selected={result.selected_evidence}, "
+            f"visual={result.visual_evidence}, audio={result.audio_evidence}"
         )
         for failure in result.failures:
             print(f"  - {failure}")
