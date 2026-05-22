@@ -1,4 +1,5 @@
 from gist.core.evidence_pruning import (
+    consolidate_redundant_evidence,
     prune_evidence_to_answer,
     prune_evidence_to_answer_citations,
 )
@@ -254,6 +255,126 @@ def test_prune_evidence_to_answer_citations_allows_single_cited_evidence() -> No
     pruned = prune_evidence_to_answer_citations(compression)
 
     assert [item.id for item in pruned.selected] == ["answer"]
+
+
+def test_consolidate_redundant_evidence_keeps_strongest_representative() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What does she say about robotics and space?",
+        answer="She says they should follow their passions: robotics and space.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item(
+                "early",
+                10,
+                "We have to follow our passions. You have robotics and I want space.",
+            ),
+            _item(
+                "repeat",
+                30,
+                "We have to follow our passions. You have robotics and I want space.",
+            ),
+            _item("distinct", 90, "The launch countdown begins."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=3,
+            visual_selected=0,
+            audio_selected=3,
+            estimated_candidate_reduction_ratio=0.15,
+            estimated_candidate_reduction_percent=85,
+            dropped_candidates=17,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=96,
+            estimated_saved_tokens=544,
+            estimated_token_reduction_ratio=0.15,
+            estimated_token_reduction_percent=85,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    consolidated = consolidate_redundant_evidence(compression)
+
+    assert [item.id for item in consolidated.selected] == ["early", "distinct"]
+    assert consolidated.metrics.selected_candidates == 2
+    assert "redundant evidence clips" in consolidated.selected[0].reason
+
+
+def test_consolidate_redundant_evidence_keeps_distinct_claims() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do builders use AI?",
+        answer="Builders use AI for research and code.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("research", 10, "AI researches articles and annotates books."),
+            _item("code", 20, "AI writes code and builds product features."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=2,
+            visual_selected=0,
+            audio_selected=2,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=18,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=64,
+            estimated_saved_tokens=576,
+            estimated_token_reduction_ratio=0.1,
+            estimated_token_reduction_percent=90,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert consolidate_redundant_evidence(compression) == compression
+
+
+def test_consolidate_redundant_evidence_collapses_overlapping_audio_windows() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="architecture missions",
+        answer="The architecture for these missions is taking shape.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("precontext", 53, "possible and further power understood. The architecture."),
+            _item("answer", 55, "The architecture for these missions is already taking."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=2,
+            visual_selected=0,
+            audio_selected=2,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=18,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=64,
+            estimated_saved_tokens=576,
+            estimated_token_reduction_ratio=0.1,
+            estimated_token_reduction_percent=90,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+    compression = compression.model_copy(
+        update={
+            "selected": [
+                compression.selected[0].model_copy(
+                    update={"clip_start_seconds": 50.0, "clip_end_seconds": 56.0}
+                ),
+                compression.selected[1].model_copy(
+                    update={"clip_start_seconds": 52.0, "clip_end_seconds": 58.0}
+                ),
+            ]
+        }
+    )
+
+    consolidated = consolidate_redundant_evidence(compression)
+
+    assert [item.id for item in consolidated.selected] == ["answer"]
 
 
 def _item(id_: str, timestamp_seconds: float, text: str) -> SelectedCandidate:

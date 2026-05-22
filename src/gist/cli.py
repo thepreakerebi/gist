@@ -5,6 +5,7 @@ from pathlib import Path
 from gist.core.answering import answer_from_evidence
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.evidence_pruning import (
+    consolidate_redundant_evidence,
     prune_evidence_to_answer,
     prune_evidence_to_answer_citations,
 )
@@ -116,7 +117,23 @@ def main() -> int:
             progress("re-answering from pruned evidence")
             compression = _answer_compression(args, compression, progress)
         progress("pruning uncited final evidence")
+        before_citation_ids = [item.id for item in compression.selected]
         compression = prune_evidence_to_answer_citations(compression)
+        after_citation_ids = [item.id for item in compression.selected]
+        if after_citation_ids != before_citation_ids:
+            progress("re-answering from cited evidence")
+            compression = _answer_compression(args, compression, progress)
+            progress("pruning uncited cited evidence")
+            compression = prune_evidence_to_answer_citations(compression)
+        before_consolidate_ids = [item.id for item in compression.selected]
+        progress("consolidating redundant final evidence")
+        compression = consolidate_redundant_evidence(compression)
+        after_consolidate_ids = [item.id for item in compression.selected]
+        if after_consolidate_ids != before_consolidate_ids:
+            progress("re-answering from consolidated evidence")
+            compression = _answer_compression(args, compression, progress)
+            progress("pruning uncited consolidated evidence")
+            compression = prune_evidence_to_answer_citations(compression)
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")

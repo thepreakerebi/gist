@@ -170,3 +170,63 @@ def test_evidence_prompt_omits_visual_only_clips_when_transcripts_exist(
     assert "1. 12.00s" not in package["prompt"]
     assert "2. 20.00s" in package["prompt"]
     assert "The founder uses AI to review plans." in package["prompt"]
+
+
+def test_evidence_prompt_treats_ocr_visual_text_as_non_transcript_when_audio_exists(
+    tmp_path: Path,
+) -> None:
+    ingestion = IngestedVideo(
+        video_id="video-1",
+        source_path=tmp_path / "video.mp4",
+        metadata=VideoMetadata(duration_seconds=60, width=640, height=360, has_audio=True),
+        frames=[],
+        audio_windows=[],
+    )
+    compression = CompressionResponse(
+        video_id="video-1",
+        query="What does the speaker say?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="v-ocr",
+                modality=Modality.VISUAL,
+                timestamp_seconds=12,
+                text="on-screen text near 12.00 seconds: noisy OCR tokens",
+                selection_rank=1,
+                relevance_score=0.8,
+                normalized_score=1.0,
+                mmr_score=0.7,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="a-1",
+                modality=Modality.AUDIO,
+                timestamp_seconds=20,
+                text="The architecture for these missions is taking shape.",
+                selection_rank=2,
+                relevance_score=0.9,
+                normalized_score=1.0,
+                mmr_score=0.8,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=1,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    package = build_evidence_package(ingestion, compression)
+
+    assert "1. 12.00s" not in package["prompt"]
+    assert "2. 20.00s" in package["prompt"]
+    assert "noisy OCR tokens" not in package["prompt"]

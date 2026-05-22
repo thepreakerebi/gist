@@ -9,6 +9,7 @@ from gist.core.token_estimation import TOKEN_ESTIMATE_PROFILES
 DEFAULT_MAX_PRUNED_EVIDENCE = 4
 DEFAULT_MIN_PRUNED_EVIDENCE = 3
 ANSWER_SUPPORT_RELATIVE_THRESHOLD = 0.55
+REDUNDANT_EVIDENCE_SIMILARITY_THRESHOLD = 0.6
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,6 +98,44 @@ def prune_evidence_to_answer_citations(
     )
 
 
+def consolidate_redundant_evidence(
+    compression: CompressionResponse,
+    similarity_threshold: float = REDUNDANT_EVIDENCE_SIMILARITY_THRESHOLD,
+    min_items: int = 1,
+) -> CompressionResponse:
+    """Collapse selected evidence clips that support the same claim."""
+
+    if similarity_threshold < 0 or similarity_threshold > 1:
+        raise ValueError("similarity_threshold must be between 0 and 1")
+    if min_items < 0:
+        raise ValueError("min_items must be non-negative")
+    if len(compression.selected) <= min_items:
+        return compression
+
+    groups = _redundant_evidence_groups(compression.selected, similarity_threshold)
+    if len(groups) == len(compression.selected):
+        return compression
+
+    selected = [
+        _with_consolidation_reason(index, _best_group_item(compression, group), len(group))
+        for index, group in enumerate(
+            sorted(
+                groups,
+                key=lambda group: _best_group_item(compression, group).timestamp_seconds,
+            ),
+            start=1,
+        )
+    ]
+    if len(selected) < min_items:
+        return compression
+    return compression.model_copy(
+        update={
+            "selected": selected,
+            "metrics": _metrics_for_pruned_selection(compression.metrics, selected),
+        }
+    )
+
+
 def _support_score(
     compression: CompressionResponse,
     item: SelectedCandidate,
@@ -118,6 +157,91 @@ def _with_pruning_reason(index: int, support: EvidenceSupport) -> SelectedCandid
 def _with_citation_reason(index: int, item: SelectedCandidate) -> SelectedCandidate:
     reason = f"{item.reason}; retained because the final answer cited this evidence"
     return item.model_copy(update={"selection_rank": index, "reason": reason})
+
+
+def _with_consolidation_reason(
+    index: int,
+    item: SelectedCandidate,
+    group_size: int,
+) -> SelectedCandidate:
+    if group_size <= 1:
+        return item.model_copy(update={"selection_rank": index})
+    reason = (
+        f"{item.reason}; retained as strongest representative of "
+        f"{group_size} redundant evidence clips"
+    )
+    return item.model_copy(update={"selection_rank": index, "reason": reason})
+
+
+def _redundant_evidence_groups(
+    selected: list[SelectedCandidate],
+    similarity_threshold: float,
+) -> list[list[SelectedCandidate]]:
+    groups: list[list[SelectedCandidate]] = []
+    for item in selected:
+        matching_group = None
+        for group in groups:
+            if any(
+                _is_redundant_evidence_pair(
+                    item,
+                    existing,
+                    similarity_threshold=similarity_threshold,
+                )
+                for existing in group
+            ):
+                matching_group = group
+                break
+        if matching_group is None:
+            groups.append([item])
+        else:
+            matching_group.append(item)
+    return groups
+
+
+def _is_redundant_evidence_pair(
+    left: SelectedCandidate,
+    right: SelectedCandidate,
+    similarity_threshold: float,
+) -> bool:
+    if text_similarity(left.text, right.text) >= similarity_threshold:
+        return True
+    return left.modality == right.modality and _clip_overlap_ratio(left, right) >= 0.5
+
+
+def _clip_overlap_ratio(left: SelectedCandidate, right: SelectedCandidate) -> float:
+    left_start, left_end = _evidence_span(left)
+    right_start, right_end = _evidence_span(right)
+    overlap = max(min(left_end, right_end) - max(left_start, right_start), 0.0)
+    shortest = min(left_end - left_start, right_end - right_start)
+    if shortest <= 0:
+        return 0.0
+    return overlap / shortest
+
+
+def _evidence_span(item: SelectedCandidate) -> tuple[float, float]:
+    start = item.clip_start_seconds
+    end = item.clip_end_seconds
+    if start is None or end is None:
+        start = item.scene_start_seconds
+        end = item.scene_end_seconds
+    if start is None or end is None:
+        start = item.timestamp_seconds
+        end = item.timestamp_seconds
+    return min(start, end), max(start, end)
+
+
+def _best_group_item(
+    compression: CompressionResponse,
+    group: list[SelectedCandidate],
+) -> SelectedCandidate:
+    return max(
+        group,
+        key=lambda item: (
+            _support_score(compression, item).score,
+            item.relevance_score,
+            -item.timestamp_seconds,
+        ),
+    )
 
 
 def _cited_evidence_ranks(answer: str, selected_count: int) -> set[int]:

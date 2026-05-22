@@ -81,7 +81,7 @@ def _prompt_transcript(item: SelectedCandidate) -> str:
     text = " ".join(item.text.split())
     if not text:
         return "[no transcript text available for this clip]"
-    if text.lower().startswith("visual frame sampled at"):
+    if _is_visual_only_text(text):
         return "[visual-only clip; no transcript text available]"
     return text
 
@@ -98,7 +98,14 @@ def _transcript_backed_items(
 
 def _has_transcript_text(item: SelectedCandidate) -> bool:
     text = " ".join(item.text.split())
-    return bool(text) and not text.lower().startswith("visual frame sampled at")
+    return bool(text) and not _is_visual_only_text(text)
+
+
+def _is_visual_only_text(text: str) -> bool:
+    normalized = text.lower()
+    return normalized.startswith("visual frame sampled at") or normalized.startswith(
+        "on-screen text near"
+    )
 
 
 def _time_range(item: SelectedCandidate) -> str:
