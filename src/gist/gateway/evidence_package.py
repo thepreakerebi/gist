@@ -41,8 +41,6 @@ def build_evidence_prompt(compression: CompressionResponse) -> str:
         "Do not infer visual details from visual-only clips unless transcript text is provided.",
         f"Query: {compression.query}",
     ]
-    if compression.answer:
-        lines.append(f"Initial answer hint: {compression.answer}")
     lines.append("Evidence:")
     prompt_items = _transcript_backed_items(compression.selected)
     if not prompt_items:

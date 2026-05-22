@@ -61,6 +61,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
     assert package["answer_provider"] == "local-text-evidence"
     assert package["evidence"][0]["clip_path"] == str(clip_path)
     assert package["evidence"][0]["transcript"] == "The speaker explains the event."
+    assert "Initial answer hint" not in package["prompt"]
     assert "Return a concise answer" in package["prompt"]
 
 

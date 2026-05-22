@@ -2,6 +2,7 @@ import argparse
 import json
 from pathlib import Path
 
+from gist.core.answering import answer_from_evidence
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.evidence_pruning import prune_evidence_to_answer
 from gist.core.presets import CompressionPreset
@@ -102,27 +103,15 @@ def main() -> int:
             progress=progress,
         )
 
-    gateway_response = None
-    if args.answer_with == "local-text":
-        progress("answering with local text evidence gateway")
-        gateway_response = LocalTextEvidenceGateway().answer(_gateway_request(args.query, compression))
-    elif args.answer_with == "ollama":
-        progress(f"answering with Ollama model: {args.ollama_model}")
-        gateway_response = OllamaTextGateway(
-            model=args.ollama_model,
-            base_url=args.ollama_url,
-        ).answer(_gateway_request(args.query, compression))
-
-    if gateway_response is not None:
-        compression = compression.model_copy(
-            update={
-                "answer": gateway_response.answer,
-                "answer_provider": gateway_response.provider,
-            }
-        )
+    compression = _answer_compression(args, compression, progress)
     if not args.no_answer_prune:
         progress("pruning evidence against answer")
+        before_prune_ids = [item.id for item in compression.selected]
         compression = prune_evidence_to_answer(compression)
+        after_prune_ids = [item.id for item in compression.selected]
+        if after_prune_ids != before_prune_ids:
+            progress("re-answering from pruned evidence")
+            compression = _answer_compression(args, compression, progress)
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")
@@ -196,6 +185,35 @@ def _attach_evidence_clips(
 
 def _gateway_request(query: str, compression: CompressionResponse) -> GatewayRequest:
     return GatewayRequest(query=query, compression=compression)
+
+
+def _answer_compression(
+    args: argparse.Namespace,
+    compression: CompressionResponse,
+    progress: StepLogger,
+) -> CompressionResponse:
+    if args.answer_with == "extractive":
+        return compression.model_copy(update={"answer": answer_from_evidence(compression)})
+    if args.answer_with == "local-text":
+        progress("answering with local text evidence gateway")
+        gateway_response = LocalTextEvidenceGateway().answer(
+            _gateway_request(args.query, compression)
+        )
+    elif args.answer_with == "ollama":
+        progress(f"answering with Ollama model: {args.ollama_model}")
+        gateway_response = OllamaTextGateway(
+            model=args.ollama_model,
+            base_url=args.ollama_url,
+        ).answer(_gateway_request(args.query, compression))
+    else:
+        raise ValueError(f"unsupported answer gateway: {args.answer_with}")
+
+    return compression.model_copy(
+        update={
+            "answer": gateway_response.answer,
+            "answer_provider": gateway_response.provider,
+        }
+    )
 
 
 def _clear_previous_clips(output_dir: Path) -> None:
