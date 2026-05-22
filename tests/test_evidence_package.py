@@ -21,6 +21,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
         video_id="video-1",
         query="What happened?",
         answer="The speaker explains the event.",
+        answer_provider="local-text-evidence",
         preset=CompressionPreset.BALANCED,
         selected=[
             SelectedCandidate(
@@ -57,6 +58,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
     assert package["schema"] == EVIDENCE_PACKAGE_VERSION
     assert package["query"] == "What happened?"
     assert package["answer_hint"] == "The speaker explains the event."
+    assert package["answer_provider"] == "local-text-evidence"
     assert package["evidence"][0]["clip_path"] == str(clip_path)
     assert package["evidence"][0]["transcript"] == "The speaker explains the event."
     assert "Return a concise answer" in package["prompt"]

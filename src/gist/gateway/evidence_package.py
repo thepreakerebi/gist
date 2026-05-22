@@ -25,6 +25,7 @@ def build_evidence_package(
         },
         "query": compression.query,
         "answer_hint": compression.answer,
+        "answer_provider": compression.answer_provider,
         "query_intent": str(compression.query_intent) if compression.query_intent else None,
         "routing_reason": compression.routing_reason,
         "compression": compression.metrics.model_dump(mode="json"),

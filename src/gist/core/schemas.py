@@ -105,6 +105,7 @@ class CompressionResponse(BaseModel):
     video_id: str
     query: str
     answer: str | None = None
+    answer_provider: str | None = None
     preset: CompressionPreset
     query_intent: QueryIntent | None = None
     routing_reason: str | None = None

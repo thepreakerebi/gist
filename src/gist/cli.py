@@ -102,7 +102,12 @@ def main() -> int:
         ).answer(_gateway_request(args.query, compression))
 
     if gateway_response is not None:
-        compression = compression.model_copy(update={"answer": gateway_response.answer})
+        compression = compression.model_copy(
+            update={
+                "answer": gateway_response.answer,
+                "answer_provider": gateway_response.provider,
+            }
+        )
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")
