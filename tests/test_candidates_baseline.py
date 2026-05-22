@@ -201,6 +201,8 @@ def test_baseline_candidate_generator_stitches_neighboring_audio_transcripts() -
     assert candidates.audio[1].text == (
         "the architecture for these missions is taking shape"
     )
+    assert candidates.audio[1].scene_start_seconds == 0.0
+    assert candidates.audio[1].scene_end_seconds == 6.0
 
 
 def test_baseline_candidate_generator_can_attach_audio_saliency_scores() -> None:

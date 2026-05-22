@@ -90,3 +90,20 @@ def test_adaptive_clip_span_uses_audio_window_bounds_for_transcript_evidence() -
 
     assert span.start_seconds == 30.0
     assert span.end_seconds == 60.0
+
+
+def test_adaptive_clip_span_preserves_long_audio_context_bounds() -> None:
+    span = adaptive_clip_span(
+        item=_selected(
+            modality=Modality.AUDIO,
+            timestamp_seconds=75.0,
+            scene_start_seconds=30.0,
+            scene_end_seconds=100.0,
+        ),
+        query="how do builders use ai to do more work",
+        query_intent=QueryIntent.SPEECH_SEMANTIC,
+        video_duration_seconds=120.0,
+    )
+
+    assert span.start_seconds == 30.0
+    assert span.end_seconds == 100.0

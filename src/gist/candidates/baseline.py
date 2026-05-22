@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
@@ -17,6 +18,13 @@ class CandidateSet(BaseModel):
 
     visual: list[Candidate]
     audio: list[Candidate]
+
+
+@dataclass(frozen=True, slots=True)
+class AudioTranscriptContext:
+    text: str | None
+    start_seconds: float | None
+    end_seconds: float | None
 
 
 class BaselineCandidateGenerator:
@@ -148,9 +156,9 @@ class BaselineCandidateGenerator:
         windows: list[AudioWindow],
         transcripts: dict[Path, str],
         center_index: int,
-    ) -> str | None:
+    ) -> AudioTranscriptContext:
         if not transcripts:
-            return None
+            return AudioTranscriptContext(text=None, start_seconds=None, end_seconds=None)
 
         start_index = max(center_index - self.audio_context_window_count, 0)
         end_index = min(center_index + self.audio_context_window_count + 1, len(windows))
@@ -159,7 +167,17 @@ class BaselineCandidateGenerator:
             transcript = transcripts.get(window.path, "").strip()
             if transcript:
                 snippets.append(transcript)
-        return " ".join(snippets).strip() or None
+        text = " ".join(snippets).strip() or None
+        if text is None:
+            return AudioTranscriptContext(text=None, start_seconds=None, end_seconds=None)
+
+        first_window = windows[start_index]
+        last_window = windows[end_index - 1]
+        return AudioTranscriptContext(
+            text=text,
+            start_seconds=first_window.start_seconds,
+            end_seconds=last_window.start_seconds + last_window.duration_seconds,
+        )
 
     def _visual_candidate(
         self,
@@ -187,14 +205,24 @@ class BaselineCandidateGenerator:
         self,
         video_id: str,
         window: AudioWindow,
-        transcript: str | None,
+        transcript_context: AudioTranscriptContext,
         saliency_score: float | None,
     ) -> Candidate:
         end_seconds = window.start_seconds + window.duration_seconds
         midpoint_seconds = window.start_seconds + (window.duration_seconds / 2)
-        text = transcript or (
+        text = transcript_context.text or (
             "audio window "
             f"from {window.start_seconds:.2f} to {end_seconds:.2f} seconds"
+        )
+        clip_start_seconds = (
+            transcript_context.start_seconds
+            if transcript_context.start_seconds is not None
+            else window.start_seconds
+        )
+        clip_end_seconds = (
+            transcript_context.end_seconds
+            if transcript_context.end_seconds is not None
+            else end_seconds
         )
         return Candidate(
             id=f"{video_id}:audio:{window.index}",
@@ -203,6 +231,6 @@ class BaselineCandidateGenerator:
             saliency_score=saliency_score,
             asset_path=window.path,
             segment_id=f"audio-window-{window.index}",
-            scene_start_seconds=window.start_seconds,
-            scene_end_seconds=end_seconds,
+            scene_start_seconds=clip_start_seconds,
+            scene_end_seconds=clip_end_seconds,
         )

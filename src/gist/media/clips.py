@@ -7,7 +7,7 @@ from gist.core.schemas import Modality, SelectedCandidate
 
 DEFAULT_CLIP_DURATION_SECONDS = 8.0
 MAX_CLIP_DURATION_SECONDS = 12.0
-MAX_AUDIO_TRANSCRIPT_CLIP_DURATION_SECONDS = 30.0
+MAX_AUDIO_TRANSCRIPT_CLIP_DURATION_SECONDS = 90.0
 
 _PRE_CONTEXT_TERMS = {"before", "prior"}
 _POST_CONTEXT_TERMS = {"after", "then", "next", "following"}
