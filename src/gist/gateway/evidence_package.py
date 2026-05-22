@@ -36,17 +36,23 @@ def build_evidence_package(
 
 def build_evidence_prompt(compression: CompressionResponse) -> str:
     lines = [
-        "Answer the user query using only the provided video evidence clips and transcripts.",
+        "Answer the user query using only the transcript-backed evidence below.",
+        "The clips are supporting video moments, but this text-only gateway cannot inspect pixels.",
+        "Do not infer visual details from visual-only clips unless transcript text is provided.",
         f"Query: {compression.query}",
     ]
     if compression.answer:
         lines.append(f"Initial answer hint: {compression.answer}")
     lines.append("Evidence:")
-    for index, item in enumerate(compression.selected, start=1):
+    prompt_items = _transcript_backed_items(compression.selected)
+    if not prompt_items:
+        prompt_items = list(enumerate(compression.selected, start=1))
+    for index, item in prompt_items:
         time_range = _time_range(item)
+        transcript = _prompt_transcript(item)
         lines.append(
             f"{index}. {time_range} clip={_path_to_string(item.clip_path) or 'n/a'} "
-            f"transcript={item.text!r}"
+            f"transcript={transcript!r}"
         )
     lines.append(
         "Return a concise answer and cite the evidence numbers that support it."
@@ -71,6 +77,30 @@ def _evidence_item(item: SelectedCandidate) -> dict[str, Any]:
         "mmr_score": item.mmr_score,
         "reason": item.reason,
     }
+
+
+def _prompt_transcript(item: SelectedCandidate) -> str:
+    text = " ".join(item.text.split())
+    if not text:
+        return "[no transcript text available for this clip]"
+    if text.lower().startswith("visual frame sampled at"):
+        return "[visual-only clip; no transcript text available]"
+    return text
+
+
+def _transcript_backed_items(
+    items: list[SelectedCandidate],
+) -> list[tuple[int, SelectedCandidate]]:
+    return [
+        (index, item)
+        for index, item in enumerate(items, start=1)
+        if _has_transcript_text(item)
+    ]
+
+
+def _has_transcript_text(item: SelectedCandidate) -> bool:
+    text = " ".join(item.text.split())
+    return bool(text) and not text.lower().startswith("visual frame sampled at")
 
 
 def _time_range(item: SelectedCandidate) -> str:

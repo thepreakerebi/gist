@@ -62,3 +62,110 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
     assert package["evidence"][0]["clip_path"] == str(clip_path)
     assert package["evidence"][0]["transcript"] == "The speaker explains the event."
     assert "Return a concise answer" in package["prompt"]
+
+
+def test_evidence_prompt_marks_visual_only_clips_as_non_textual(tmp_path: Path) -> None:
+    ingestion = IngestedVideo(
+        video_id="video-1",
+        source_path=tmp_path / "video.mp4",
+        metadata=VideoMetadata(duration_seconds=60, width=640, height=360, has_audio=True),
+        frames=[],
+        audio_windows=[],
+    )
+    compression = CompressionResponse(
+        video_id="video-1",
+        query="What is shown?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="v-1",
+                modality=Modality.VISUAL,
+                timestamp_seconds=12,
+                text="visual frame sampled at 12.00 seconds",
+                clip_start_seconds=10,
+                clip_end_seconds=20,
+                selection_rank=1,
+                relevance_score=0.8,
+                normalized_score=1.0,
+                mmr_score=0.7,
+                source_score_type="lexical_overlap",
+                reason="test",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=1,
+            selected_candidates=1,
+            visual_selected=1,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    package = build_evidence_package(ingestion, compression)
+
+    assert "[visual-only clip; no transcript text available]" in package["prompt"]
+    assert "cannot inspect pixels" in package["prompt"]
+
+
+def test_evidence_prompt_omits_visual_only_clips_when_transcripts_exist(
+    tmp_path: Path,
+) -> None:
+    ingestion = IngestedVideo(
+        video_id="video-1",
+        source_path=tmp_path / "video.mp4",
+        metadata=VideoMetadata(duration_seconds=60, width=640, height=360, has_audio=True),
+        frames=[],
+        audio_windows=[],
+    )
+    compression = CompressionResponse(
+        video_id="video-1",
+        query="What happened?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="v-1",
+                modality=Modality.VISUAL,
+                timestamp_seconds=12,
+                text="visual frame sampled at 12.00 seconds",
+                selection_rank=1,
+                relevance_score=0.8,
+                normalized_score=1.0,
+                mmr_score=0.7,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="a-1",
+                modality=Modality.AUDIO,
+                timestamp_seconds=20,
+                text="The founder uses AI to review plans.",
+                selection_rank=2,
+                relevance_score=0.9,
+                normalized_score=1.0,
+                mmr_score=0.8,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=1,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    package = build_evidence_package(ingestion, compression)
+
+    assert "1. 12.00s" not in package["prompt"]
+    assert "2. 20.00s" in package["prompt"]
+    assert "The founder uses AI to review plans." in package["prompt"]
