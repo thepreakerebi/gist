@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
+from gist.core.evidence_pruning import prune_evidence_to_answer
 from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
 from gist.core.schemas import CompressionResponse, SelectedCandidate
@@ -54,6 +55,11 @@ def main() -> int:
         help="Disable OCR extraction from sampled frames.",
     )
     parser.add_argument("--no-clips", action="store_true")
+    parser.add_argument(
+        "--no-answer-prune",
+        action="store_true",
+        help="Keep all selected evidence instead of pruning final clips against the answer.",
+    )
     parser.add_argument("--html-report", action="store_true")
     parser.add_argument("--export-evidence-package", action="store_true")
     parser.add_argument(
@@ -114,6 +120,9 @@ def main() -> int:
                 "answer_provider": gateway_response.provider,
             }
         )
+    if not args.no_answer_prune:
+        progress("pruning evidence against answer")
+        compression = prune_evidence_to_answer(compression)
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")
