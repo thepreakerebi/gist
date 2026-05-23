@@ -8,6 +8,8 @@ from gist.gateway.structured import (
     ExtractionSchema,
     LocalStructuredExtractor,
     build_structured_extraction_prompt,
+    extract_from_compression_file,
+    main,
 )
 
 
@@ -102,6 +104,80 @@ def test_extraction_schema_loads_from_file(tmp_path: Path) -> None:
     assert schema.name == "product_mentions"
     assert schema.labels == ["product mention"]
     assert schema.fields[0].name == "summary"
+
+
+def test_extract_from_compression_file_writes_model_contract(tmp_path: Path) -> None:
+    compression_path = tmp_path / "compression.json"
+    schema_path = tmp_path / "schema.json"
+    schema_path.write_text(
+        json.dumps(
+            {
+                "name": "sales_feedback",
+                "labels": ["pricing objection"],
+                "fields": [{"name": "summary", "required": True}],
+            }
+        )
+    )
+    compression = _compression(
+        selected=[
+            _item(
+                "a-1",
+                text="The buyer says pricing is too expensive.",
+                clip_start=30,
+                clip_end=45,
+            )
+        ]
+    )
+    compression_path.write_text(
+        json.dumps({"compression": compression.model_dump(mode="json")})
+    )
+
+    response = extract_from_compression_file(compression_path, schema_path)
+
+    assert response.schema_name == "sales_feedback"
+    assert response.items[0].label == "pricing objection"
+
+
+def test_structured_extract_cli_writes_output(tmp_path: Path) -> None:
+    compression_path = tmp_path / "compression.json"
+    schema_path = tmp_path / "schema.json"
+    output_path = tmp_path / "extraction.json"
+    schema_path.write_text(
+        json.dumps(
+            {
+                "name": "sales_feedback",
+                "labels": ["pricing objection"],
+                "fields": [{"name": "summary", "required": True}],
+            }
+        )
+    )
+    compression = _compression(
+        selected=[
+            _item(
+                "a-1",
+                text="The buyer says pricing is too expensive.",
+                clip_start=30,
+                clip_end=45,
+            )
+        ]
+    )
+    compression_path.write_text(
+        json.dumps({"compression": compression.model_dump(mode="json")})
+    )
+
+    exit_code = main(
+        [
+            "--compression",
+            str(compression_path),
+            "--schema",
+            str(schema_path),
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert json.loads(output_path.read_text())["items"][0]["label"] == "pricing objection"
 
 
 def _compression(selected: list[SelectedCandidate]) -> CompressionResponse:

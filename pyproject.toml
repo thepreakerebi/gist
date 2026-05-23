@@ -18,11 +18,13 @@ dependencies = [
 gist = "gist.cli:main"
 gist-eval = "gist.eval.cli:main"
 gist-extraction-eval = "gist.eval.extraction:main"
+gist-extraction-smoke = "gist.eval.extraction_smoke:main"
 gist-failure-analysis = "gist.eval.failure_analysis:main"
 gist-quality-eval = "gist.eval.quality:main"
 gist-regression = "gist.eval.regression:main"
 gist-smoke-test = "gist.eval.smoke:main"
 gist-sota-benchmark = "gist.eval.sota:main"
+gist-structured-extract = "gist.gateway.structured:main"
 
 [project.optional-dependencies]
 dev = [

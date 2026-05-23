@@ -1,3 +1,4 @@
+import argparse
 import json
 import re
 from pathlib import Path
@@ -79,6 +80,42 @@ class LocalStructuredExtractor:
             prompt=prompt,
             provider=self.provider,
         )
+
+
+def load_compression_response(path: Path) -> CompressionResponse:
+    payload = json.loads(path.read_text())
+    compression_payload = payload.get("compression", payload)
+    return CompressionResponse.model_validate(compression_payload)
+
+
+def extract_from_compression_file(
+    compression_path: Path,
+    schema_path: Path,
+) -> StructuredExtractionResponse:
+    return LocalStructuredExtractor().extract(
+        schema=ExtractionSchema.from_file(schema_path),
+        compression=load_compression_response(compression_path),
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Extract timestamped structured records from a Gist compression file."
+    )
+    parser.add_argument("--compression", required=True, type=Path)
+    parser.add_argument("--schema", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    args = parser.parse_args(argv)
+
+    extraction = extract_from_compression_file(
+        compression_path=args.compression,
+        schema_path=args.schema,
+    )
+    extraction.write_json(args.output)
+    print(f"items={len(extraction.items)}")
+    print(f"provider={extraction.provider}")
+    print(f"output={args.output}")
+    return 0
 
 
 def build_structured_extraction_prompt(
@@ -214,3 +251,7 @@ def _terms(value: str) -> set[str]:
         for token in re.findall(r"[a-z0-9]+", value.lower())
         if token not in stopwords
     }
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -29,6 +29,15 @@ The first extractor is local and deterministic. It establishes the model-agnosti
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
 
+Run extraction from an existing compression file:
+
+```bash
+gist-structured-extract \
+  --compression .gist/runs/video-slug/query-slug/compression.json \
+  --schema data/extraction/sales-feedback.schema.json \
+  --output reports/extraction.json
+```
+
 Evaluate structured extraction outputs with:
 
 ```bash
@@ -36,6 +45,20 @@ gist-extraction-eval \
   --dataset data/eval/extraction-quality.template.jsonl \
   --output reports/extraction-quality.json \
   --markdown-output reports/extraction-quality.md
+```
+
+Run a full extraction smoke check from an existing compression:
+
+```bash
+gist-extraction-smoke \
+  --compression .gist/runs/video-slug/query-slug/compression.json \
+  --schema data/extraction/sales-feedback.schema.json \
+  --output-dir reports/extraction-smoke \
+  --case-id sales-feedback-smoke \
+  --expected-label "pricing objection" \
+  --support-term pricing \
+  --expected-start-seconds 120 \
+  --expected-end-seconds 150
 ```
 
 ## Quickstart
