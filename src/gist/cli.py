@@ -247,6 +247,7 @@ def _attach_spatial_masks(
         mask = build_query_spatial_mask(
             evidence_id=item.id,
             query=compression.query,
+            evidence_text=item.text,
             grid_size=grid_size,
             retention_ratio=retention_ratio,
         )

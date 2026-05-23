@@ -12,6 +12,7 @@ def test_build_query_spatial_mask_returns_expected_shape() -> None:
     assert mask.total_patches == 16
     assert mask.retained_patches == 4
     assert mask.retained_patch_indexes == sorted(mask.retained_patch_indexes)
+    assert mask.saliency_strategy == "center_object"
 
 
 def test_query_spatial_mask_is_deterministic() -> None:
@@ -31,3 +32,32 @@ def test_estimate_spatial_tokens_reports_reduction() -> None:
     assert baseline == 200
     assert retained == 80
     assert reduction == 60
+
+
+def test_query_spatial_mask_prefers_text_band_for_ocr_evidence() -> None:
+    mask = build_query_spatial_mask(
+        evidence_id="frame-ocr",
+        query="what text is shown on screen",
+        evidence_text="on-screen text near 4.00 seconds: GIST TOKEN SAVER",
+        grid_size=5,
+        retention_ratio=0.2,
+    )
+
+    retained_rows = {index // mask.grid_size for index in mask.retained_patch_indexes}
+
+    assert mask.saliency_strategy == "text_band"
+    assert 2 in retained_rows
+    assert retained_rows <= {1, 2, 3}
+
+
+def test_query_spatial_mask_prefers_center_for_visual_object_queries() -> None:
+    mask = build_query_spatial_mask(
+        evidence_id="frame-hand",
+        query="show the robot hand",
+        evidence_text="visual frame sampled at 5.00 seconds",
+        grid_size=5,
+        retention_ratio=0.2,
+    )
+
+    assert mask.saliency_strategy == "center_object"
+    assert 12 in mask.retained_patch_indexes
