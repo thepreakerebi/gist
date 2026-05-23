@@ -166,6 +166,12 @@ def build_gateway_payload(request: GatewayRequest) -> tuple[str, dict[str, Any]]
                 "clip_path": _path_to_string(item.clip_path),
                 "asset_path": _path_to_string(item.asset_path),
                 "spatial_mask_path": _path_to_string(item.spatial_mask_path),
+                "spatial_mask_preview_path": _path_to_string(
+                    item.spatial_mask_preview_path
+                ),
+                "spatial_mask_overlay_path": _path_to_string(
+                    item.spatial_mask_overlay_path
+                ),
                 "clip_start_seconds": item.clip_start_seconds,
                 "clip_end_seconds": item.clip_end_seconds,
                 "segment_id": item.segment_id,

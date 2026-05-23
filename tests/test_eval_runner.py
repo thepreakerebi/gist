@@ -223,6 +223,11 @@ def test_eval_runner_supports_real_video_examples(tmp_path) -> None:
         if item.modality == Modality.VISUAL:
             assert item.spatial_mask_path is not None
             assert item.spatial_mask_path.exists()
+            assert item.spatial_mask_preview_path is not None
+            assert item.spatial_mask_preview_path.exists()
+            if item.asset_path is not None:
+                assert item.spatial_mask_overlay_path is not None
+                assert item.spatial_mask_overlay_path.exists()
     assert (
         report.results[0]
         .variants[0]
@@ -330,6 +335,38 @@ def test_render_html_report_merges_overlapping_audio_visual_evidence() -> None:
     assert html.count("<video") == 1
     assert "speaker says architecture" in html
     assert "visual frame near topic" in html
+
+
+def test_render_html_report_includes_spatial_debug_image(tmp_path: Path) -> None:
+    preview_path = tmp_path / "mask.svg"
+    preview_path.write_text("<svg></svg>")
+    example = EvalExample(
+        id="case-1",
+        video_id="v1",
+        query="show pricing slide",
+        duration_seconds=60,
+        visual_candidates=[
+            Candidate(id="v-near", timestamp_seconds=10.2, text="visual frame near topic")
+        ],
+    )
+    report = EvalRunner().run([example], EvalSettings())
+    selected = [
+        item.model_copy(
+            update={
+                "spatial_mask_preview_path": preview_path,
+                "spatial_mask_overlay_path": preview_path,
+            }
+        )
+        for item in report.results[0].variants[0].response.selected
+    ]
+    report.results[0].variants[0].response = report.results[0].variants[
+        0
+    ].response.model_copy(update={"selected": selected})
+
+    html = render_html_report(report)
+
+    assert "Spatial mask overlay" in html
+    assert preview_path.resolve().as_uri() in html
 
 
 def test_render_html_report_keeps_answer_and_precontext_but_drops_weak_late_context() -> None:

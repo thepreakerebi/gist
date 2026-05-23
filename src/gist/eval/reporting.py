@@ -183,6 +183,8 @@ class EvidenceCard:
     reason: str
     clip_path: Path | None
     asset_path: Path | None
+    spatial_mask_preview_path: Path | None
+    spatial_mask_overlay_path: Path | None
     relevance_score: float
     normalized_score: float
     support_label: str
@@ -230,6 +232,8 @@ def _card_from_group(group: list) -> EvidenceCard:
         reason=_combined_reason(group),
         clip_path=primary.clip_path,
         asset_path=primary.asset_path,
+        spatial_mask_preview_path=_spatial_debug_path(group, "preview"),
+        spatial_mask_overlay_path=_spatial_debug_path(group, "overlay"),
         relevance_score=max(item.relevance_score for item in group),
         normalized_score=max(item.normalized_score for item in group),
         support_label=_group_support_label(group),
@@ -272,6 +276,22 @@ def _combined_reason(group: list) -> str:
         f"Merged {len(group)} internal {modalities} evidence items into one "
         f"playable video clip because their timestamps overlap ({timestamps})."
     )
+
+
+def _spatial_debug_path(group: list, kind: str) -> Path | None:
+    field = (
+        "spatial_mask_overlay_path"
+        if kind == "overlay"
+        else "spatial_mask_preview_path"
+    )
+    candidates = [item for item in group if getattr(item, field) is not None]
+    if not candidates:
+        return None
+    selected = max(
+        candidates,
+        key=lambda item: (item.visual_support_score or 0.0, item.relevance_score),
+    )
+    return getattr(selected, field)
 
 
 def _group_support_label(group: list) -> str:
@@ -381,6 +401,7 @@ def _render_evidence(cards: list[EvidenceCard]) -> str:
           <div><strong>video</strong> at <code>{card.timestamp_seconds:.2f}s</code> <span class="muted">from {escape(", ".join(card.modalities))}</span></div>
           <div class="muted">Support: {escape(card.support_label)} ({card.evidence_support_score:.3f}); audio={card.audio_support_score:.3f}; ocr={card.ocr_support_score:.3f}; visual={card.visual_support_score:.3f}; cross-modal={card.cross_modal_support_score:.3f}</div>
           {_render_asset(card)}
+          {_render_spatial_debug(card)}
           <div>{escape(card.text)}</div>
           <div class="muted">{escape(card.reason)}</div>
         </div>
@@ -405,6 +426,25 @@ def _render_asset(card: EvidenceCard) -> str:
     return (
         f'<img class="evidence-frame" src="{escape(path.resolve().as_uri())}" '
         f'alt="Selected visual evidence at {card.timestamp_seconds:.2f}s">'
+    )
+
+
+def _render_spatial_debug(card: EvidenceCard) -> str:
+    path = card.spatial_mask_overlay_path or card.spatial_mask_preview_path
+    if path is None:
+        return ""
+    path = Path(path)
+    label = (
+        "Spatial mask overlay"
+        if card.spatial_mask_overlay_path is not None
+        else "Spatial mask preview"
+    )
+    if not path.exists():
+        return f"<div class='muted'>Missing {escape(label.lower())}: <code>{escape(str(path))}</code></div>"
+    return (
+        f"<div class='muted'>{escape(label)}</div>"
+        f'<img class="evidence-frame" src="{escape(path.resolve().as_uri())}" '
+        f'alt="Spatial mask retained patches">'
     )
 
 

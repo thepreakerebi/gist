@@ -1,12 +1,17 @@
 import sys
+from pathlib import Path
 
 from gist.core.compressor import GistCompressor
-from gist.core.schemas import Candidate, CompressionRequest
+from gist.core.schemas import Candidate, CompressionRequest, Modality
 from gist.gateway.context import render_evidence_context
 from gist.gateway.echo import EchoGateway
 from gist.gateway.local_text import LocalTextEvidenceGateway
 from gist.gateway.schemas import GatewayRequest
-from gist.gateway.subprocess import PersistentSubprocessVideoLlmGateway, SubprocessVideoLlmGateway
+from gist.gateway.subprocess import (
+    PersistentSubprocessVideoLlmGateway,
+    SubprocessVideoLlmGateway,
+    build_gateway_payload,
+)
 
 
 def test_render_evidence_context_includes_timestamps_and_reasons() -> None:
@@ -136,3 +141,36 @@ def test_persistent_subprocess_gateway_reuses_process() -> None:
     assert first.answer == "pricing:1"
     assert second.answer == "pricing:2"
     assert second.provider == "fake-persistent"
+
+
+def test_subprocess_gateway_payload_includes_spatial_debug_paths(tmp_path: Path) -> None:
+    compression = GistCompressor().compress(
+        CompressionRequest(
+            video_id="demo",
+            query="pricing",
+            duration_seconds=60,
+            visual_candidates=[
+                Candidate(id="v1", timestamp_seconds=10, text="pricing slide")
+            ],
+        )
+    )
+    selected = [
+        compression.selected[0].model_copy(
+            update={
+                "modality": Modality.VISUAL,
+                "spatial_mask_path": tmp_path / "mask.json",
+                "spatial_mask_preview_path": tmp_path / "mask.svg",
+                "spatial_mask_overlay_path": tmp_path / "overlay.svg",
+            }
+        )
+    ]
+    compression = compression.model_copy(update={"selected": selected})
+
+    _context, payload = build_gateway_payload(
+        GatewayRequest(query="pricing", compression=compression)
+    )
+    evidence = payload["evidence"][0]
+
+    assert evidence["spatial_mask_path"] == str(tmp_path / "mask.json")
+    assert evidence["spatial_mask_preview_path"] == str(tmp_path / "mask.svg")
+    assert evidence["spatial_mask_overlay_path"] == str(tmp_path / "overlay.svg")
