@@ -90,6 +90,13 @@ class QualityReport(BaseModel):
         path.write_text(self.model_dump_json(indent=2) + "\n")
 
 
+class QualityDatasetCheck(BaseModel):
+    cases: int
+    runnable_cases: int
+    replay_cases: int
+    warnings: list[str] = Field(default_factory=list)
+
+
 def load_quality_cases(path: Path) -> list[QualityCase]:
     cases: list[QualityCase] = []
     for line_number, line in enumerate(path.read_text().splitlines(), start=1):
@@ -102,6 +109,22 @@ def load_quality_cases(path: Path) -> list[QualityCase]:
             raise ValueError(f"invalid JSON on line {line_number}: {exc}") from exc
         cases.append(QualityCase.model_validate(payload))
     return cases
+
+
+def check_quality_dataset(cases: list[QualityCase]) -> QualityDatasetCheck:
+    warnings: list[str] = []
+    ids: set[str] = set()
+    for case in cases:
+        if case.id in ids:
+            warnings.append(f"{case.id}: duplicate case id")
+        ids.add(case.id)
+        warnings.extend(_case_warnings(case))
+    return QualityDatasetCheck(
+        cases=len(cases),
+        runnable_cases=sum(case.video_path is not None for case in cases),
+        replay_cases=sum(case.compression_path is not None for case in cases),
+        warnings=warnings,
+    )
 
 
 def run_quality_cases(
@@ -298,9 +321,25 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
     parser.add_argument("--output-root", type=Path, default=Path(".gist/quality"))
+    parser.add_argument(
+        "--check-only",
+        action="store_true",
+        help="Validate the dataset shape and warnings without running compression.",
+    )
     args = parser.parse_args(argv)
 
-    report = run_quality_cases(load_quality_cases(args.dataset), output_root=args.output_root)
+    cases = load_quality_cases(args.dataset)
+    if args.check_only:
+        check = check_quality_dataset(cases)
+        print(f"cases={check.cases}")
+        print(f"runnable_cases={check.runnable_cases}")
+        print(f"replay_cases={check.replay_cases}")
+        print(f"warnings={len(check.warnings)}")
+        for warning in check.warnings:
+            print(f"  - {warning}")
+        return 0 if not check.warnings else 1
+
+    report = run_quality_cases(cases, output_root=args.output_root)
     if args.output is not None:
         report.write_json(args.output)
     if args.markdown_output is not None:
@@ -408,6 +447,32 @@ def _quality_failures(
     return failures
 
 
+def _case_warnings(case: QualityCase) -> list[str]:
+    warnings: list[str] = []
+    if case.compression_path is not None and not case.compression_path.exists():
+        warnings.append(f"{case.id}: compression_path does not exist: {case.compression_path}")
+    if case.video_path is not None and not case.video_path.exists():
+        warnings.append(f"{case.id}: video_path does not exist: {case.video_path}")
+    if case.compression_path is not None and case.video_path is not None:
+        warnings.append(
+            f"{case.id}: both compression_path and video_path are set; "
+            "compression_path replay will be used"
+        )
+    if not case.expected_answer_terms:
+        warnings.append(f"{case.id}: expected_answer_terms is empty")
+    if not case.expected_evidence_terms:
+        warnings.append(f"{case.id}: expected_evidence_terms is empty")
+    if not case.relevant_timestamps and not case.relevant_ranges:
+        warnings.append(f"{case.id}: no relevant timestamps or ranges")
+    if case.min_answer_term_recall == 0:
+        warnings.append(f"{case.id}: min_answer_term_recall is not enforcing quality")
+    if case.min_evidence_relevance_rate == 0:
+        warnings.append(f"{case.id}: min_evidence_relevance_rate is not enforcing quality")
+    if case.min_token_reduction_percent == 0:
+        warnings.append(f"{case.id}: min_token_reduction_percent is not enforcing compression")
+    return warnings
+
+
 def _load_compression(path: Path) -> CompressionResponse:
     payload = json.loads(path.read_text())
     compression_payload = payload.get("compression", payload)
@@ -495,7 +560,11 @@ def _term_recall(expected_terms: list[str], text: str) -> float:
 
 def _contains_any_term(text: str, expected_terms: list[str]) -> bool:
     normalized_text = text.lower()
-    return any(term.strip().lower() in normalized_text for term in expected_terms if term.strip())
+    return any(
+        term.strip().lower() in normalized_text
+        for term in expected_terms
+        if term.strip()
+    )
 
 
 def _average(values) -> float:

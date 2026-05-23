@@ -5,7 +5,9 @@ from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
 from gist.eval.quality import (
     QualityCase,
+    check_quality_dataset,
     evaluate_quality_case,
+    main,
     render_quality_markdown,
     run_quality_cases,
 )
@@ -130,6 +132,35 @@ def test_run_quality_cases_and_markdown_summary(tmp_path: Path) -> None:
     assert report.passed is True
     assert report.summary.pass_rate == 1.0
     assert "| slide | pass |" in markdown
+
+
+def test_check_quality_dataset_reports_warnings(tmp_path: Path) -> None:
+    missing_path = tmp_path / "missing.json"
+    case = QualityCase(id="unchecked", compression_path=missing_path)
+
+    check = check_quality_dataset([case])
+
+    assert check.cases == 1
+    assert check.replay_cases == 1
+    assert any("compression_path does not exist" in warning for warning in check.warnings)
+    assert any("expected_answer_terms is empty" in warning for warning in check.warnings)
+
+
+def test_quality_cli_check_only_returns_nonzero_for_warnings(tmp_path: Path) -> None:
+    dataset = tmp_path / "quality.jsonl"
+    dataset.write_text(
+        json.dumps(
+            {
+                "id": "unchecked",
+                "compression_path": str(tmp_path / "missing.json"),
+            }
+        )
+        + "\n"
+    )
+
+    exit_code = main(["--dataset", str(dataset), "--check-only"])
+
+    assert exit_code == 1
 
 
 def _write_compression(

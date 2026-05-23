@@ -218,6 +218,22 @@ The dataset format is one JSON object per line with:
 - `query`
 - `duration_seconds`
 - `relevant_timestamps`
+
+For product-quality tracking, use the local quality harness:
+
+```bash
+gist-quality-eval \
+  --dataset data/eval/local-quality.jsonl \
+  --check-only
+
+gist-quality-eval \
+  --dataset data/eval/local-quality.jsonl \
+  --output reports/local-quality/quality.json \
+  --markdown-output reports/local-quality/quality.md \
+  --html-output reports/local-quality/quality.html
+```
+
+See `docs/local-quality-evaluation.md` for the dataset format and the quality gates that define when Gist is alpha/beta ready.
 - `timestamp_tolerance_seconds`
 - `visual_candidates`
 - `audio_candidates`
