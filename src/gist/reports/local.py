@@ -69,6 +69,7 @@ def render_local_compression_report(
     .card {{ background: rgba(255,255,255,0.82); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: 0 16px 40px rgba(20, 35, 28, 0.08); }}
     .metric {{ font-size: 28px; font-weight: 700; }}
     .muted {{ color: var(--muted); }}
+    .support {{ display: inline-block; padding: 3px 8px; border-radius: 999px; background: #e6f2ea; color: #145c43; font-weight: 700; }}
     code {{ background: #e9f1eb; padding: 2px 5px; border-radius: 5px; }}
     video {{ display: block; width: min(760px, 100%); margin: 12px 0; background: #000; border-radius: 10px; }}
     img {{ display: block; max-width: min(520px, 100%); height: auto; margin: 12px 0; border-radius: 10px; border: 1px solid var(--line); }}
@@ -210,6 +211,19 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
     item_ids = ", ".join(item.id for item in moment)
     score = max((item.relevance_score for item in moment), default=0.0)
     mmr = max((item.mmr_score for item in moment), default=0.0)
+    support_score = max(
+        (item.evidence_support_score or 0.0 for item in moment),
+        default=0.0,
+    )
+    answer_support = max(
+        (item.answer_support_score or 0.0 for item in moment),
+        default=0.0,
+    )
+    query_support = max(
+        (item.query_support_score or 0.0 for item in moment),
+        default=0.0,
+    )
+    support_label = _support_label(moment)
     segment_ids = ", ".join(
         sorted({item.segment_id for item in moment if item.segment_id is not None})
     ) or "n/a"
@@ -222,13 +236,24 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
     return f"""
     <article class="card evidence">
       <h3>Video evidence {index}</h3>
-      <p><strong>video</strong> around <code>{timestamp:.2f}s</code> <span class="muted">{escape(clip_range)}</span></p>
+      <p><strong>video</strong> around <code>{timestamp:.2f}s</code> <span class="muted">{escape(clip_range)}</span> <span class="support">{escape(support_label)} support</span></p>
       {asset}
       <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
       <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
-      <p class="muted">segments={escape(segment_ids)}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
+      <p class="muted">segments={escape(segment_ids)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
     </article>
     """
+
+
+def _support_label(moment: list[SelectedCandidate]) -> str:
+    labels = [item.support_label for item in moment if item.support_label]
+    if "strong" in labels:
+        return "strong"
+    if "medium" in labels:
+        return "medium"
+    if "weak" in labels:
+        return "weak"
+    return "unscored"
 
 
 def _representative_video(moment: list[SelectedCandidate]) -> SelectedCandidate:

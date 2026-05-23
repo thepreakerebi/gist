@@ -48,6 +48,10 @@ class SelectedCandidate(BaseModel):
     relevance_score: float
     normalized_score: float
     mmr_score: float
+    answer_support_score: float | None = None
+    query_support_score: float | None = None
+    evidence_support_score: float | None = None
+    support_label: str | None = None
     source_score_type: str
     reason: str
 

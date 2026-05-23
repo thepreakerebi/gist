@@ -185,6 +185,8 @@ class EvidenceCard:
     asset_path: Path | None
     relevance_score: float
     normalized_score: float
+    support_label: str
+    evidence_support_score: float
 
 
 def _merge_evidence_cards(selected) -> list[EvidenceCard]:
@@ -226,6 +228,11 @@ def _card_from_group(group: list) -> EvidenceCard:
         asset_path=primary.asset_path,
         relevance_score=max(item.relevance_score for item in group),
         normalized_score=max(item.normalized_score for item in group),
+        support_label=_group_support_label(group),
+        evidence_support_score=max(
+            (item.evidence_support_score or 0.0 for item in group),
+            default=0.0,
+        ),
     )
 
 
@@ -257,6 +264,17 @@ def _combined_reason(group: list) -> str:
         f"Merged {len(group)} internal {modalities} evidence items into one "
         f"playable video clip because their timestamps overlap ({timestamps})."
     )
+
+
+def _group_support_label(group: list) -> str:
+    labels = [item.support_label for item in group if item.support_label]
+    if "strong" in labels:
+        return "strong"
+    if "medium" in labels:
+        return "medium"
+    if "weak" in labels:
+        return "weak"
+    return "unscored"
 
 
 def _rank_evidence_cards(query: str, cards: list[EvidenceCard]) -> list[EvidenceCard]:
@@ -353,6 +371,7 @@ def _render_evidence(cards: list[EvidenceCard]) -> str:
         f"""
         <div class="evidence">
           <div><strong>video</strong> at <code>{card.timestamp_seconds:.2f}s</code> <span class="muted">from {escape(", ".join(card.modalities))}</span></div>
+          <div class="muted">Support: {escape(card.support_label)} ({card.evidence_support_score:.3f})</div>
           {_render_asset(card)}
           <div>{escape(card.text)}</div>
           <div class="muted">{escape(card.reason)}</div>

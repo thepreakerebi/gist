@@ -73,6 +73,10 @@ def _evidence_item(item: SelectedCandidate) -> dict[str, Any]:
         "scene_end_seconds": item.scene_end_seconds,
         "relevance_score": item.relevance_score,
         "mmr_score": item.mmr_score,
+        "answer_support_score": item.answer_support_score,
+        "query_support_score": item.query_support_score,
+        "evidence_support_score": item.evidence_support_score,
+        "support_label": item.support_label,
         "reason": item.reason,
     }
 

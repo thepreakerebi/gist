@@ -9,6 +9,10 @@ from gist.core.token_estimation import TOKEN_ESTIMATE_PROFILES
 DEFAULT_MAX_PRUNED_EVIDENCE = 4
 DEFAULT_MIN_PRUNED_EVIDENCE = 3
 ANSWER_SUPPORT_RELATIVE_THRESHOLD = 0.55
+MIN_CITED_SUPPORT_SCORE = 0.035
+MIN_CITED_SUPPORT_RELATIVE_THRESHOLD = 0.35
+STRONG_SUPPORT_SCORE = 0.12
+MEDIUM_SUPPORT_SCORE = 0.05
 REDUNDANT_EVIDENCE_SIMILARITY_THRESHOLD = 0.6
 
 
@@ -16,6 +20,20 @@ REDUNDANT_EVIDENCE_SIMILARITY_THRESHOLD = 0.6
 class EvidenceSupport:
     item: SelectedCandidate
     score: float
+    answer_score: float
+    query_score: float
+
+
+def annotate_evidence_support(compression: CompressionResponse) -> CompressionResponse:
+    """Attach answer/query support metadata to every selected evidence item."""
+
+    if not compression.selected:
+        return compression
+    selected = [
+        _with_support_metadata(_support_score(compression, item))
+        for item in compression.selected
+    ]
+    return compression.model_copy(update={"selected": selected})
 
 
 def prune_evidence_to_answer(
@@ -79,14 +97,22 @@ def prune_evidence_to_answer_citations(
     if len(cited_ranks) < min_items:
         return compression
 
+    ranked = [_support_score(compression, item) for item in compression.selected]
+    cited = [
+        support
+        for rank, support in enumerate(ranked, start=1)
+        if rank in cited_ranks
+    ]
+    retained = _support_filtered_citations(
+        cited=cited,
+        ranked=ranked,
+        min_items=min_items,
+    )
+
     selected = [
-        _with_citation_reason(index, item)
-        for index, item in enumerate(
-            [
-                item
-                for rank, item in enumerate(compression.selected, start=1)
-                if rank in cited_ranks
-            ],
+        _with_citation_reason(index, support)
+        for index, support in enumerate(
+            sorted(retained, key=lambda support: support.item.timestamp_seconds),
             start=1,
         )
     ]
@@ -143,7 +169,69 @@ def _support_score(
     answer_similarity = text_similarity(compression.answer or "", item.text)
     query_similarity = text_similarity(compression.query, item.text)
     score = (0.7 * answer_similarity) + (0.3 * query_similarity)
-    return EvidenceSupport(item=item, score=score)
+    return EvidenceSupport(
+        item=item,
+        score=score,
+        answer_score=answer_similarity,
+        query_score=query_similarity,
+    )
+
+
+def _support_filtered_citations(
+    cited: list[EvidenceSupport],
+    ranked: list[EvidenceSupport],
+    min_items: int,
+) -> list[EvidenceSupport]:
+    if not cited:
+        return []
+
+    best_score = max((support.score for support in ranked), default=0.0)
+    threshold = max(
+        MIN_CITED_SUPPORT_SCORE,
+        best_score * MIN_CITED_SUPPORT_RELATIVE_THRESHOLD,
+    )
+    target_count = max(min_items, len(cited))
+    retained = [support for support in cited if support.score >= threshold]
+    if len(retained) >= target_count:
+        return retained
+
+    retained_ids = {support.item.id for support in retained}
+    alternatives = [
+        support
+        for support in sorted(
+            ranked,
+            key=lambda support: (
+                support.score,
+                support.item.relevance_score,
+                -support.item.timestamp_seconds,
+            ),
+            reverse=True,
+        )
+        if support.score >= threshold and support.item.id not in retained_ids
+    ]
+    retained.extend(alternatives[: max(target_count - len(retained), 0)])
+    if len(retained) >= target_count:
+        return retained
+    return cited
+
+
+def _with_support_metadata(support: EvidenceSupport) -> SelectedCandidate:
+    return support.item.model_copy(
+        update={
+            "answer_support_score": support.answer_score,
+            "query_support_score": support.query_score,
+            "evidence_support_score": support.score,
+            "support_label": _support_label(support.score),
+        }
+    )
+
+
+def _support_label(score: float) -> str:
+    if score >= STRONG_SUPPORT_SCORE:
+        return "strong"
+    if score >= MEDIUM_SUPPORT_SCORE:
+        return "medium"
+    return "weak"
 
 
 def _with_pruning_reason(index: int, support: EvidenceSupport) -> SelectedCandidate:
@@ -151,10 +239,13 @@ def _with_pruning_reason(index: int, support: EvidenceSupport) -> SelectedCandid
         f"{support.item.reason}; retained after answer-grounded pruning "
         f"(support score {support.score:.3f})"
     )
-    return support.item.model_copy(update={"selection_rank": index, "reason": reason})
+    return _with_support_metadata(support).model_copy(
+        update={"selection_rank": index, "reason": reason}
+    )
 
 
-def _with_citation_reason(index: int, item: SelectedCandidate) -> SelectedCandidate:
+def _with_citation_reason(index: int, support: EvidenceSupport) -> SelectedCandidate:
+    item = _with_support_metadata(support)
     reason = f"{item.reason}; retained because the final answer cited this evidence"
     return item.model_copy(update={"selection_rank": index, "reason": reason})
 

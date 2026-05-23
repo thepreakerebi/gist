@@ -51,6 +51,10 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
                 mmr_score=0.7,
                 source_score_type="lexical_overlap",
                 reason="query terms matched",
+                answer_support_score=0.8,
+                query_support_score=0.7,
+                evidence_support_score=0.77,
+                support_label="strong",
             )
         ],
         metrics=CompressionMetrics(
@@ -77,6 +81,8 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "refund policy" in html
     assert "Refunds are available for eligible plans." in html
     assert "long processing selected" in html
+    assert "strong support" in html
+    assert "answer_support=0.800" in html
     assert "evidence" in html
     assert "<video" in html
     assert clip_path.resolve().as_uri() in html

@@ -5,6 +5,7 @@ from pathlib import Path
 from gist.core.answering import answer_from_evidence, verify_answer_claims
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.evidence_pruning import (
+    annotate_evidence_support,
     consolidate_redundant_evidence,
     prune_evidence_to_answer,
     prune_evidence_to_answer_citations,
@@ -216,9 +217,10 @@ def _answer_compression(
 ) -> CompressionResponse:
     if args.answer_with == "extractive":
         answer = answer_from_evidence(compression)
-        return compression.model_copy(
+        answered = compression.model_copy(
             update={"answer": verify_answer_claims(answer, compression)}
         )
+        return annotate_evidence_support(answered)
     if args.answer_with == "local-text":
         progress("answering with local text evidence gateway")
         gateway_response = LocalTextEvidenceGateway().answer(
@@ -233,12 +235,13 @@ def _answer_compression(
     else:
         raise ValueError(f"unsupported answer gateway: {args.answer_with}")
 
-    return compression.model_copy(
+    answered = compression.model_copy(
         update={
             "answer": verify_answer_claims(gateway_response.answer, compression),
             "answer_provider": gateway_response.provider,
         }
     )
+    return annotate_evidence_support(answered)
 
 
 def _clear_previous_clips(output_dir: Path) -> None:

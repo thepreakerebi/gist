@@ -1,4 +1,5 @@
 from gist.core.evidence_pruning import (
+    annotate_evidence_support,
     consolidate_redundant_evidence,
     prune_evidence_to_answer,
     prune_evidence_to_answer_citations,
@@ -186,6 +187,84 @@ def test_prune_evidence_to_answer_citations_keeps_only_cited_evidence() -> None:
     assert [item.id for item in pruned.selected] == ["research", "code"]
     assert pruned.metrics.selected_candidates == 2
     assert all("final answer cited" in item.reason for item in pruned.selected)
+    assert all(item.support_label is not None for item in pruned.selected)
+
+
+def test_prune_evidence_to_answer_citations_replaces_weak_cited_evidence() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do builders use AI?",
+        answer=(
+            "Builders use AI for research and code.\n\n"
+            "Evidence:\n"
+            "1. Lunch is discussed.\n"
+            "3. Code generation is described.\n"
+        ),
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("weak-cited", 10, "Lunch and travel plans are discussed."),
+            _item("research", 20, "AI automates research for builders."),
+            _item("code", 30, "AI writes code for builders."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=3,
+            visual_selected=0,
+            audio_selected=3,
+            estimated_candidate_reduction_ratio=0.15,
+            estimated_candidate_reduction_percent=85,
+            dropped_candidates=17,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=96,
+            estimated_saved_tokens=544,
+            estimated_token_reduction_ratio=0.15,
+            estimated_token_reduction_percent=85,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer_citations(compression, min_items=2)
+
+    assert [item.id for item in pruned.selected] == ["research", "code"]
+    assert all(item.support_label in {"medium", "strong"} for item in pruned.selected)
+
+
+def test_annotate_evidence_support_adds_support_metadata() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do builders use AI?",
+        answer="Builders use AI for research.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("research", 10, "AI automates research for builders."),
+            _item("noise", 20, "Lunch and travel plans are discussed."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=2,
+            visual_selected=0,
+            audio_selected=2,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=18,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=64,
+            estimated_saved_tokens=576,
+            estimated_token_reduction_ratio=0.1,
+            estimated_token_reduction_percent=90,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    annotated = annotate_evidence_support(compression)
+
+    assert annotated.selected[0].evidence_support_score is not None
+    assert annotated.selected[0].answer_support_score is not None
+    assert annotated.selected[0].query_support_score is not None
+    assert annotated.selected[0].support_label in {"medium", "strong"}
+    assert annotated.selected[1].support_label == "weak"
 
 
 def test_prune_evidence_to_answer_citations_parses_inline_citation_lists() -> None:
