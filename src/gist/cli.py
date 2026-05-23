@@ -17,6 +17,7 @@ from gist.gateway.evidence_package import build_evidence_package
 from gist.gateway.local_text import LocalTextEvidenceGateway
 from gist.gateway.ollama import DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL, OllamaTextGateway
 from gist.gateway.schemas import GatewayRequest
+from gist.gateway.structured import ExtractionSchema, LocalStructuredExtractor
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode
@@ -82,6 +83,16 @@ def main() -> int:
     )
     parser.add_argument("--html-report", action="store_true")
     parser.add_argument("--export-evidence-package", action="store_true")
+    parser.add_argument(
+        "--extraction-schema",
+        type=Path,
+        help="JSON schema for timestamped structured extraction from selected evidence.",
+    )
+    parser.add_argument(
+        "--extraction-output",
+        type=Path,
+        help="Optional path for structured extraction JSON output.",
+    )
     parser.add_argument(
         "--answer-with",
         choices=["extractive", "local-text", "ollama"],
@@ -182,6 +193,15 @@ def main() -> int:
         package_path.write_text(
             json.dumps(build_evidence_package(ingestion, compression), indent=2) + "\n"
         )
+    extraction_path = None
+    if args.extraction_schema is not None:
+        extraction_path = args.extraction_output or run_dir / "extraction.json"
+        progress(f"writing structured extraction: {extraction_path}")
+        extraction = LocalStructuredExtractor().extract(
+            schema=ExtractionSchema.from_file(args.extraction_schema),
+            compression=compression,
+        )
+        extraction.write_json(extraction_path)
 
     print(f"video_id={compression.video_id}")
     if ingestion.settings is not None:
@@ -198,6 +218,8 @@ def main() -> int:
         print(f"html_report={html_path}")
     if package_path is not None:
         print(f"evidence_package={package_path}")
+    if extraction_path is not None:
+        print(f"extraction={extraction_path}")
     return 0
 
 

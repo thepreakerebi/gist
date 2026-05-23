@@ -10,6 +10,25 @@ Gist is an audio-visual context compression layer for video LLMs. The first impl
 
 The current code does not pretend to run CLIP, CLAP, Whisper, or an Omni-LLM yet. Those are model adapters that will plug into the candidate-generation layer. This keeps the compression logic independently testable before expensive model integration.
 
+## Structured Extraction
+
+Gist can turn selected evidence into timestamped structured records. This is useful
+for video labeling workflows such as sales-call moments, product feedback, product
+launches, healthcare education moments, or product-demo indexing.
+
+```bash
+gist /absolute/path/to/video.mp4 \
+  --query "find pricing objections and feature requests" \
+  --processing-mode auto \
+  --adaptive-budget \
+  --extraction-schema data/extraction/sales-feedback.schema.json \
+  --extraction-output reports/extraction.json
+```
+
+The first extractor is local and deterministic. It establishes the model-agnostic
+contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
+LLM/VLM extractors can plug into the same contract later.
+
 ## Quickstart
 
 ```bash
