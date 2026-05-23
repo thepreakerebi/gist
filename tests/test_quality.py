@@ -87,6 +87,16 @@ def test_evaluate_quality_case_reports_quality_failures(tmp_path: Path) -> None:
     result = evaluate_quality_case(case)
 
     assert result.passed is False
+    assert result.failure_categories == [
+        "answer_grounding",
+        "compression_budget",
+        "evidence_retrieval",
+        "temporal_localization",
+    ]
+    assert (
+        result.recommendation
+        == "Improve query-aware retrieval before changing answer generation."
+    )
     assert any("answer term recall" in failure for failure in result.failures)
     assert any("evidence term coverage" in failure for failure in result.failures)
     assert any("evidence relevance rate" in failure for failure in result.failures)
@@ -131,6 +141,7 @@ def test_run_quality_cases_and_markdown_summary(tmp_path: Path) -> None:
 
     assert report.passed is True
     assert report.summary.pass_rate == 1.0
+    assert report.summary.failure_categories == {}
     assert "| slide | pass |" in markdown
 
 

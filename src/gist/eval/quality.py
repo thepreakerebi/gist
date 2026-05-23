@@ -66,6 +66,8 @@ class QualityResult(BaseModel):
     selected_evidence: int
     visual_evidence: int
     audio_evidence: int
+    failure_categories: list[str] = Field(default_factory=list)
+    recommendation: str | None = None
     failures: list[str] = Field(default_factory=list)
 
 
@@ -78,6 +80,7 @@ class QualitySummary(BaseModel):
     avg_evidence_relevance_rate: float
     avg_timestamp_hit_rate: float
     avg_token_reduction_percent: float
+    failure_categories: dict[str, int] = Field(default_factory=dict)
 
 
 class QualityReport(BaseModel):
@@ -142,6 +145,7 @@ def run_quality_cases(
         avg_evidence_relevance_rate=_average(result.evidence_relevance_rate for result in results),
         avg_timestamp_hit_rate=_average(result.timestamp_hit_rate for result in results),
         avg_token_reduction_percent=_average(result.token_reduction_percent for result in results),
+        failure_categories=_category_counts(results),
     )
     return QualityReport(
         passed=all(result.passed for result in results),
@@ -182,6 +186,15 @@ def evaluate_quality_case(
         timestamp_hit_rate=timestamp_hit_rate,
         token_reduction=token_reduction,
     )
+    failure_categories = _failure_categories(
+        case=case,
+        compression=compression,
+        answer_recall=answer_recall,
+        evidence_coverage=evidence_coverage,
+        relevance_rate=relevance_rate,
+        timestamp_hit_rate=timestamp_hit_rate,
+        token_reduction=token_reduction,
+    )
     return QualityResult(
         id=case.id,
         passed=not failures,
@@ -195,6 +208,8 @@ def evaluate_quality_case(
         selected_evidence=compression.metrics.selected_candidates,
         visual_evidence=compression.metrics.visual_selected,
         audio_evidence=compression.metrics.audio_selected,
+        failure_categories=failure_categories,
+        recommendation=_recommendation(failure_categories),
         failures=failures,
     )
 
@@ -213,8 +228,8 @@ def render_quality_markdown(report: QualityReport) -> str:
         f"- Avg token reduction: {report.summary.avg_token_reduction_percent:.2f}%",
         "",
         "| Case | Status | Answer Recall | Evidence Coverage | Evidence Relevance | "
-        "Timestamp Hit | Token Reduction | Selected | Failures |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---|",
+        "Timestamp Hit | Token Reduction | Selected | Categories | Recommendation | Failures |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
     ]
     for result in report.results:
         failures = "; ".join(result.failures)
@@ -225,7 +240,9 @@ def render_quality_markdown(report: QualityReport) -> str:
             f"{result.evidence_relevance_rate:.2f} | "
             f"{result.timestamp_hit_rate:.2f} | "
             f"{result.token_reduction_percent:.2f}% | "
-            f"{result.selected_evidence} | {failures} |"
+            f"{result.selected_evidence} | "
+            f"{', '.join(result.failure_categories)} | "
+            f"{result.recommendation or ''} | {failures} |"
         )
     return "\n".join(lines).strip() + "\n"
 
@@ -241,6 +258,8 @@ def render_quality_html(report: QualityReport) -> str:
         f"<td>{result.timestamp_hit_rate:.2f}</td>"
         f"<td>{result.token_reduction_percent:.2f}%</td>"
         f"<td>{result.selected_evidence}</td>"
+        f"<td>{escape(', '.join(result.failure_categories))}</td>"
+        f"<td>{escape(result.recommendation or '')}</td>"
         f"<td>{escape('; '.join(result.failures))}</td>"
         "</tr>"
         for result in report.results
@@ -290,6 +309,7 @@ def render_quality_html(report: QualityReport) -> str:
   <div class="metric">
     <strong>Avg token reduction:</strong> {report.summary.avg_token_reduction_percent:.2f}%
   </div>
+  {_render_failure_category_summary(report.summary.failure_categories)}
   <h2>Cases</h2>
   <table>
     <thead>
@@ -302,6 +322,8 @@ def render_quality_html(report: QualityReport) -> str:
         <th>Timestamp Hit</th>
         <th>Token Reduction</th>
         <th>Selected</th>
+        <th>Categories</th>
+        <th>Recommendation</th>
         <th>Failures</th>
       </tr>
     </thead>
@@ -447,6 +469,60 @@ def _quality_failures(
     return failures
 
 
+def _failure_categories(
+    case: QualityCase,
+    compression: CompressionResponse,
+    answer_recall: float,
+    evidence_coverage: float,
+    relevance_rate: float,
+    timestamp_hit_rate: float,
+    token_reduction: float,
+) -> list[str]:
+    categories: list[str] = []
+    if answer_recall < case.min_answer_term_recall:
+        categories.append("answer_grounding")
+    if (
+        evidence_coverage < case.min_evidence_term_coverage
+        or relevance_rate < case.min_evidence_relevance_rate
+    ):
+        categories.append("evidence_retrieval")
+    if timestamp_hit_rate < case.min_timestamp_hit_rate:
+        categories.append("temporal_localization")
+    if token_reduction < case.min_token_reduction_percent:
+        categories.append("compression_budget")
+    if (
+        case.max_selected_evidence is not None
+        and compression.metrics.selected_candidates > case.max_selected_evidence
+    ):
+        categories.append("evidence_pruning")
+    if (
+        compression.metrics.visual_selected < case.min_visual_evidence
+        or compression.metrics.audio_selected < case.min_audio_evidence
+    ):
+        categories.append("modality_balance")
+    return sorted(set(categories))
+
+
+def _recommendation(categories: list[str]) -> str | None:
+    if not categories:
+        return None
+    if "evidence_retrieval" in categories and "temporal_localization" in categories:
+        return "Improve query-aware retrieval before changing answer generation."
+    if "evidence_retrieval" in categories:
+        return "Tune candidate scoring, query decomposition, or scene/audio fusion."
+    if "temporal_localization" in categories:
+        return "Adjust clip span, transcript anchoring, or temporal context expansion."
+    if "answer_grounding" in categories:
+        return "Improve answer synthesis and citation pruning from selected evidence."
+    if "compression_budget" in categories:
+        return "Tighten token estimation or reduce selected context budget."
+    if "evidence_pruning" in categories:
+        return "Make answer-support pruning more selective."
+    if "modality_balance" in categories:
+        return "Review router modality allocation for this query intent."
+    return "Inspect selected evidence and add a targeted regression case."
+
+
 def _case_warnings(case: QualityCase) -> list[str]:
     warnings: list[str] = []
     if case.compression_path is not None and not case.compression_path.exists():
@@ -572,6 +648,24 @@ def _average(values) -> float:
     if not resolved:
         return 0.0
     return sum(resolved) / len(resolved)
+
+
+def _category_counts(results: list[QualityResult]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for result in results:
+        for category in result.failure_categories:
+            counts[category] = counts.get(category, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _render_failure_category_summary(category_counts: dict[str, int]) -> str:
+    if not category_counts:
+        return "<p class=\"muted\">No failure categories.</p>"
+    items = "".join(
+        f"<li>{escape(category)}: {count}</li>"
+        for category, count in category_counts.items()
+    )
+    return f"<h2>Failure Categories</h2><ul>{items}</ul>"
 
 
 if __name__ == "__main__":

@@ -48,6 +48,17 @@ Alpha is good enough when the curated suite reaches:
 - `>= 90%` average token reduction for long-video cases.
 - No repeated manual failure pattern across more than `3` cases.
 
+## Failure Categories
+
+The report labels failures so fixes target the right layer:
+
+- `answer_grounding`: selected evidence may be useful, but the answer missed required terms.
+- `evidence_retrieval`: selected evidence text did not cover the expected support terms.
+- `temporal_localization`: selected clips missed the expected timestamp range.
+- `compression_budget`: token reduction fell below the required threshold.
+- `evidence_pruning`: too many final evidence clips survived.
+- `modality_balance`: required audio or visual evidence was missing.
+
 Beta is good enough when the curated suite reaches:
 
 - `75+` real questions across interviews, lectures, demos, healthcare-style educational videos, and visually grounded clips.
