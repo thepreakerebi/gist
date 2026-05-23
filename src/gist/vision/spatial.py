@@ -97,6 +97,45 @@ def write_spatial_mask_preview(mask: SpatialMask, path: Path, cell_size: int = 2
     return path
 
 
+def write_spatial_mask_overlay(
+    mask: SpatialMask,
+    image_path: Path,
+    path: Path,
+    size: int = 560,
+) -> Path:
+    if size <= 0:
+        raise ValueError("size must be greater than zero")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    retained = set(mask.retained_patch_indexes)
+    cell_size = size / mask.grid_size
+    cells = []
+    for patch_index in range(mask.total_patches):
+        if patch_index not in retained:
+            continue
+        row, column = divmod(patch_index, mask.grid_size)
+        cells.append(
+            f'<rect x="{column * cell_size:.3f}" y="{row * cell_size:.3f}" '
+            f'width="{cell_size:.3f}" height="{cell_size:.3f}" '
+            f'fill="#20a66b" fill-opacity="0.34" stroke="#ffffff" stroke-width="1.5" />'
+        )
+
+    title = _svg_escape(f"{mask.evidence_id} retained spatial patches")
+    image_href = _svg_escape(image_path.resolve().as_uri())
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" '
+        f'viewBox="0 0 {size} {size}" role="img" aria-label="{title}">'
+        f"<title>{title}</title>"
+        f'<image href="{image_href}" x="0" y="0" width="{size}" height="{size}" '
+        f'preserveAspectRatio="xMidYMid slice" />'
+        f'<rect width="{size}" height="{size}" fill="#000000" fill-opacity="0.20" />'
+        + "".join(cells)
+        + "</svg>\n"
+    )
+    path.write_text(svg)
+    return path
+
+
 def estimate_spatial_tokens(
     selected_visual_count: int,
     grid_size: int = 14,

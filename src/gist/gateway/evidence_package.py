@@ -69,6 +69,7 @@ def _evidence_item(item: SelectedCandidate) -> dict[str, Any]:
         "asset_path": _path_to_string(item.asset_path),
         "spatial_mask_path": _path_to_string(item.spatial_mask_path),
         "spatial_mask_preview_path": _path_to_string(item.spatial_mask_preview_path),
+        "spatial_mask_overlay_path": _path_to_string(item.spatial_mask_overlay_path),
         "transcript": item.text,
         "segment_id": item.segment_id,
         "scene_start_seconds": item.scene_start_seconds,

@@ -1,6 +1,7 @@
 from gist.vision.spatial import (
     build_query_spatial_mask,
     estimate_spatial_tokens,
+    write_spatial_mask_overlay,
     write_spatial_mask_preview,
 )
 
@@ -83,3 +84,23 @@ def test_write_spatial_mask_preview_writes_svg(tmp_path) -> None:
     assert "<svg" in svg
     assert "text_band" in svg
     assert svg.count("<rect") == 10
+
+
+def test_write_spatial_mask_overlay_writes_svg_with_image_href(tmp_path) -> None:
+    image_path = tmp_path / "frame.jpg"
+    image_path.write_bytes(b"fake-image")
+    mask = build_query_spatial_mask(
+        evidence_id="frame-hand",
+        query="show the robot hand",
+        evidence_text="visual frame sampled at 4.00 seconds",
+        grid_size=3,
+        retention_ratio=0.33,
+    )
+
+    path = write_spatial_mask_overlay(mask, image_path, tmp_path / "overlay.svg", size=90)
+
+    svg = path.read_text()
+    assert path.exists()
+    assert image_path.resolve().as_uri() in svg
+    assert "retained spatial patches" in svg
+    assert svg.count("<rect") == mask.retained_patches + 1

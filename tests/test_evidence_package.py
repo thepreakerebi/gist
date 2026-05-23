@@ -32,6 +32,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
                 clip_path=clip_path,
                 spatial_mask_path=tmp_path / "mask.json",
                 spatial_mask_preview_path=tmp_path / "mask.svg",
+                spatial_mask_overlay_path=tmp_path / "overlay.svg",
                 clip_start_seconds=10,
                 clip_end_seconds=20,
                 selection_rank=1,
@@ -72,6 +73,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
     assert package["evidence"][0]["clip_path"] == str(clip_path)
     assert package["evidence"][0]["spatial_mask_path"] == str(tmp_path / "mask.json")
     assert package["evidence"][0]["spatial_mask_preview_path"] == str(tmp_path / "mask.svg")
+    assert package["evidence"][0]["spatial_mask_overlay_path"] == str(tmp_path / "overlay.svg")
     assert package["evidence"][0]["transcript"] == "The speaker explains the event."
     assert package["evidence"][0]["support_label"] == "strong"
     assert package["evidence"][0]["evidence_support_score"] == 0.85

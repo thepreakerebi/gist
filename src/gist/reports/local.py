@@ -253,6 +253,11 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
         for item in moment
         if item.spatial_mask_preview_path is not None
     ) or "n/a"
+    spatial_overlays = ", ".join(
+        str(item.spatial_mask_overlay_path)
+        for item in moment
+        if item.spatial_mask_overlay_path is not None
+    ) or "n/a"
     clip_range = ""
     if representative.clip_start_seconds is not None and representative.clip_end_seconds is not None:
         clip_range = (
@@ -266,8 +271,8 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
       {asset}
       <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
       <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
-      {_render_spatial_preview(representative)}
-      <p class="muted">segments={escape(segment_ids)}; spatial_masks={escape(spatial_masks)}; spatial_previews={escape(spatial_previews)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
+      {_render_spatial_debug_image(_spatial_debug_item(moment))}
+      <p class="muted">segments={escape(segment_ids)}; spatial_masks={escape(spatial_masks)}; spatial_previews={escape(spatial_previews)}; spatial_overlays={escape(spatial_overlays)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
     </article>
     """
 
@@ -306,6 +311,18 @@ def _representative_video(moment: list[SelectedCandidate]) -> SelectedCandidate:
     if with_clips:
         return max(with_clips, key=lambda item: (item.relevance_score, item.mmr_score))
     return max(moment, key=lambda item: (item.relevance_score, item.mmr_score))
+
+
+def _spatial_debug_item(moment: list[SelectedCandidate]) -> SelectedCandidate:
+    candidates = [
+        item
+        for item in moment
+        if item.spatial_mask_overlay_path is not None
+        or item.spatial_mask_preview_path is not None
+    ]
+    if candidates:
+        return max(candidates, key=lambda item: (item.visual_support_score or 0.0, item.relevance_score))
+    return _representative_video(moment)
 
 
 def _moment_transcript(moment: list[SelectedCandidate]) -> str:
@@ -347,13 +364,15 @@ def _render_asset(item: SelectedCandidate) -> str:
     return ""
 
 
-def _render_spatial_preview(item: SelectedCandidate) -> str:
-    if item.spatial_mask_preview_path is None:
+def _render_spatial_debug_image(item: SelectedCandidate) -> str:
+    path = item.spatial_mask_overlay_path or item.spatial_mask_preview_path
+    if path is None:
         return ""
-    path = Path(item.spatial_mask_preview_path)
+    path = Path(path)
+    label = "Spatial mask overlay" if item.spatial_mask_overlay_path is not None else "Spatial mask preview"
     if not path.exists():
-        return f"<p class='muted'>Missing spatial mask preview: <code>{escape(str(path))}</code></p>"
+        return f"<p class='muted'>Missing {escape(label.lower())}: <code>{escape(str(path))}</code></p>"
     return (
-        f"<p><strong>Spatial mask preview:</strong></p>"
+        f"<p><strong>{escape(label)}:</strong></p>"
         f'<img src="{escape(path.resolve().as_uri())}" alt="Spatial mask retained patches">'
     )

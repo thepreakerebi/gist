@@ -31,6 +31,7 @@ def test_attach_spatial_masks_writes_masks_for_visual_evidence(tmp_path: Path) -
                 modality=Modality.VISUAL,
                 timestamp_seconds=4,
                 text="visual frame sampled at 4.00 seconds",
+                asset_path=tmp_path / "frame.jpg",
                 selection_rank=1,
                 relevance_score=0.5,
                 normalized_score=1,
@@ -63,6 +64,7 @@ def test_attach_spatial_masks_writes_masks_for_visual_evidence(tmp_path: Path) -
             token_estimator=TokenEstimatorProfile.GENERIC,
         ),
     )
+    (tmp_path / "frame.jpg").write_bytes(b"fake-image")
 
     with_masks = _attach_spatial_masks(
         compression=compression,
@@ -75,8 +77,11 @@ def test_attach_spatial_masks_writes_masks_for_visual_evidence(tmp_path: Path) -
     assert with_masks.selected[0].spatial_mask_path.exists()
     assert with_masks.selected[0].spatial_mask_preview_path is not None
     assert with_masks.selected[0].spatial_mask_preview_path.exists()
+    assert with_masks.selected[0].spatial_mask_overlay_path is not None
+    assert with_masks.selected[0].spatial_mask_overlay_path.exists()
     assert with_masks.selected[1].spatial_mask_path is None
     assert with_masks.selected[1].spatial_mask_preview_path is None
+    assert with_masks.selected[1].spatial_mask_overlay_path is None
     assert with_masks.metrics.estimated_spatial_visual_tokens == 16
     assert with_masks.metrics.estimated_retained_spatial_visual_tokens == 4
     assert with_masks.metrics.estimated_spatial_token_reduction_percent == 75

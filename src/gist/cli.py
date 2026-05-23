@@ -26,6 +26,7 @@ from gist.vision.spatial import (
     build_query_spatial_mask,
     estimate_spatial_tokens,
     write_spatial_mask,
+    write_spatial_mask_overlay,
     write_spatial_mask_preview,
 )
 
@@ -254,13 +255,18 @@ def _attach_spatial_masks(
         )
         mask_path = output_dir / f"{_safe_stem(item.id)}.spatial-mask.json"
         preview_path = output_dir / f"{_safe_stem(item.id)}.spatial-mask.svg"
+        overlay_path = output_dir / f"{_safe_stem(item.id)}.spatial-overlay.svg"
         write_spatial_mask(mask, mask_path)
         write_spatial_mask_preview(mask, preview_path)
+        overlay = None
+        if item.asset_path is not None and item.asset_path.exists():
+            overlay = write_spatial_mask_overlay(mask, item.asset_path, overlay_path)
         selected.append(
             item.model_copy(
                 update={
                     "spatial_mask_path": mask_path,
                     "spatial_mask_preview_path": preview_path,
+                    "spatial_mask_overlay_path": overlay,
                 }
             )
         )
