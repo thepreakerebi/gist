@@ -22,6 +22,10 @@ class EvidenceSupport:
     score: float
     answer_score: float
     query_score: float
+    audio_score: float
+    ocr_score: float
+    visual_score: float
+    cross_modal_score: float
 
 
 def annotate_evidence_support(compression: CompressionResponse) -> CompressionResponse:
@@ -168,12 +172,22 @@ def _support_score(
 ) -> EvidenceSupport:
     answer_similarity = text_similarity(compression.answer or "", item.text)
     query_similarity = text_similarity(compression.query, item.text)
-    score = (0.7 * answer_similarity) + (0.3 * query_similarity)
+    audio_score = _audio_support_score(item, answer_similarity, query_similarity)
+    ocr_score = _ocr_support_score(item, answer_similarity, query_similarity)
+    visual_score = _visual_support_score(item, query_similarity)
+    cross_modal_score = _cross_modal_support_score(item, audio_score, visual_score)
+    modality_score = max(audio_score, ocr_score, visual_score)
+    text_score = (0.7 * answer_similarity) + (0.3 * query_similarity)
+    score = max(text_score, (0.75 * modality_score) + (0.25 * cross_modal_score))
     return EvidenceSupport(
         item=item,
         score=score,
         answer_score=answer_similarity,
         query_score=query_similarity,
+        audio_score=audio_score,
+        ocr_score=ocr_score,
+        visual_score=visual_score,
+        cross_modal_score=cross_modal_score,
     )
 
 
@@ -221,9 +235,66 @@ def _with_support_metadata(support: EvidenceSupport) -> SelectedCandidate:
             "answer_support_score": support.answer_score,
             "query_support_score": support.query_score,
             "evidence_support_score": support.score,
+            "audio_support_score": support.audio_score,
+            "ocr_support_score": support.ocr_score,
+            "visual_support_score": support.visual_score,
+            "cross_modal_support_score": support.cross_modal_score,
             "support_label": _support_label(support.score),
         }
     )
+
+
+def _audio_support_score(
+    item: SelectedCandidate,
+    answer_similarity: float,
+    query_similarity: float,
+) -> float:
+    if item.modality != Modality.AUDIO or _is_visual_only_text(item.text):
+        return 0.0
+    return (0.7 * answer_similarity) + (0.3 * query_similarity)
+
+
+def _ocr_support_score(
+    item: SelectedCandidate,
+    answer_similarity: float,
+    query_similarity: float,
+) -> float:
+    if not _is_ocr_text(item.text):
+        return 0.0
+    return (0.65 * answer_similarity) + (0.35 * query_similarity)
+
+
+def _visual_support_score(item: SelectedCandidate, query_similarity: float) -> float:
+    if item.modality != Modality.VISUAL:
+        return 0.0
+    score = max(item.relevance_score, item.normalized_score, query_similarity)
+    if _is_ocr_text(item.text):
+        score = max(score, query_similarity + 0.05)
+    if item.audio_anchor_score > 0:
+        score = max(score, min(item.audio_anchor_score, 1.0) * 0.5)
+    return min(score, 1.0)
+
+
+def _cross_modal_support_score(
+    item: SelectedCandidate,
+    audio_score: float,
+    visual_score: float,
+) -> float:
+    if item.audio_anchor_timestamp_seconds is None and item.audio_anchor_score <= 0:
+        return 0.0
+    anchor_score = min(max(item.audio_anchor_score, 0.0), 1.0)
+    if item.modality == Modality.VISUAL:
+        return max(anchor_score, min(visual_score + 0.1, 1.0))
+    return max(anchor_score * 0.5, audio_score * 0.25)
+
+
+def _is_ocr_text(text: str) -> bool:
+    return text.lower().startswith("on-screen text near")
+
+
+def _is_visual_only_text(text: str) -> bool:
+    normalized = text.lower()
+    return normalized.startswith("visual frame sampled at") or _is_ocr_text(normalized)
 
 
 def _support_label(score: float) -> str:

@@ -76,6 +76,10 @@ def _evidence_item(item: SelectedCandidate) -> dict[str, Any]:
         "answer_support_score": item.answer_support_score,
         "query_support_score": item.query_support_score,
         "evidence_support_score": item.evidence_support_score,
+        "audio_support_score": item.audio_support_score,
+        "ocr_support_score": item.ocr_support_score,
+        "visual_support_score": item.visual_support_score,
+        "cross_modal_support_score": item.cross_modal_support_score,
         "support_label": item.support_label,
         "reason": item.reason,
     }

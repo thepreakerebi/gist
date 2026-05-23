@@ -51,6 +51,10 @@ class SelectedCandidate(BaseModel):
     answer_support_score: float | None = None
     query_support_score: float | None = None
     evidence_support_score: float | None = None
+    audio_support_score: float | None = None
+    ocr_support_score: float | None = None
+    visual_support_score: float | None = None
+    cross_modal_support_score: float | None = None
     support_label: str | None = None
     source_score_type: str
     reason: str

@@ -54,6 +54,10 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
                 answer_support_score=0.8,
                 query_support_score=0.7,
                 evidence_support_score=0.77,
+                audio_support_score=0.77,
+                ocr_support_score=0.0,
+                visual_support_score=0.0,
+                cross_modal_support_score=0.0,
                 support_label="strong",
             )
         ],
@@ -83,6 +87,7 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "long processing selected" in html
     assert "strong support" in html
     assert "answer_support=0.800" in html
+    assert "audio_support=0.770" in html
     assert "evidence" in html
     assert "<video" in html
     assert clip_path.resolve().as_uri() in html

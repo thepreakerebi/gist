@@ -187,6 +187,10 @@ class EvidenceCard:
     normalized_score: float
     support_label: str
     evidence_support_score: float
+    audio_support_score: float
+    ocr_support_score: float
+    visual_support_score: float
+    cross_modal_support_score: float
 
 
 def _merge_evidence_cards(selected) -> list[EvidenceCard]:
@@ -233,6 +237,10 @@ def _card_from_group(group: list) -> EvidenceCard:
             (item.evidence_support_score or 0.0 for item in group),
             default=0.0,
         ),
+        audio_support_score=max((item.audio_support_score or 0.0 for item in group), default=0.0),
+        ocr_support_score=max((item.ocr_support_score or 0.0 for item in group), default=0.0),
+        visual_support_score=max((item.visual_support_score or 0.0 for item in group), default=0.0),
+        cross_modal_support_score=max((item.cross_modal_support_score or 0.0 for item in group), default=0.0),
     )
 
 
@@ -371,7 +379,7 @@ def _render_evidence(cards: list[EvidenceCard]) -> str:
         f"""
         <div class="evidence">
           <div><strong>video</strong> at <code>{card.timestamp_seconds:.2f}s</code> <span class="muted">from {escape(", ".join(card.modalities))}</span></div>
-          <div class="muted">Support: {escape(card.support_label)} ({card.evidence_support_score:.3f})</div>
+          <div class="muted">Support: {escape(card.support_label)} ({card.evidence_support_score:.3f}); audio={card.audio_support_score:.3f}; ocr={card.ocr_support_score:.3f}; visual={card.visual_support_score:.3f}; cross-modal={card.cross_modal_support_score:.3f}</div>
           {_render_asset(card)}
           <div>{escape(card.text)}</div>
           <div class="muted">{escape(card.reason)}</div>

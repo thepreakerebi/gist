@@ -263,8 +263,62 @@ def test_annotate_evidence_support_adds_support_metadata() -> None:
     assert annotated.selected[0].evidence_support_score is not None
     assert annotated.selected[0].answer_support_score is not None
     assert annotated.selected[0].query_support_score is not None
+    assert annotated.selected[0].audio_support_score is not None
+    assert annotated.selected[0].audio_support_score > 0
+    assert annotated.selected[0].ocr_support_score == 0
+    assert annotated.selected[0].visual_support_score == 0
     assert annotated.selected[0].support_label in {"medium", "strong"}
     assert annotated.selected[1].support_label == "weak"
+
+
+def test_annotate_evidence_support_scores_visual_ocr_and_cross_modal() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="what text is shown on screen",
+        answer="The screen says GIST TOKEN SAVER.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="ocr",
+                modality=Modality.VISUAL,
+                timestamp_seconds=4,
+                text="on-screen text near 4.00 seconds: GIST TOKEN SAVER",
+                audio_anchor_timestamp_seconds=5,
+                audio_anchor_score=0.82,
+                selection_rank=1,
+                relevance_score=0.4,
+                normalized_score=0.6,
+                mmr_score=0.5,
+                source_score_type="ocr",
+                reason="selected",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=10,
+            selected_candidates=1,
+            visual_selected=1,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=9,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=320,
+            estimated_compressed_tokens=128,
+            estimated_saved_tokens=192,
+            estimated_token_reduction_ratio=0.4,
+            estimated_token_reduction_percent=60,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    annotated = annotate_evidence_support(compression)
+    item = annotated.selected[0]
+
+    assert item.ocr_support_score is not None and item.ocr_support_score > 0
+    assert item.visual_support_score is not None and item.visual_support_score > 0
+    assert item.cross_modal_support_score == 0.82
+    assert item.audio_support_score == 0
+    assert item.support_label == "strong"
 
 
 def test_prune_evidence_to_answer_citations_parses_inline_citation_lists() -> None:

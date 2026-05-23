@@ -39,6 +39,10 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
                 answer_support_score=1.0,
                 query_support_score=0.5,
                 evidence_support_score=0.85,
+                audio_support_score=0.85,
+                ocr_support_score=0.0,
+                visual_support_score=0.0,
+                cross_modal_support_score=0.0,
                 support_label="strong",
                 source_score_type="lexical_overlap",
                 reason="test",
@@ -67,6 +71,8 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
     assert package["evidence"][0]["transcript"] == "The speaker explains the event."
     assert package["evidence"][0]["support_label"] == "strong"
     assert package["evidence"][0]["evidence_support_score"] == 0.85
+    assert package["evidence"][0]["audio_support_score"] == 0.85
+    assert package["evidence"][0]["visual_support_score"] == 0.0
     assert "Initial answer hint" not in package["prompt"]
     assert "Return a concise answer" in package["prompt"]
 

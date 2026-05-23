@@ -223,6 +223,22 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
         (item.query_support_score or 0.0 for item in moment),
         default=0.0,
     )
+    audio_support = max(
+        (item.audio_support_score or 0.0 for item in moment),
+        default=0.0,
+    )
+    ocr_support = max(
+        (item.ocr_support_score or 0.0 for item in moment),
+        default=0.0,
+    )
+    visual_support = max(
+        (item.visual_support_score or 0.0 for item in moment),
+        default=0.0,
+    )
+    cross_modal_support = max(
+        (item.cross_modal_support_score or 0.0 for item in moment),
+        default=0.0,
+    )
     support_label = _support_label(moment)
     segment_ids = ", ".join(
         sorted({item.segment_id for item in moment if item.segment_id is not None})
@@ -240,7 +256,7 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
       {asset}
       <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
       <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
-      <p class="muted">segments={escape(segment_ids)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
+      <p class="muted">segments={escape(segment_ids)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
     </article>
     """
 
