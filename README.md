@@ -29,6 +29,15 @@ The first extractor is local and deterministic. It establishes the model-agnosti
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
 
+Evaluate structured extraction outputs with:
+
+```bash
+gist-extraction-eval \
+  --dataset data/eval/extraction-quality.template.jsonl \
+  --output reports/extraction-quality.json \
+  --markdown-output reports/extraction-quality.md
+```
+
 ## Quickstart
 
 ```bash

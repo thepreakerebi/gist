@@ -17,6 +17,7 @@ dependencies = [
 [project.scripts]
 gist = "gist.cli:main"
 gist-eval = "gist.eval.cli:main"
+gist-extraction-eval = "gist.eval.extraction:main"
 gist-failure-analysis = "gist.eval.failure_analysis:main"
 gist-quality-eval = "gist.eval.quality:main"
 gist-regression = "gist.eval.regression:main"
