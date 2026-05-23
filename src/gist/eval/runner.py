@@ -35,6 +35,7 @@ from gist.vision.spatial import (
     build_query_spatial_mask,
     estimate_spatial_tokens,
     write_spatial_mask,
+    write_spatial_mask_preview,
 )
 
 
@@ -272,8 +273,17 @@ class EvalRunner:
                 retention_ratio=retention_ratio,
             )
             mask_path = output_dir / f"{_safe_file_stem(item.id)}.spatial-mask.json"
+            preview_path = output_dir / f"{_safe_file_stem(item.id)}.spatial-mask.svg"
             write_spatial_mask(mask, mask_path)
-            selected.append(item.model_copy(update={"spatial_mask_path": mask_path}))
+            write_spatial_mask_preview(mask, preview_path)
+            selected.append(
+                item.model_copy(
+                    update={
+                        "spatial_mask_path": mask_path,
+                        "spatial_mask_preview_path": preview_path,
+                    }
+                )
+            )
 
         baseline_tokens, retained_tokens, reduction_percent = estimate_spatial_tokens(
             selected_visual_count=visual_count,

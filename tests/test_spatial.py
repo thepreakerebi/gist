@@ -1,4 +1,8 @@
-from gist.vision.spatial import build_query_spatial_mask, estimate_spatial_tokens
+from gist.vision.spatial import (
+    build_query_spatial_mask,
+    estimate_spatial_tokens,
+    write_spatial_mask_preview,
+)
 
 
 def test_build_query_spatial_mask_returns_expected_shape() -> None:
@@ -61,3 +65,21 @@ def test_query_spatial_mask_prefers_center_for_visual_object_queries() -> None:
 
     assert mask.saliency_strategy == "center_object"
     assert 12 in mask.retained_patch_indexes
+
+
+def test_write_spatial_mask_preview_writes_svg(tmp_path) -> None:
+    mask = build_query_spatial_mask(
+        evidence_id="frame-ocr",
+        query="what text is shown",
+        evidence_text="on-screen text near 4.00 seconds: GIST",
+        grid_size=3,
+        retention_ratio=0.33,
+    )
+
+    path = write_spatial_mask_preview(mask, tmp_path / "mask.svg", cell_size=10)
+
+    svg = path.read_text()
+    assert path.exists()
+    assert "<svg" in svg
+    assert "text_band" in svg
+    assert svg.count("<rect") == 10

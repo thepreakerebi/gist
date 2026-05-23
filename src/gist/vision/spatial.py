@@ -64,6 +64,39 @@ def write_spatial_mask(mask: SpatialMask, path: Path) -> Path:
     return path
 
 
+def write_spatial_mask_preview(mask: SpatialMask, path: Path, cell_size: int = 22) -> Path:
+    if cell_size <= 0:
+        raise ValueError("cell_size must be greater than zero")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    retained = set(mask.retained_patch_indexes)
+    size = mask.grid_size * cell_size
+    cells = []
+    for patch_index in range(mask.total_patches):
+        row, column = divmod(patch_index, mask.grid_size)
+        retained_patch = patch_index in retained
+        fill = "#145c43" if retained_patch else "#e8eee9"
+        stroke = "#d2ddd6"
+        opacity = "0.92" if retained_patch else "0.55"
+        cells.append(
+            f'<rect x="{column * cell_size}" y="{row * cell_size}" '
+            f'width="{cell_size}" height="{cell_size}" fill="{fill}" '
+            f'fill-opacity="{opacity}" stroke="{stroke}" stroke-width="1" />'
+        )
+
+    title = _svg_escape(f"{mask.evidence_id} - {mask.saliency_strategy}")
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" '
+        f'viewBox="0 0 {size} {size}" role="img" aria-label="{title}">'
+        f"<title>{title}</title>"
+        f"<rect width='{size}' height='{size}' fill='#fbfcf9' />"
+        + "".join(cells)
+        + "</svg>\n"
+    )
+    path.write_text(svg)
+    return path
+
+
 def estimate_spatial_tokens(
     selected_visual_count: int,
     grid_size: int = 14,
@@ -142,3 +175,12 @@ def _text_band_prior(row: int, column: int, grid_size: int) -> float:
     column_prior = _center_prior(row=center, column=column, grid_size=grid_size)
     band = max(0.0, 1.0 - (row_distance / max(center, 1.0)))
     return (0.75 * band) + (0.25 * column_prior)
+
+
+def _svg_escape(value: str) -> str:
+    return (
+        value.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )

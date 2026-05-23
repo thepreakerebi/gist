@@ -42,6 +42,7 @@ class SelectedCandidate(BaseModel):
     scene_start_seconds: float | None = None
     scene_end_seconds: float | None = None
     spatial_mask_path: Path | None = None
+    spatial_mask_preview_path: Path | None = None
     audio_anchor_timestamp_seconds: float | None = None
     audio_anchor_score: float = 0.0
     selection_rank: int

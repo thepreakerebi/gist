@@ -73,7 +73,10 @@ def test_attach_spatial_masks_writes_masks_for_visual_evidence(tmp_path: Path) -
 
     assert with_masks.selected[0].spatial_mask_path is not None
     assert with_masks.selected[0].spatial_mask_path.exists()
+    assert with_masks.selected[0].spatial_mask_preview_path is not None
+    assert with_masks.selected[0].spatial_mask_preview_path.exists()
     assert with_masks.selected[1].spatial_mask_path is None
+    assert with_masks.selected[1].spatial_mask_preview_path is None
     assert with_masks.metrics.estimated_spatial_visual_tokens == 16
     assert with_masks.metrics.estimated_retained_spatial_visual_tokens == 4
     assert with_masks.metrics.estimated_spatial_token_reduction_percent == 75

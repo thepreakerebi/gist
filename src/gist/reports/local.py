@@ -248,6 +248,11 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
     spatial_masks = ", ".join(
         str(item.spatial_mask_path) for item in moment if item.spatial_mask_path is not None
     ) or "n/a"
+    spatial_previews = ", ".join(
+        str(item.spatial_mask_preview_path)
+        for item in moment
+        if item.spatial_mask_preview_path is not None
+    ) or "n/a"
     clip_range = ""
     if representative.clip_start_seconds is not None and representative.clip_end_seconds is not None:
         clip_range = (
@@ -261,7 +266,8 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
       {asset}
       <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
       <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
-      <p class="muted">segments={escape(segment_ids)}; spatial_masks={escape(spatial_masks)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
+      {_render_spatial_preview(representative)}
+      <p class="muted">segments={escape(segment_ids)}; spatial_masks={escape(spatial_masks)}; spatial_previews={escape(spatial_previews)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
     </article>
     """
 
@@ -339,3 +345,15 @@ def _render_asset(item: SelectedCandidate) -> str:
         return f"<p class='muted'>Missing asset: <code>{escape(str(path))}</code></p>"
 
     return ""
+
+
+def _render_spatial_preview(item: SelectedCandidate) -> str:
+    if item.spatial_mask_preview_path is None:
+        return ""
+    path = Path(item.spatial_mask_preview_path)
+    if not path.exists():
+        return f"<p class='muted'>Missing spatial mask preview: <code>{escape(str(path))}</code></p>"
+    return (
+        f"<p><strong>Spatial mask preview:</strong></p>"
+        f'<img src="{escape(path.resolve().as_uri())}" alt="Spatial mask retained patches">'
+    )
