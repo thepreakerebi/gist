@@ -48,6 +48,16 @@ gist-structured-extract \
   --extractor-command "python scripts/my_structured_extractor.py"
 ```
 
+A dependency-free reference extractor is included:
+
+```bash
+gist-structured-extract \
+  --compression .gist/runs/video-slug/query-slug/compression.json \
+  --schema data/extraction/sales-feedback.schema.json \
+  --output reports/extraction.json \
+  --extractor-command "python scripts/run_local_structured_extractor.py"
+```
+
 Evaluate structured extraction outputs with:
 
 ```bash
