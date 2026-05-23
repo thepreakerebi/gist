@@ -7,6 +7,7 @@ from gist.eval.quality import (
     QualityCase,
     check_quality_dataset,
     draft_quality_case,
+    draft_quality_cases_from_root,
     evaluate_quality_case,
     main,
     render_quality_markdown,
@@ -226,10 +227,94 @@ def test_quality_cli_drafts_case_without_dataset(tmp_path: Path, capsys) -> None
     assert exit_code == 0
     assert '"id":"slide-draft"' in captured.out
     assert "expected_answer_terms" in captured.out
+    assert "Review expected_answer_terms" in captured.err
+
+
+def test_draft_quality_cases_from_root_finds_compressions(tmp_path: Path) -> None:
+    first_path = tmp_path / "runs" / "video-a" / "query-a" / "compression.json"
+    second_path = tmp_path / "runs" / "video-b" / "query-b" / "compression.json"
+    _write_compression_at(
+        first_path,
+        answer="Builders use AI for research.",
+        selected=[
+            _item(
+                "a-1",
+                timestamp=10,
+                clip_start=5,
+                clip_end=15,
+                text="AI research workflow.",
+            )
+        ],
+        token_reduction=99.0,
+    )
+    _write_compression_at(
+        second_path,
+        answer="The slide says GIST TOKEN SAVER.",
+        selected=[
+            _item(
+                "v-1",
+                timestamp=3,
+                clip_start=0,
+                clip_end=6,
+                text="GIST TOKEN SAVER",
+                modality=Modality.VISUAL,
+            )
+        ],
+        token_reduction=95.0,
+    )
+
+    drafts = draft_quality_cases_from_root(tmp_path / "runs")
+
+    assert [draft.case.id for draft in drafts] == ["video-a-query-a", "video-b-query-b"]
+    assert all(draft.case.compression_path is not None for draft in drafts)
+
+
+def test_quality_cli_writes_batch_drafts(tmp_path: Path) -> None:
+    compression_path = tmp_path / "runs" / "video-a" / "query-a" / "compression.json"
+    output_path = tmp_path / "drafts.jsonl"
+    _write_compression_at(
+        compression_path,
+        answer="Builders use AI for research.",
+        selected=[
+            _item(
+                "a-1",
+                timestamp=10,
+                clip_start=5,
+                clip_end=15,
+                text="AI research workflow.",
+            )
+        ],
+        token_reduction=99.0,
+    )
+
+    exit_code = main(
+        [
+            "--draft-cases-from-root",
+            str(tmp_path / "runs"),
+            "--draft-output",
+            str(output_path),
+        ]
+    )
+
+    assert exit_code == 0
+    lines = output_path.read_text().splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["id"] == "video-a-query-a"
 
 
 def _write_compression(
     tmp_path: Path,
+    answer: str,
+    selected: list[SelectedCandidate],
+    token_reduction: float,
+) -> Path:
+    path = tmp_path / "compression.json"
+    _write_compression_at(path, answer=answer, selected=selected, token_reduction=token_reduction)
+    return path
+
+
+def _write_compression_at(
+    path: Path,
     answer: str,
     selected: list[SelectedCandidate],
     token_reduction: float,
@@ -252,7 +337,7 @@ def _write_compression(
             estimated_token_reduction_percent=token_reduction,
         ),
     )
-    path = tmp_path / "compression.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"compression": compression.model_dump(mode="json")}))
     return path
 

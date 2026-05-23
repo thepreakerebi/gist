@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import sys
 from html import escape
 from pathlib import Path
 from typing import Annotated
@@ -148,6 +149,23 @@ def draft_quality_case(
         min_audio_evidence=1 if compression.metrics.audio_selected else 0,
     )
     return QualityCaseDraft(case=case, notes=_draft_notes(compression, case))
+
+
+def draft_quality_cases_from_root(
+    root: Path,
+    min_token_reduction_percent: float = 90.0,
+    timestamp_tolerance_seconds: float = 8.0,
+    max_selected_evidence: int | None = None,
+) -> list[QualityCaseDraft]:
+    return [
+        draft_quality_case(
+            compression_path=path,
+            min_token_reduction_percent=min_token_reduction_percent,
+            timestamp_tolerance_seconds=timestamp_tolerance_seconds,
+            max_selected_evidence=max_selected_evidence,
+        )
+        for path in sorted(root.rglob("compression.json"))
+    ]
 
 
 def check_quality_dataset(cases: list[QualityCase]) -> QualityDatasetCheck:
@@ -389,6 +407,16 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Print a ready-to-edit JSONL quality case from an existing compression.json.",
     )
+    parser.add_argument(
+        "--draft-cases-from-root",
+        type=Path,
+        help="Print ready-to-edit JSONL quality cases for every compression.json under a root.",
+    )
+    parser.add_argument(
+        "--draft-output",
+        type=Path,
+        help="Write drafted JSONL cases to this file instead of stdout.",
+    )
     parser.add_argument("--case-id", help="Override the drafted case id.")
     parser.add_argument(
         "--draft-min-token-reduction-percent",
@@ -403,6 +431,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--draft-max-selected-evidence", type=int)
     args = parser.parse_args(argv)
 
+    if args.draft_case_from is not None and args.draft_cases_from_root is not None:
+        raise SystemExit("Use either --draft-case-from or --draft-cases-from-root, not both")
+    if args.case_id and args.draft_cases_from_root is not None:
+        raise SystemExit("--case-id can only be used with --draft-case-from")
+
     if args.draft_case_from is not None:
         draft = draft_quality_case(
             compression_path=args.draft_case_from,
@@ -411,9 +444,17 @@ def main(argv: list[str] | None = None) -> int:
             timestamp_tolerance_seconds=args.draft_timestamp_tolerance_seconds,
             max_selected_evidence=args.draft_max_selected_evidence,
         )
-        print(draft.case.model_dump_json(exclude_none=True))
-        for note in draft.notes:
-            print(f"# {note}")
+        _write_drafts([draft], output_path=args.draft_output)
+        return 0
+
+    if args.draft_cases_from_root is not None:
+        drafts = draft_quality_cases_from_root(
+            root=args.draft_cases_from_root,
+            min_token_reduction_percent=args.draft_min_token_reduction_percent,
+            timestamp_tolerance_seconds=args.draft_timestamp_tolerance_seconds,
+            max_selected_evidence=args.draft_max_selected_evidence,
+        )
+        _write_drafts(drafts, output_path=args.draft_output)
         return 0
 
     if args.dataset is None:
@@ -480,6 +521,21 @@ def _compression_for_case(case: QualityCase, output_root: Path) -> CompressionRe
     answer = answer_from_evidence(compression)
     answered = compression.model_copy(update={"answer": verify_answer_claims(answer, compression)})
     return annotate_evidence_support(answered)
+
+
+def _write_drafts(drafts: list[QualityCaseDraft], output_path: Path | None) -> None:
+    lines = [draft.case.model_dump_json(exclude_none=True) for draft in drafts]
+    content = "\n".join(lines)
+    if content:
+        content += "\n"
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(content)
+    else:
+        sys.stdout.write(content)
+    for draft in drafts:
+        for note in draft.notes:
+            print(f"{draft.case.id}: {note}", file=sys.stderr)
 
 
 def _quality_failures(
@@ -626,8 +682,8 @@ def _load_compression(path: Path) -> CompressionResponse:
 
 def _case_id_from_compression_path(path: Path) -> str:
     parts = [part for part in path.parts if part not in {".", "compression.json"}]
-    if len(parts) >= 3:
-        return _safe_case_id(f"{parts[-3]}-{parts[-2]}")
+    if len(parts) >= 2:
+        return _safe_case_id(f"{parts[-2]}-{parts[-1]}")
     return _safe_case_id(path.parent.name or path.stem)
 
 

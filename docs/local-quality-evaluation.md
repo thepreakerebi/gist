@@ -32,6 +32,16 @@ gist-quality-eval \
 
 The command prints one JSONL record plus comment notes. Review the inferred answer terms, evidence terms, and timestamp ranges before appending it to `data/eval/local-quality.jsonl`.
 
+Draft cases for every existing run:
+
+```bash
+gist-quality-eval \
+  --draft-cases-from-root .gist/runs \
+  --draft-output reports/local-quality/drafted-cases.jsonl
+```
+
+This writes valid JSONL only. Review the output before appending it to the curated dataset.
+
 ## Dataset Types
 
 Use `compression_path` when replaying an existing run:
