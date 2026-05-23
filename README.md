@@ -38,6 +38,16 @@ gist-structured-extract \
   --output reports/extraction.json
 ```
 
+Use an external extractor command when you want an LLM/VLM to fill the schema:
+
+```bash
+gist-structured-extract \
+  --compression .gist/runs/video-slug/query-slug/compression.json \
+  --schema data/extraction/sales-feedback.schema.json \
+  --output reports/extraction.json \
+  --extractor-command "python scripts/my_structured_extractor.py"
+```
+
 Evaluate structured extraction outputs with:
 
 ```bash

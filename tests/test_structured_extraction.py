@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 from gist.core.presets import CompressionPreset
@@ -7,6 +8,9 @@ from gist.gateway.structured import (
     ExtractionField,
     ExtractionSchema,
     LocalStructuredExtractor,
+    StructuredExtractionError,
+    SubprocessStructuredExtractor,
+    build_structured_extraction_payload,
     build_structured_extraction_prompt,
     extract_from_compression_file,
     main,
@@ -85,6 +89,76 @@ def test_structured_prompt_includes_schema_and_evidence() -> None:
     assert "sales_feedback" in prompt
     assert "pricing objection" in prompt
     assert "Pricing is too expensive" in prompt
+
+
+def test_structured_payload_includes_schema_and_evidence() -> None:
+    compression = _compression(
+        selected=[_item("a-1", text="Pricing is too expensive.", clip_start=1, clip_end=2)]
+    )
+    schema = ExtractionSchema(
+        name="sales_feedback",
+        labels=["pricing objection"],
+    )
+
+    payload = build_structured_extraction_payload(schema, compression)
+
+    assert payload["type"] == "gist.structured_extraction"
+    assert payload["schema"]["name"] == "sales_feedback"
+    assert payload["evidence"][0]["id"] == "a-1"
+    assert "Pricing is too expensive" in payload["context"]
+
+
+def test_subprocess_structured_extractor_parses_items() -> None:
+    compression = _compression(
+        selected=[_item("a-1", text="Pricing is too expensive.", clip_start=1, clip_end=2)]
+    )
+    schema = ExtractionSchema(
+        name="sales_feedback",
+        labels=["pricing objection"],
+    )
+    extractor = SubprocessStructuredExtractor(
+        command=[
+            sys.executable,
+            "-c",
+            (
+                "import json,sys;"
+                "payload=json.load(sys.stdin);"
+                "item={"
+                "'label':'pricing objection',"
+                "'description':'Pricing is too expensive.',"
+                "'timestamp_start_seconds':1,"
+                "'timestamp_end_seconds':2,"
+                "'evidence_id':'a-1',"
+                "'evidence_rank':1,"
+                "'confidence':0.9,"
+                "'support_text':'Pricing is too expensive.'"
+                "};"
+                "print(json.dumps({'provider':'fake-extractor','items':[item]}))"
+            ),
+        ]
+    )
+
+    response = extractor.extract(schema, compression)
+
+    assert response.provider == "fake-extractor"
+    assert response.items[0].label == "pricing objection"
+
+
+def test_subprocess_structured_extractor_rejects_invalid_stdout() -> None:
+    compression = _compression(
+        selected=[_item("a-1", text="Pricing is too expensive.", clip_start=1, clip_end=2)]
+    )
+    schema = ExtractionSchema(name="sales_feedback")
+    extractor = SubprocessStructuredExtractor(
+        command=[sys.executable, "-c", "print('not-json')"]
+    )
+
+    try:
+        extractor.extract(schema, compression)
+    except StructuredExtractionError as exc:
+        assert "valid JSON" in str(exc)
+    else:
+        raise AssertionError("expected StructuredExtractionError")
 
 
 def test_extraction_schema_loads_from_file(tmp_path: Path) -> None:
@@ -173,6 +247,51 @@ def test_structured_extract_cli_writes_output(tmp_path: Path) -> None:
             str(schema_path),
             "--output",
             str(output_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert json.loads(output_path.read_text())["items"][0]["label"] == "pricing objection"
+
+
+def test_structured_extract_cli_uses_subprocess_extractor(tmp_path: Path) -> None:
+    compression_path = tmp_path / "compression.json"
+    schema_path = tmp_path / "schema.json"
+    output_path = tmp_path / "extraction.json"
+    schema_path.write_text(json.dumps({"name": "sales_feedback"}))
+    compression = _compression(
+        selected=[_item("a-1", text="Pricing is too expensive.", clip_start=30, clip_end=45)]
+    )
+    compression_path.write_text(
+        json.dumps({"compression": compression.model_dump(mode="json")})
+    )
+    command = (
+        f"{sys.executable} -c "
+        "\"import json,sys;"
+        "json.load(sys.stdin);"
+        "item={"
+        "'label':'pricing objection',"
+        "'description':'Pricing is too expensive.',"
+        "'timestamp_start_seconds':30,"
+        "'timestamp_end_seconds':45,"
+        "'evidence_id':'a-1',"
+        "'evidence_rank':1,"
+        "'confidence':0.9,"
+        "'support_text':'Pricing is too expensive.'"
+        "};"
+        "print(json.dumps({'items':[item]}))\""
+    )
+
+    exit_code = main(
+        [
+            "--compression",
+            str(compression_path),
+            "--schema",
+            str(schema_path),
+            "--output",
+            str(output_path),
+            "--extractor-command",
+            command,
         ]
     )
 
