@@ -75,6 +75,9 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
             estimated_saved_tokens=968,
             estimated_token_reduction_ratio=0.032,
             estimated_token_reduction_percent=96.8,
+            estimated_spatial_visual_tokens=196,
+            estimated_retained_spatial_visual_tokens=69,
+            estimated_spatial_token_reduction_percent=64.8,
             token_estimator=TokenEstimatorProfile.GENERIC,
         ),
     )
@@ -88,6 +91,8 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "strong support" in html
     assert "answer_support=0.800" in html
     assert "audio_support=0.770" in html
+    assert "64.8%" in html
+    assert "69 / 196 retained" in html
     assert "evidence" in html
     assert "<video" in html
     assert clip_path.resolve().as_uri() in html

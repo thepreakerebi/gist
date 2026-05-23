@@ -30,6 +30,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
                 timestamp_seconds=12,
                 text="The speaker explains the event.",
                 clip_path=clip_path,
+                spatial_mask_path=tmp_path / "mask.json",
                 clip_start_seconds=10,
                 clip_end_seconds=20,
                 selection_rank=1,
@@ -68,6 +69,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
     assert package["answer_hint"] == "The speaker explains the event."
     assert package["answer_provider"] == "local-text-evidence"
     assert package["evidence"][0]["clip_path"] == str(clip_path)
+    assert package["evidence"][0]["spatial_mask_path"] == str(tmp_path / "mask.json")
     assert package["evidence"][0]["transcript"] == "The speaker explains the event."
     assert package["evidence"][0]["support_label"] == "strong"
     assert package["evidence"][0]["evidence_support_score"] == 0.85

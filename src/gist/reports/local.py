@@ -91,6 +91,7 @@ def render_local_compression_report(
     <div class="card"><div class="metric">{len(moments)}</div><div class="muted">video evidence moments</div></div>
     <div class="card"><div class="metric">{compression.metrics.estimated_candidate_reduction_percent:.1f}%</div><div class="muted">candidate reduction</div></div>
     <div class="card"><div class="metric">{compression.metrics.estimated_token_reduction_percent:.1f}%</div><div class="muted">estimated token reduction</div></div>
+    <div class="card"><div class="metric">{compression.metrics.estimated_spatial_token_reduction_percent:.1f}%</div><div class="muted">spatial visual token reduction</div></div>
     <div class="card"><div class="metric">{ingestion.metadata.duration_seconds / 60:.1f}m</div><div class="muted">video duration</div></div>
   </section>
 
@@ -102,6 +103,7 @@ def render_local_compression_report(
         {raw_rows}
         <tr><th>Compressor input candidates</th><td>{compression.metrics.input_candidates}</td></tr>
         <tr><th>Dropped candidates</th><td>{compression.metrics.dropped_candidates}</td></tr>
+        <tr><th>Spatial visual tokens</th><td>{compression.metrics.estimated_retained_spatial_visual_tokens} / {compression.metrics.estimated_spatial_visual_tokens} retained</td></tr>
         <tr><th>Budget</th><td>{escape(compression.metrics.budget_mode)} / {escape(compression.metrics.budget_preset_used.value)}</td></tr>
       </tbody>
     </table>
@@ -243,6 +245,9 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
     segment_ids = ", ".join(
         sorted({item.segment_id for item in moment if item.segment_id is not None})
     ) or "n/a"
+    spatial_masks = ", ".join(
+        str(item.spatial_mask_path) for item in moment if item.spatial_mask_path is not None
+    ) or "n/a"
     clip_range = ""
     if representative.clip_start_seconds is not None and representative.clip_end_seconds is not None:
         clip_range = (
@@ -256,7 +261,7 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
       {asset}
       <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
       <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
-      <p class="muted">segments={escape(segment_ids)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
+      <p class="muted">segments={escape(segment_ids)}; spatial_masks={escape(spatial_masks)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
     </article>
     """
 

@@ -12,7 +12,7 @@ from gist.core.evidence_pruning import (
 )
 from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
-from gist.core.schemas import CompressionResponse, SelectedCandidate
+from gist.core.schemas import CompressionResponse, Modality, SelectedCandidate
 from gist.gateway.evidence_package import build_evidence_package
 from gist.gateway.local_text import LocalTextEvidenceGateway
 from gist.gateway.ollama import DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL, OllamaTextGateway
@@ -22,6 +22,11 @@ from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline
 from gist.reports import render_local_compression_report
+from gist.vision.spatial import (
+    build_query_spatial_mask,
+    estimate_spatial_tokens,
+    write_spatial_mask,
+)
 
 
 def main() -> int:
@@ -61,6 +66,13 @@ def main() -> int:
         help="Disable OCR extraction from sampled frames.",
     )
     parser.add_argument("--no-clips", action="store_true")
+    parser.add_argument(
+        "--spatial-pruning",
+        action="store_true",
+        help="Attach query-conditioned spatial masks for selected visual evidence.",
+    )
+    parser.add_argument("--spatial-retention-ratio", type=float, default=0.35)
+    parser.add_argument("--spatial-grid-size", type=int, default=14)
     parser.add_argument(
         "--no-answer-prune",
         action="store_true",
@@ -135,6 +147,14 @@ def main() -> int:
             compression = _answer_compression(args, compression, progress)
             progress("pruning uncited consolidated evidence")
             compression = prune_evidence_to_answer_citations(compression)
+    if args.spatial_pruning:
+        progress("attaching spatial masks")
+        compression = _attach_spatial_masks(
+            compression=compression,
+            output_dir=run_dir / "spatial",
+            grid_size=args.spatial_grid_size,
+            retention_ratio=args.spatial_retention_ratio,
+        )
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")
@@ -208,6 +228,45 @@ def _attach_evidence_clips(
 
 def _gateway_request(query: str, compression: CompressionResponse) -> GatewayRequest:
     return GatewayRequest(query=query, compression=compression)
+
+
+def _attach_spatial_masks(
+    compression: CompressionResponse,
+    output_dir: Path,
+    grid_size: int,
+    retention_ratio: float,
+) -> CompressionResponse:
+    selected: list[SelectedCandidate] = []
+    visual_count = 0
+    for item in compression.selected:
+        if item.modality != Modality.VISUAL:
+            selected.append(item)
+            continue
+
+        visual_count += 1
+        mask = build_query_spatial_mask(
+            evidence_id=item.id,
+            query=compression.query,
+            grid_size=grid_size,
+            retention_ratio=retention_ratio,
+        )
+        mask_path = output_dir / f"{_safe_stem(item.id)}.spatial-mask.json"
+        write_spatial_mask(mask, mask_path)
+        selected.append(item.model_copy(update={"spatial_mask_path": mask_path}))
+
+    baseline_tokens, retained_tokens, reduction_percent = estimate_spatial_tokens(
+        selected_visual_count=visual_count,
+        grid_size=grid_size,
+        retention_ratio=retention_ratio,
+    )
+    metrics = compression.metrics.model_copy(
+        update={
+            "estimated_spatial_visual_tokens": baseline_tokens,
+            "estimated_retained_spatial_visual_tokens": retained_tokens,
+            "estimated_spatial_token_reduction_percent": reduction_percent,
+        }
+    )
+    return compression.model_copy(update={"selected": selected, "metrics": metrics})
 
 
 def _answer_compression(
