@@ -22,6 +22,16 @@ gist-quality-eval \
   --html-output reports/local-quality/quality.html
 ```
 
+Draft a new quality case from an existing run:
+
+```bash
+gist-quality-eval \
+  --draft-case-from .gist/runs/video-slug/query-slug/compression.json \
+  --case-id video-slug-question-slug
+```
+
+The command prints one JSONL record plus comment notes. Review the inferred answer terms, evidence terms, and timestamp ranges before appending it to `data/eval/local-quality.jsonl`.
+
 ## Dataset Types
 
 Use `compression_path` when replaying an existing run:
@@ -84,7 +94,9 @@ Add cases that cover different failure modes:
 
 1. Run Gist on a video and inspect the HTML report.
 2. Identify the correct answer terms and the timestamp range that supports the answer.
-3. Add one line to `data/eval/local-quality.jsonl`.
-4. Run `gist-quality-eval --dataset data/eval/local-quality.jsonl --check-only`.
-5. Run the full quality command.
-6. Fix retrieval, evidence pruning, or answer grounding only when a failure repeats across cases.
+3. Draft a case with `gist-quality-eval --draft-case-from`.
+4. Edit the drafted terms and timestamp ranges.
+5. Add one line to `data/eval/local-quality.jsonl`.
+6. Run `gist-quality-eval --dataset data/eval/local-quality.jsonl --check-only`.
+7. Run the full quality command.
+8. Fix retrieval, evidence pruning, or answer grounding only when a failure repeats across cases.

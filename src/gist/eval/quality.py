@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from html import escape
 from pathlib import Path
 from typing import Annotated
@@ -100,6 +101,11 @@ class QualityDatasetCheck(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class QualityCaseDraft(BaseModel):
+    case: QualityCase
+    notes: list[str] = Field(default_factory=list)
+
+
 def load_quality_cases(path: Path) -> list[QualityCase]:
     cases: list[QualityCase] = []
     for line_number, line in enumerate(path.read_text().splitlines(), start=1):
@@ -112,6 +118,36 @@ def load_quality_cases(path: Path) -> list[QualityCase]:
             raise ValueError(f"invalid JSON on line {line_number}: {exc}") from exc
         cases.append(QualityCase.model_validate(payload))
     return cases
+
+
+def draft_quality_case(
+    compression_path: Path,
+    case_id: str | None = None,
+    min_token_reduction_percent: float = 90.0,
+    timestamp_tolerance_seconds: float = 8.0,
+    max_selected_evidence: int | None = None,
+) -> QualityCaseDraft:
+    compression = _load_compression(compression_path)
+    evidence_ranges = _selected_ranges(compression)
+    answer_terms = _keyword_terms(compression.answer or "")
+    evidence_terms = _keyword_terms(" ".join(item.text for item in compression.selected))
+    case = QualityCase(
+        id=case_id or _case_id_from_compression_path(compression_path),
+        compression_path=compression_path,
+        expected_answer_terms=answer_terms[:6],
+        expected_evidence_terms=evidence_terms[:8],
+        relevant_ranges=evidence_ranges,
+        timestamp_tolerance_seconds=timestamp_tolerance_seconds,
+        min_answer_term_recall=0.75 if answer_terms else 0.0,
+        min_evidence_term_coverage=0.5 if evidence_terms else 0.0,
+        min_evidence_relevance_rate=0.8,
+        min_timestamp_hit_rate=0.75 if evidence_ranges else 0.0,
+        min_token_reduction_percent=min_token_reduction_percent,
+        max_selected_evidence=max_selected_evidence or max(len(compression.selected), 1),
+        min_visual_evidence=1 if compression.metrics.visual_selected else 0,
+        min_audio_evidence=1 if compression.metrics.audio_selected else 0,
+    )
+    return QualityCaseDraft(case=case, notes=_draft_notes(compression, case))
 
 
 def check_quality_dataset(cases: list[QualityCase]) -> QualityDatasetCheck:
@@ -338,7 +374,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Run curated local Gist quality checks against videos or compression files."
     )
-    parser.add_argument("--dataset", required=True, type=Path)
+    parser.add_argument("--dataset", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
@@ -348,7 +384,40 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Validate the dataset shape and warnings without running compression.",
     )
+    parser.add_argument(
+        "--draft-case-from",
+        type=Path,
+        help="Print a ready-to-edit JSONL quality case from an existing compression.json.",
+    )
+    parser.add_argument("--case-id", help="Override the drafted case id.")
+    parser.add_argument(
+        "--draft-min-token-reduction-percent",
+        type=float,
+        default=90.0,
+    )
+    parser.add_argument(
+        "--draft-timestamp-tolerance-seconds",
+        type=float,
+        default=8.0,
+    )
+    parser.add_argument("--draft-max-selected-evidence", type=int)
     args = parser.parse_args(argv)
+
+    if args.draft_case_from is not None:
+        draft = draft_quality_case(
+            compression_path=args.draft_case_from,
+            case_id=args.case_id,
+            min_token_reduction_percent=args.draft_min_token_reduction_percent,
+            timestamp_tolerance_seconds=args.draft_timestamp_tolerance_seconds,
+            max_selected_evidence=args.draft_max_selected_evidence,
+        )
+        print(draft.case.model_dump_json(exclude_none=True))
+        for note in draft.notes:
+            print(f"# {note}")
+        return 0
+
+    if args.dataset is None:
+        raise SystemExit("--dataset is required unless --draft-case-from is used")
 
     cases = load_quality_cases(args.dataset)
     if args.check_only:
@@ -555,6 +624,47 @@ def _load_compression(path: Path) -> CompressionResponse:
     return CompressionResponse.model_validate(compression_payload)
 
 
+def _case_id_from_compression_path(path: Path) -> str:
+    parts = [part for part in path.parts if part not in {".", "compression.json"}]
+    if len(parts) >= 3:
+        return _safe_case_id(f"{parts[-3]}-{parts[-2]}")
+    return _safe_case_id(path.parent.name or path.stem)
+
+
+def _safe_case_id(value: str) -> str:
+    normalized = re.sub(r"[^a-zA-Z0-9]+", "-", value.lower()).strip("-")
+    return normalized or "quality-case"
+
+
+def _keyword_terms(text: str, limit: int = 16) -> list[str]:
+    counts: dict[str, int] = {}
+    for token in re.findall(r"[a-zA-Z][a-zA-Z0-9'-]{2,}", text.lower()):
+        normalized = token.strip("'")
+        normalized = _TERM_NORMALIZATIONS.get(normalized, normalized)
+        if normalized in _STOPWORDS:
+            continue
+        counts[normalized] = counts.get(normalized, 0) + 1
+    ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
+    return [term for term, _count in ranked[:limit]]
+
+
+def _draft_notes(compression: CompressionResponse, case: QualityCase) -> list[str]:
+    notes = [
+        "Review expected_answer_terms and expected_evidence_terms before committing.",
+        "Review relevant_ranges against the HTML report/video player.",
+    ]
+    if not case.expected_answer_terms:
+        notes.append("No answer terms inferred; add expected_answer_terms manually.")
+    if not case.expected_evidence_terms:
+        notes.append("No evidence terms inferred; add expected_evidence_terms manually.")
+    if compression.metrics.estimated_token_reduction_percent < case.min_token_reduction_percent:
+        notes.append(
+            "Current token reduction is below the drafted threshold; lower the "
+            "threshold only if this is intentional."
+        )
+    return notes
+
+
 def _selected_ranges(compression: CompressionResponse) -> list[TimeRange]:
     ranges: list[TimeRange] = []
     for item in compression.selected:
@@ -666,6 +776,71 @@ def _render_failure_category_summary(category_counts: dict[str, int]) -> str:
         for category, count in category_counts.items()
     )
     return f"<h2>Failure Categories</h2><ul>{items}</ul>"
+
+
+_STOPWORDS = {
+    "all",
+    "and",
+    "any",
+    "about",
+    "after",
+    "again",
+    "also",
+    "answer",
+    "are",
+    "but",
+    "because",
+    "being",
+    "clip",
+    "does",
+    "during",
+    "evidence",
+    "for",
+    "from",
+    "has",
+    "have",
+    "here",
+    "his",
+    "how",
+    "its",
+    "into",
+    "like",
+    "not",
+    "our",
+    "out",
+    "she",
+    "than",
+    "that",
+    "the",
+    "their",
+    "then",
+    "there",
+    "these",
+    "they",
+    "this",
+    "those",
+    "transcript",
+    "was",
+    "what",
+    "when",
+    "who",
+    "where",
+    "which",
+    "why",
+    "with",
+    "would",
+    "you",
+    "your",
+}
+
+
+_TERM_NORMALIZATIONS = {
+    "it's": "its",
+    "that's": "that",
+    "there's": "there",
+    "they're": "they",
+    "you're": "you",
+}
 
 
 if __name__ == "__main__":

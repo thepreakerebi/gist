@@ -6,6 +6,7 @@ from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality,
 from gist.eval.quality import (
     QualityCase,
     check_quality_dataset,
+    draft_quality_case,
     evaluate_quality_case,
     main,
     render_quality_markdown,
@@ -172,6 +173,59 @@ def test_quality_cli_check_only_returns_nonzero_for_warnings(tmp_path: Path) -> 
     exit_code = main(["--dataset", str(dataset), "--check-only"])
 
     assert exit_code == 1
+
+
+def test_draft_quality_case_from_existing_compression(tmp_path: Path) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        answer="Builders use AI for research and writing articles.",
+        selected=[
+            _item(
+                "a-1",
+                timestamp=385,
+                clip_start=375,
+                clip_end=395,
+                text="They use AI for deep research before writing articles.",
+            )
+        ],
+        token_reduction=99.4,
+    )
+
+    draft = draft_quality_case(compression_path, case_id="yc-draft")
+
+    assert draft.case.id == "yc-draft"
+    assert draft.case.compression_path == compression_path
+    assert "research" in draft.case.expected_answer_terms
+    assert "research" in draft.case.expected_evidence_terms
+    assert draft.case.relevant_ranges[0].start_seconds == 375
+    assert draft.case.relevant_ranges[0].end_seconds == 395
+    assert draft.case.max_selected_evidence == 1
+    assert draft.notes
+
+
+def test_quality_cli_drafts_case_without_dataset(tmp_path: Path, capsys) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        answer="The slide says GIST TOKEN SAVER.",
+        selected=[
+            _item(
+                "v-1",
+                timestamp=3,
+                clip_start=0,
+                clip_end=6,
+                text="GIST TOKEN SAVER",
+                modality=Modality.VISUAL,
+            )
+        ],
+        token_reduction=95.0,
+    )
+
+    exit_code = main(["--draft-case-from", str(compression_path), "--case-id", "slide-draft"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert '"id":"slide-draft"' in captured.out
+    assert "expected_answer_terms" in captured.out
 
 
 def _write_compression(
