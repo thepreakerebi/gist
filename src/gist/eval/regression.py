@@ -31,6 +31,10 @@ class RegressionCase(BaseModel):
     max_selected_evidence: Annotated[int, Field(gt=0)] | None = None
     min_visual_evidence: Annotated[int, Field(ge=0)] = 0
     min_audio_evidence: Annotated[int, Field(ge=0)] = 0
+    min_spatial_token_reduction_percent: Annotated[float, Field(ge=0, le=100)] = 0.0
+    require_spatial_masks: bool = False
+    require_spatial_previews: bool = False
+    require_spatial_overlays: bool = False
     required_answer_terms: list[str] = Field(default_factory=list)
 
 
@@ -42,6 +46,7 @@ class RegressionResult(BaseModel):
     selected_evidence: int
     visual_evidence: int
     audio_evidence: int
+    spatial_token_reduction_percent: float
     failures: list[str] = Field(default_factory=list)
 
 
@@ -87,6 +92,7 @@ def evaluate_case(case: RegressionCase) -> RegressionResult:
         tolerance_seconds=case.timestamp_tolerance_seconds,
     )
     token_reduction = compression.metrics.estimated_token_reduction_percent
+    spatial_reduction = compression.metrics.estimated_spatial_token_reduction_percent
     failures: list[str] = []
 
     if hit_rate < case.min_timestamp_hit_rate:
@@ -117,6 +123,36 @@ def evaluate_case(case: RegressionCase) -> RegressionResult:
             "audio evidence "
             f"{compression.metrics.audio_selected} is below required {case.min_audio_evidence}"
         )
+    if spatial_reduction < case.min_spatial_token_reduction_percent:
+        failures.append(
+            "spatial token reduction "
+            f"{spatial_reduction:.2f}% is below required "
+            f"{case.min_spatial_token_reduction_percent:.2f}%"
+        )
+    if case.require_spatial_masks:
+        failures.extend(
+            _missing_spatial_artifacts(
+                compression=compression,
+                field_name="spatial_mask_path",
+                label="spatial mask",
+            )
+        )
+    if case.require_spatial_previews:
+        failures.extend(
+            _missing_spatial_artifacts(
+                compression=compression,
+                field_name="spatial_mask_preview_path",
+                label="spatial preview",
+            )
+        )
+    if case.require_spatial_overlays:
+        failures.extend(
+            _missing_spatial_artifacts(
+                compression=compression,
+                field_name="spatial_mask_overlay_path",
+                label="spatial overlay",
+            )
+        )
 
     answer = (compression.answer or "").lower()
     missing_terms = [
@@ -133,6 +169,7 @@ def evaluate_case(case: RegressionCase) -> RegressionResult:
         selected_evidence=compression.metrics.selected_candidates,
         visual_evidence=compression.metrics.visual_selected,
         audio_evidence=compression.metrics.audio_selected,
+        spatial_token_reduction_percent=spatial_reduction,
         failures=failures,
     )
 
@@ -144,8 +181,8 @@ def render_regression_markdown(report: RegressionReport) -> str:
         f"- Cases: {report.cases}",
         f"- Passed: {'yes' if report.passed else 'no'}",
         "",
-        "| Case | Status | Timestamp Hit Rate | Token Reduction | Selected | Visual | Audio | Failures |",
-        "|---|---:|---:|---:|---:|---:|---:|---|",
+        "| Case | Status | Timestamp Hit Rate | Token Reduction | Spatial Reduction | Selected | Visual | Audio | Failures |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|",
     ]
     for result in report.results:
         failures = "; ".join(result.failures) if result.failures else ""
@@ -153,6 +190,7 @@ def render_regression_markdown(report: RegressionReport) -> str:
             f"| {result.id} | {'pass' if result.passed else 'fail'} | "
             f"{result.timestamp_hit_rate:.2f} | "
             f"{result.token_reduction_percent:.2f}% | "
+            f"{result.spatial_token_reduction_percent:.2f}% | "
             f"{result.selected_evidence} | "
             f"{result.visual_evidence} | "
             f"{result.audio_evidence} | {failures} |"
@@ -183,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"{result.id}: {status}, hit_rate={result.timestamp_hit_rate:.2f}, "
             f"token_reduction={result.token_reduction_percent:.2f}%, "
+            f"spatial_reduction={result.spatial_token_reduction_percent:.2f}%, "
             f"selected={result.selected_evidence}, "
             f"visual={result.visual_evidence}, audio={result.audio_evidence}"
         )
@@ -238,6 +277,24 @@ def _range_hit_rate(
         )
     )
     return hits / len(expected_ranges)
+
+
+def _missing_spatial_artifacts(
+    compression: CompressionResponse,
+    field_name: str,
+    label: str,
+) -> list[str]:
+    failures: list[str] = []
+    for item in compression.selected:
+        if item.modality.value != "visual":
+            continue
+        path = getattr(item, field_name)
+        if path is None:
+            failures.append(f"{label} missing for visual evidence {item.id}")
+            continue
+        if not Path(path).exists():
+            failures.append(f"{label} file does not exist for visual evidence {item.id}: {path}")
+    return failures
 
 
 if __name__ == "__main__":

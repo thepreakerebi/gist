@@ -123,6 +123,84 @@ def test_evaluate_case_enforces_visual_evidence_floor(tmp_path: Path) -> None:
     assert any("visual evidence" in failure for failure in result.failures)
 
 
+def test_evaluate_case_enforces_spatial_artifacts_for_visual_evidence(
+    tmp_path: Path,
+) -> None:
+    mask_path = tmp_path / "mask.json"
+    preview_path = tmp_path / "mask.svg"
+    overlay_path = tmp_path / "overlay.svg"
+    for path in [mask_path, preview_path, overlay_path]:
+        path.write_text("artifact")
+    compression_path = _write_compression(
+        tmp_path,
+        selected=[
+            _item(
+                "v-1",
+                timestamp=10,
+                clip_start=0,
+                clip_end=20,
+                modality=Modality.VISUAL,
+                spatial_mask_path=mask_path,
+                spatial_mask_preview_path=preview_path,
+                spatial_mask_overlay_path=overlay_path,
+            )
+        ],
+        answer="A robot hand appears on screen.",
+        token_reduction=99.0,
+        spatial_reduction=75.0,
+    )
+    case = RegressionCase(
+        id="spatial-case",
+        compression_path=compression_path,
+        expected_evidence_ranges=[TimeRange(start_seconds=5, end_seconds=15)],
+        min_visual_evidence=1,
+        min_spatial_token_reduction_percent=70,
+        require_spatial_masks=True,
+        require_spatial_previews=True,
+        require_spatial_overlays=True,
+    )
+
+    result = evaluate_case(case)
+
+    assert result.passed is True
+    assert result.spatial_token_reduction_percent == 75
+
+
+def test_evaluate_case_reports_missing_spatial_artifacts(tmp_path: Path) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        selected=[
+            _item(
+                "v-1",
+                timestamp=10,
+                clip_start=0,
+                clip_end=20,
+                modality=Modality.VISUAL,
+            )
+        ],
+        answer="A robot hand appears on screen.",
+        token_reduction=99.0,
+        spatial_reduction=0.0,
+    )
+    case = RegressionCase(
+        id="bad-spatial-case",
+        compression_path=compression_path,
+        expected_evidence_ranges=[TimeRange(start_seconds=5, end_seconds=15)],
+        min_spatial_token_reduction_percent=50,
+        require_spatial_masks=True,
+        require_spatial_previews=True,
+        require_spatial_overlays=True,
+    )
+
+    result = evaluate_case(case)
+
+    assert result.passed is False
+    assert any("spatial token reduction" in failure for failure in result.failures)
+    assert any("spatial mask missing" in failure for failure in result.failures)
+    assert any("spatial preview missing" in failure for failure in result.failures)
+    assert any("spatial overlay missing" in failure for failure in result.failures)
+
+
 def test_time_range_rejects_negative_tolerance() -> None:
     with pytest.raises(ValueError, match="tolerance_seconds"):
         TimeRange(start_seconds=0, end_seconds=1).overlaps(
@@ -136,6 +214,7 @@ def _write_compression(
     selected: list[SelectedCandidate],
     answer: str,
     token_reduction: float,
+    spatial_reduction: float = 0.0,
 ) -> Path:
     compression = CompressionResponse(
         video_id="video",
@@ -146,8 +225,8 @@ def _write_compression(
         metrics=CompressionMetrics(
             input_candidates=100,
             selected_candidates=len(selected),
-            visual_selected=0,
-            audio_selected=len(selected),
+            visual_selected=sum(item.modality == Modality.VISUAL for item in selected),
+            audio_selected=sum(item.modality == Modality.AUDIO for item in selected),
             estimated_candidate_reduction_ratio=len(selected) / 100,
             estimated_candidate_reduction_percent=100 - len(selected),
             dropped_candidates=100 - len(selected),
@@ -157,6 +236,7 @@ def _write_compression(
             estimated_saved_tokens=3200 - (32 * len(selected)),
             estimated_token_reduction_ratio=1 - (token_reduction / 100),
             estimated_token_reduction_percent=token_reduction,
+            estimated_spatial_token_reduction_percent=spatial_reduction,
             token_estimator=TokenEstimatorProfile.GENERIC,
         ),
     )
@@ -170,14 +250,21 @@ def _item(
     timestamp: float,
     clip_start: float,
     clip_end: float,
+    modality: Modality = Modality.AUDIO,
+    spatial_mask_path: Path | None = None,
+    spatial_mask_preview_path: Path | None = None,
+    spatial_mask_overlay_path: Path | None = None,
 ) -> SelectedCandidate:
     return SelectedCandidate(
         id=id_,
-        modality=Modality.AUDIO,
+        modality=modality,
         timestamp_seconds=timestamp,
         text="evidence",
         clip_start_seconds=clip_start,
         clip_end_seconds=clip_end,
+        spatial_mask_path=spatial_mask_path,
+        spatial_mask_preview_path=spatial_mask_preview_path,
+        spatial_mask_overlay_path=spatial_mask_overlay_path,
         selection_rank=1,
         relevance_score=1,
         normalized_score=1,
