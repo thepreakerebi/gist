@@ -18,6 +18,7 @@ dependencies = [
 gist = "gist.cli:main"
 gist-eval = "gist.eval.cli:main"
 gist-failure-analysis = "gist.eval.failure_analysis:main"
+gist-quality-eval = "gist.eval.quality:main"
 gist-regression = "gist.eval.regression:main"
 gist-smoke-test = "gist.eval.smoke:main"
 gist-sota-benchmark = "gist.eval.sota:main"
