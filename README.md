@@ -26,6 +26,14 @@ gist /absolute/path/to/video.mp4 \
   --extraction-csv-output reports/extraction.csv
 ```
 
+For the shortest product-labeling workflow, let Gist suggest the extraction preset:
+
+```bash
+gist-label /absolute/path/to/video.mp4 \
+  --task "find every time prospects complain about pricing" \
+  --output-dir reports/labels
+```
+
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
