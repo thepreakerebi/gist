@@ -74,6 +74,19 @@ Each batch run writes `batch-manifest.jsonl`. Reuse it with
 `gist-label-batch --manifest reports/label-batch/batch-manifest.jsonl ...` for
 reproducible reruns.
 
+Run startup-readiness acceptance gates against a curated quality dataset:
+
+```bash
+gist-acceptance \
+  --dataset data/eval/gist-acceptance.template.jsonl \
+  --output reports/acceptance.json \
+  --markdown-output reports/acceptance.md \
+  --html-output reports/acceptance.html \
+  --min-cases 3 \
+  --min-pass-rate 0.9 \
+  --min-avg-token-reduction-percent 90
+```
+
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.

@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 gist = "gist.cli:main"
+gist-acceptance = "gist.eval.acceptance:main"
 gist-eval = "gist.eval.cli:main"
 gist-extraction-eval = "gist.eval.extraction:main"
 gist-extraction-smoke = "gist.eval.extraction_smoke:main"
