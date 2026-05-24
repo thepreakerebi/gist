@@ -16,9 +16,9 @@ from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionResponse, Modality
 from gist.eval.regression import TimeRange
 from gist.gateway.structured import (
-    ExtractionSchema,
     LocalStructuredExtractor,
     SubprocessStructuredExtractor,
+    resolve_extraction_schema,
 )
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline
@@ -128,7 +128,8 @@ class QualityExtractionArtifact(BaseModel):
 
 
 class QualityExtractionOptions(BaseModel):
-    schema_path: Path
+    schema_path: Path | None = None
+    schema_name: str | None = None
     extractor_command: str | None = None
     extractor_timeout_seconds: Annotated[float, Field(gt=0)] = 120.0
 
@@ -456,6 +457,10 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--extraction-schema-name",
+        help="Built-in extraction schema name from `gist-structured-schemas`.",
+    )
+    parser.add_argument(
         "--extractor-command",
         help=(
             "Optional external structured extractor command. Gist sends JSON to "
@@ -501,6 +506,10 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("Use either --draft-case-from or --draft-cases-from-root, not both")
     if args.case_id and args.draft_cases_from_root is not None:
         raise SystemExit("--case-id can only be used with --draft-case-from")
+    if args.extraction_schema is not None and args.extraction_schema_name is not None:
+        raise SystemExit(
+            "Use either --extraction-schema or --extraction-schema-name, not both"
+        )
 
     if args.draft_case_from is not None:
         draft = draft_quality_case(
@@ -540,10 +549,11 @@ def main(argv: list[str] | None = None) -> int:
     extraction_options = (
         QualityExtractionOptions(
             schema_path=args.extraction_schema,
+            schema_name=args.extraction_schema_name,
             extractor_command=args.extractor_command,
             extractor_timeout_seconds=args.extractor_timeout,
         )
-        if args.extraction_schema is not None
+        if args.extraction_schema is not None or args.extraction_schema_name is not None
         else None
     )
     report = run_quality_cases(
@@ -613,7 +623,10 @@ def _write_quality_extraction_artifact(
     output_root: Path,
     options: QualityExtractionOptions,
 ) -> QualityExtractionArtifact:
-    schema = ExtractionSchema.from_file(options.schema_path)
+    schema = resolve_extraction_schema(
+        schema_path=options.schema_path,
+        schema_name=options.schema_name,
+    )
     extractor = _structured_extractor(options)
     extraction = extractor.extract(schema=schema, compression=compression)
     artifact_dir = output_root / _safe_case_id(case.id) / "extraction"

@@ -52,18 +52,20 @@ Run extraction from an existing compression file:
 ```bash
 gist-structured-extract \
   --compression .gist/runs/video-slug/query-slug/compression.json \
-  --schema data/extraction/sales-feedback.schema.json \
+  --schema-name sales_feedback \
   --output reports/extraction.json \
   --markdown-output reports/extraction.md \
   --html-output reports/extraction.html
 ```
+
+Use `--schema /path/to/custom.schema.json` when you need a custom schema file.
 
 Use an external extractor command when you want an LLM/VLM to fill the schema:
 
 ```bash
 gist-structured-extract \
   --compression .gist/runs/video-slug/query-slug/compression.json \
-  --schema data/extraction/sales-feedback.schema.json \
+  --schema-name sales_feedback \
   --output reports/extraction.json \
   --extractor-command "python scripts/my_structured_extractor.py"
 ```
@@ -73,7 +75,7 @@ A dependency-free reference extractor is included:
 ```bash
 gist-structured-extract \
   --compression .gist/runs/video-slug/query-slug/compression.json \
-  --schema data/extraction/sales-feedback.schema.json \
+  --schema-name sales_feedback \
   --output reports/extraction.json \
   --extractor-command "python scripts/run_local_structured_extractor.py"
 ```
@@ -334,7 +336,7 @@ gist-quality-eval \
   --markdown-output reports/local-quality/quality.md \
   --html-output reports/local-quality/quality.html \
   --output-root reports/local-quality/artifacts \
-  --extraction-schema data/extraction/sales-feedback.schema.json
+  --extraction-schema-name sales_feedback
 ```
 
 Each case writes `extraction.json`, `extraction.md`, and `extraction.html` under

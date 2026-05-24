@@ -413,6 +413,57 @@ def test_quality_cli_can_write_extraction_artifacts(tmp_path: Path) -> None:
     assert (output_root / "sales-call" / "extraction" / "extraction.html").exists()
 
 
+def test_quality_cli_can_use_builtin_extraction_schema_name(tmp_path: Path) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        answer="The buyer says pricing is too expensive.",
+        selected=[
+            _item(
+                "a-1",
+                timestamp=30,
+                clip_start=25,
+                clip_end=45,
+                text="The buyer says pricing is too expensive.",
+            )
+        ],
+        token_reduction=98.0,
+    )
+    dataset_path = tmp_path / "quality.jsonl"
+    output_path = tmp_path / "quality.json"
+    output_root = tmp_path / "quality-root"
+    dataset_path.write_text(
+        json.dumps(
+            {
+                "id": "sales-call",
+                "compression_path": str(compression_path),
+                "expected_answer_terms": ["pricing"],
+                "expected_evidence_terms": ["pricing"],
+                "relevant_timestamps": [30],
+            }
+        )
+        + "\n"
+    )
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset_path),
+            "--output",
+            str(output_path),
+            "--output-root",
+            str(output_root),
+            "--extraction-schema-name",
+            "customer_objections",
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(output_path.read_text())
+    artifact = payload["results"][0]["extraction"]
+    assert artifact["schema_name"] == "customer_objections"
+    assert artifact["items"] == 1
+
+
 def _write_compression(
     tmp_path: Path,
     answer: str,

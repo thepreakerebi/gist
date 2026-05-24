@@ -200,13 +200,39 @@ def load_compression_response(path: Path) -> CompressionResponse:
 
 def extract_from_compression_file(
     compression_path: Path,
-    schema_path: Path,
+    schema_path: Path | None = None,
+    schema_name: str | None = None,
     extractor: LocalStructuredExtractor | SubprocessStructuredExtractor | None = None,
 ) -> StructuredExtractionResponse:
     resolved_extractor = extractor or LocalStructuredExtractor()
     return resolved_extractor.extract(
-        schema=ExtractionSchema.from_file(schema_path),
+        schema=resolve_extraction_schema(schema_path=schema_path, schema_name=schema_name),
         compression=load_compression_response(compression_path),
+    )
+
+
+def resolve_extraction_schema(
+    schema_path: Path | None = None,
+    schema_name: str | None = None,
+) -> ExtractionSchema:
+    if schema_path is not None and schema_name is not None:
+        raise ValueError("Use either schema_path or schema_name, not both")
+    if schema_path is not None:
+        return ExtractionSchema.from_file(schema_path)
+    if schema_name is None:
+        raise ValueError("schema_path or schema_name is required")
+
+    normalized_name = _normalize_schema_name(schema_name)
+    schema = _resolve_packaged_schema_by_name(normalized_name)
+    if schema is not None:
+        return schema
+    schema = _resolve_schema_from_dir(_default_schema_dir(), normalized_name)
+    if schema is not None:
+        return schema
+    available = ", ".join(schema.name for schema in list_builtin_extraction_schemas())
+    raise ValueError(
+        f"unknown extraction schema name `{schema_name}`. "
+        f"Available schemas: {available or 'none'}"
     )
 
 
@@ -264,6 +290,35 @@ def _list_packaged_builtin_schemas() -> list[BuiltinExtractionSchema]:
     return schemas
 
 
+def _resolve_packaged_schema_by_name(normalized_name: str) -> ExtractionSchema | None:
+    try:
+        schema_root = resources.files("gist").joinpath("data", "extraction")
+    except (ModuleNotFoundError, AttributeError):
+        return None
+    if not schema_root.is_dir():
+        return None
+    for resource in sorted(schema_root.iterdir(), key=lambda item: item.name):
+        if not resource.name.endswith(".schema.json"):
+            continue
+        schema = ExtractionSchema.from_json_text(resource.read_text())
+        if _normalize_schema_name(schema.name) == normalized_name:
+            return schema
+    return None
+
+
+def _resolve_schema_from_dir(
+    schema_dir: Path,
+    normalized_name: str,
+) -> ExtractionSchema | None:
+    if not schema_dir.exists():
+        return None
+    for path in sorted(schema_dir.glob(SCHEMA_FILE_PATTERN)):
+        schema = ExtractionSchema.from_file(path)
+        if _normalize_schema_name(schema.name) == normalized_name:
+            return schema
+    return None
+
+
 def schemas_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="List built-in Gist extraction schemas.")
     parser.add_argument("--json", action="store_true", help="Print schemas as JSON.")
@@ -300,7 +355,12 @@ def main(argv: list[str] | None = None) -> int:
         description="Extract timestamped structured records from a Gist compression file."
     )
     parser.add_argument("--compression", required=True, type=Path)
-    parser.add_argument("--schema", required=True, type=Path)
+    schema_group = parser.add_mutually_exclusive_group(required=True)
+    schema_group.add_argument("--schema", type=Path)
+    schema_group.add_argument(
+        "--schema-name",
+        help="Built-in schema name from `gist-structured-schemas`.",
+    )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
@@ -325,6 +385,7 @@ def main(argv: list[str] | None = None) -> int:
     extraction = extract_from_compression_file(
         compression_path=args.compression,
         schema_path=args.schema,
+        schema_name=args.schema_name,
         extractor=extractor,
     )
     extraction.write_json(args.output)
@@ -351,6 +412,10 @@ def _default_schema_dir() -> Path:
         if candidate.exists():
             return candidate
     return Path.cwd() / "data" / "extraction"
+
+
+def _normalize_schema_name(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_")
 
 
 def build_structured_extraction_prompt(
