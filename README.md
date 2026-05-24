@@ -44,6 +44,16 @@ processing:
 gist-label-smoke --output-dir reports/label-smoke
 ```
 
+If you already have a `compression.json`, label it without rerunning frame,
+audio, or clip processing:
+
+```bash
+gist-label-compression \
+  --compression .gist/runs/video-slug/query-slug/compression.json \
+  --task "find every time prospects complain about pricing" \
+  --output-dir reports/labels-from-compression
+```
+
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
