@@ -139,6 +139,7 @@ def test_main_cli_accepts_builtin_extraction_schema_name(tmp_path: Path, monkeyp
     monkeypatch.setattr(cli, "LocalCompressionPipeline", FakePipeline)
     output_root = tmp_path / "runs"
     extraction_output = tmp_path / "extraction.json"
+    extraction_csv_output = tmp_path / "extraction.csv"
 
     exit_code = cli.main(
         [
@@ -154,6 +155,8 @@ def test_main_cli_accepts_builtin_extraction_schema_name(tmp_path: Path, monkeyp
             "customer_objections",
             "--extraction-output",
             str(extraction_output),
+            "--extraction-csv-output",
+            str(extraction_csv_output),
         ]
     )
 
@@ -161,6 +164,7 @@ def test_main_cli_accepts_builtin_extraction_schema_name(tmp_path: Path, monkeyp
     payload = json.loads(extraction_output.read_text())
     assert payload["schema_name"] == "customer_objections"
     assert payload["items"][0]["label"] == "pricing objection"
+    assert "pricing objection" in extraction_csv_output.read_text()
 
 
 def test_main_cli_rejects_schema_path_and_schema_name(tmp_path: Path) -> None:

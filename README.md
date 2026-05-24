@@ -22,7 +22,8 @@ gist /absolute/path/to/video.mp4 \
   --processing-mode auto \
   --adaptive-budget \
   --extraction-schema-name sales_feedback \
-  --extraction-output reports/extraction.json
+  --extraction-output reports/extraction.json \
+  --extraction-csv-output reports/extraction.csv
 ```
 
 The first extractor is local and deterministic. It establishes the model-agnostic

@@ -23,6 +23,7 @@ from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline
 from gist.reports import render_local_compression_report
+from gist.reports.structured import render_structured_extraction_csv
 from gist.vision.spatial import (
     build_query_spatial_mask,
     estimate_spatial_tokens,
@@ -96,6 +97,11 @@ def main(argv: list[str] | None = None) -> int:
         "--extraction-output",
         type=Path,
         help="Optional path for structured extraction JSON output.",
+    )
+    parser.add_argument(
+        "--extraction-csv-output",
+        type=Path,
+        help="Optional path for structured extraction CSV output.",
     )
     parser.add_argument(
         "--answer-with",
@@ -203,6 +209,7 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(build_evidence_package(ingestion, compression), indent=2) + "\n"
         )
     extraction_path = None
+    extraction_csv_path = None
     if args.extraction_schema is not None or args.extraction_schema_name is not None:
         extraction_path = args.extraction_output or run_dir / "extraction.json"
         progress(f"writing structured extraction: {extraction_path}")
@@ -214,6 +221,11 @@ def main(argv: list[str] | None = None) -> int:
             compression=compression,
         )
         extraction.write_json(extraction_path)
+        if args.extraction_csv_output is not None:
+            extraction_csv_path = args.extraction_csv_output
+            progress(f"writing structured extraction CSV: {extraction_csv_path}")
+            extraction_csv_path.parent.mkdir(parents=True, exist_ok=True)
+            extraction_csv_path.write_text(render_structured_extraction_csv(extraction))
 
     print(f"video_id={compression.video_id}")
     if ingestion.settings is not None:
@@ -232,6 +244,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"evidence_package={package_path}")
     if extraction_path is not None:
         print(f"extraction={extraction_path}")
+    if extraction_csv_path is not None:
+        print(f"extraction_csv={extraction_csv_path}")
     return 0
 
 
