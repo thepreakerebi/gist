@@ -47,6 +47,7 @@ List available schemas with:
 gist-structured-schemas
 gist-structured-schemas --json
 gist-structured-schemas --presets
+gist-structured-schemas --suggest "find every time prospects complain about pricing"
 ```
 
 Run extraction from an existing compression file:

@@ -27,6 +27,73 @@ EXTRACTION_PRESETS = {
     "product-announcements": "product_announcements",
     "sales-feedback": "sales_feedback",
 }
+PRESET_SUGGESTION_RULES = {
+    "customer-objections": [
+        "objection",
+        "complain",
+        "complaint",
+        "concern",
+        "blocker",
+        "expensive",
+        "pricing",
+        "price",
+        "too much",
+        "security",
+        "trust",
+        "implementation",
+    ],
+    "feature-requests": [
+        "feature request",
+        "requested feature",
+        "ask for",
+        "asked for",
+        "need",
+        "wish",
+        "missing feature",
+        "integration request",
+        "workflow",
+        "improvement",
+        "automation",
+        "reporting",
+    ],
+    "meeting-decisions": [
+        "decision",
+        "decide",
+        "action item",
+        "follow up",
+        "follow-up",
+        "owner",
+        "deadline",
+        "due date",
+        "open question",
+        "risk",
+        "assigned",
+    ],
+    "product-announcements": [
+        "announcement",
+        "announce",
+        "launch",
+        "released",
+        "new product",
+        "new feature",
+        "availability",
+        "roadmap",
+        "integration",
+        "keynote",
+        "demo",
+    ],
+    "sales-feedback": [
+        "sales",
+        "feedback",
+        "demo feedback",
+        "product mention",
+        "positive reaction",
+        "negative reaction",
+        "buyer",
+        "prospect",
+        "customer reaction",
+    ],
+}
 
 
 class ExtractionField(BaseModel):
@@ -88,6 +155,14 @@ class BuiltinExtractionSchema(BaseModel):
     item_type: str
     labels: list[str]
     path: str
+
+
+class ExtractionPresetSuggestion(BaseModel):
+    recommended_preset: str
+    schema_name: str
+    score: int
+    matched_terms: list[str]
+    reason: str
 
 
 class LocalStructuredExtractor:
@@ -266,6 +341,32 @@ def schema_name_for_extraction_preset(preset: str) -> str:
     )
 
 
+def suggest_extraction_preset(task: str) -> ExtractionPresetSuggestion:
+    normalized_task = _normalize_task_text(task)
+    scores = [
+        (
+            _preset_match_terms(normalized_task, keywords),
+            preset,
+        )
+        for preset, keywords in PRESET_SUGGESTION_RULES.items()
+    ]
+    matched_terms, preset = max(
+        scores,
+        key=lambda item: (len(item[0]), _preset_priority(item[1])),
+    )
+    if not matched_terms:
+        preset = "sales-feedback"
+    schema_name = schema_name_for_extraction_preset(preset)
+    reason = _preset_suggestion_reason(preset, matched_terms)
+    return ExtractionPresetSuggestion(
+        recommended_preset=preset,
+        schema_name=schema_name,
+        score=len(matched_terms),
+        matched_terms=matched_terms,
+        reason=reason,
+    )
+
+
 def list_builtin_extraction_schemas(
     schema_dir: Path | None = None,
 ) -> list[BuiltinExtractionSchema]:
@@ -362,7 +463,23 @@ def schemas_main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Override the schema directory. Mainly useful for tests and custom builds.",
     )
+    parser.add_argument(
+        "--suggest",
+        help="Suggest an extraction preset for a natural-language labeling task.",
+    )
     args = parser.parse_args(argv)
+
+    if args.suggest:
+        suggestion = suggest_extraction_preset(args.suggest)
+        if args.json:
+            print(suggestion.model_dump_json(indent=2))
+            return 0
+        print(f"recommended_preset={suggestion.recommended_preset}")
+        print(f"schema_name={suggestion.schema_name}")
+        print(f"reason={suggestion.reason}")
+        if suggestion.matched_terms:
+            print(f"matched_terms={', '.join(suggestion.matched_terms)}")
+        return 0
 
     if args.presets:
         if args.json:
@@ -479,6 +596,40 @@ def _normalize_schema_name(value: str) -> str:
 
 def _normalize_preset_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+
+def _normalize_task_text(value: str) -> str:
+    return re.sub(r"\s+", " ", value.lower()).strip()
+
+
+def _preset_match_terms(task: str, keywords: list[str]) -> list[str]:
+    return sorted(
+        {
+            keyword
+            for keyword in keywords
+            if re.search(rf"(?<![a-z0-9]){re.escape(keyword)}(?![a-z0-9])", task)
+        }
+    )
+
+
+def _preset_priority(preset: str) -> int:
+    priority = {
+        "customer-objections": 5,
+        "feature-requests": 4,
+        "meeting-decisions": 3,
+        "product-announcements": 2,
+        "sales-feedback": 1,
+    }
+    return priority.get(preset, 0)
+
+
+def _preset_suggestion_reason(preset: str, matched_terms: list[str]) -> str:
+    if matched_terms:
+        return (
+            f"matched task terms ({', '.join(matched_terms)}) to "
+            f"the {preset} extraction preset"
+        )
+    return "no strong preset-specific terms found; sales-feedback is the broadest default"
 
 
 def build_structured_extraction_prompt(

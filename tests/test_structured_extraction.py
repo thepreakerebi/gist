@@ -19,6 +19,7 @@ from gist.gateway.structured import (
     main,
     resolve_extraction_schema,
     schemas_main,
+    suggest_extraction_preset,
 )
 from gist.reports.structured import (
     render_structured_extraction_csv,
@@ -257,6 +258,37 @@ def test_structured_schemas_cli_outputs_presets(capsys) -> None:
 
     assert exit_code == 0
     assert "customer-objections: customer_objections" in captured.out
+
+
+def test_suggests_extraction_preset_from_task() -> None:
+    suggestion = suggest_extraction_preset(
+        "find every time prospects complain about pricing"
+    )
+
+    assert suggestion.recommended_preset == "customer-objections"
+    assert suggestion.schema_name == "customer_objections"
+    assert "pricing" in suggestion.matched_terms
+
+
+def test_structured_schemas_cli_suggests_preset(capsys) -> None:
+    exit_code = schemas_main(
+        ["--suggest", "find every time prospects complain about pricing"]
+    )
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "recommended_preset=customer-objections" in captured.out
+    assert "schema_name=customer_objections" in captured.out
+
+
+def test_structured_schemas_cli_suggests_preset_json(capsys) -> None:
+    exit_code = schemas_main(["--suggest", "capture new product launches", "--json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert payload["recommended_preset"] == "product-announcements"
+    assert payload["schema_name"] == "product_announcements"
 
 
 def test_resolves_builtin_extraction_schema_by_name() -> None:
