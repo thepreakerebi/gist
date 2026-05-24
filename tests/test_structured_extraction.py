@@ -251,11 +251,26 @@ def test_structured_schemas_cli_outputs_json(capsys) -> None:
     assert any(schema["name"] == "feature_requests" for schema in payload)
 
 
+def test_structured_schemas_cli_outputs_presets(capsys) -> None:
+    exit_code = schemas_main(["--presets"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "customer-objections: customer_objections" in captured.out
+
+
 def test_resolves_builtin_extraction_schema_by_name() -> None:
     schema = resolve_extraction_schema(schema_name="product-announcements")
 
     assert schema.name == "product_announcements"
     assert "new feature" in schema.labels
+
+
+def test_resolves_extraction_schema_by_preset() -> None:
+    schema = resolve_extraction_schema(preset="customer-objections")
+
+    assert schema.name == "customer_objections"
+    assert "pricing objection" in schema.labels
 
 
 def test_extract_from_compression_file_writes_model_contract(tmp_path: Path) -> None:
@@ -380,6 +395,40 @@ def test_structured_extract_cli_accepts_schema_name(tmp_path: Path) -> None:
             str(compression_path),
             "--schema-name",
             "customer_objections",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(output_path.read_text())
+    assert payload["schema_name"] == "customer_objections"
+    assert payload["items"][0]["label"] == "pricing objection"
+
+
+def test_structured_extract_cli_accepts_preset(tmp_path: Path) -> None:
+    compression_path = tmp_path / "compression.json"
+    output_path = tmp_path / "extraction.json"
+    compression = _compression(
+        selected=[
+            _item(
+                "a-1",
+                text="The customer has a pricing objection.",
+                clip_start=30,
+                clip_end=45,
+            )
+        ]
+    )
+    compression_path.write_text(
+        json.dumps({"compression": compression.model_dump(mode="json")})
+    )
+
+    exit_code = main(
+        [
+            "--compression",
+            str(compression_path),
+            "--preset",
+            "customer-objections",
             "--output",
             str(output_path),
         ]

@@ -151,8 +151,8 @@ def test_main_cli_accepts_builtin_extraction_schema_name(tmp_path: Path, monkeyp
             "--no-clips",
             "--no-answer-prune",
             "--quiet",
-            "--extraction-schema-name",
-            "customer_objections",
+            "--extraction-preset",
+            "customer-objections",
             "--extraction-output",
             str(extraction_output),
             "--extraction-csv-output",
@@ -176,11 +176,11 @@ def test_main_cli_rejects_schema_path_and_schema_name(tmp_path: Path) -> None:
                 "find customer objections",
                 "--extraction-schema",
                 str(tmp_path / "schema.json"),
-                "--extraction-schema-name",
-                "customer_objections",
+                "--extraction-preset",
+                "customer-objections",
             ]
         )
     except SystemExit as exc:
-        assert "Use either --extraction-schema" in str(exc)
+        assert "Use only one of --extraction-schema" in str(exc)
     else:
         raise AssertionError("expected SystemExit")

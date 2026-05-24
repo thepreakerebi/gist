@@ -94,6 +94,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Built-in extraction schema name from `gist-structured-schemas`.",
     )
     parser.add_argument(
+        "--extraction-preset",
+        help="Extraction preset alias from `gist-structured-schemas --presets`.",
+    )
+    parser.add_argument(
         "--extraction-output",
         type=Path,
         help="Optional path for structured extraction JSON output.",
@@ -113,9 +117,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quiet", action="store_true", help="Disable progress logging.")
     args = parser.parse_args(argv)
 
-    if args.extraction_schema is not None and args.extraction_schema_name is not None:
+    extraction_selectors = [
+        args.extraction_schema is not None,
+        args.extraction_schema_name is not None,
+        args.extraction_preset is not None,
+    ]
+    if sum(extraction_selectors) > 1:
         raise SystemExit(
-            "Use either --extraction-schema or --extraction-schema-name, not both"
+            "Use only one of --extraction-schema, --extraction-schema-name, "
+            "or --extraction-preset"
         )
 
     progress = StepLogger(enabled=not args.quiet)
@@ -210,13 +220,14 @@ def main(argv: list[str] | None = None) -> int:
         )
     extraction_path = None
     extraction_csv_path = None
-    if args.extraction_schema is not None or args.extraction_schema_name is not None:
+    if any(extraction_selectors):
         extraction_path = args.extraction_output or run_dir / "extraction.json"
         progress(f"writing structured extraction: {extraction_path}")
         extraction = LocalStructuredExtractor().extract(
             schema=resolve_extraction_schema(
                 schema_path=args.extraction_schema,
                 schema_name=args.extraction_schema_name,
+                preset=args.extraction_preset,
             ),
             compression=compression,
         )

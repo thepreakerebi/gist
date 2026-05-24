@@ -21,7 +21,7 @@ gist /absolute/path/to/video.mp4 \
   --query "find pricing objections and feature requests" \
   --processing-mode auto \
   --adaptive-budget \
-  --extraction-schema-name sales_feedback \
+  --extraction-preset sales-feedback \
   --extraction-output reports/extraction.json \
   --extraction-csv-output reports/extraction.csv
 ```
@@ -46,6 +46,7 @@ List available schemas with:
 ```bash
 gist-structured-schemas
 gist-structured-schemas --json
+gist-structured-schemas --presets
 ```
 
 Run extraction from an existing compression file:
@@ -53,7 +54,7 @@ Run extraction from an existing compression file:
 ```bash
 gist-structured-extract \
   --compression .gist/runs/video-slug/query-slug/compression.json \
-  --schema-name sales_feedback \
+  --preset sales-feedback \
   --output reports/extraction.json \
   --markdown-output reports/extraction.md \
   --html-output reports/extraction.html \
@@ -61,6 +62,8 @@ gist-structured-extract \
 ```
 
 Use `--schema /path/to/custom.schema.json` when you need a custom schema file.
+Use `--schema-name sales_feedback` when you want the exact built-in schema name
+instead of the friendlier preset alias.
 
 Use an external extractor command when you want an LLM/VLM to fill the schema:
 
@@ -338,7 +341,7 @@ gist-quality-eval \
   --markdown-output reports/local-quality/quality.md \
   --html-output reports/local-quality/quality.html \
   --output-root reports/local-quality/artifacts \
-  --extraction-schema-name sales_feedback
+  --extraction-preset sales-feedback
 ```
 
 Each case writes `extraction.json`, `extraction.md`, `extraction.html`, and

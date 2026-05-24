@@ -132,6 +132,7 @@ class QualityExtractionArtifact(BaseModel):
 class QualityExtractionOptions(BaseModel):
     schema_path: Path | None = None
     schema_name: str | None = None
+    preset: str | None = None
     extractor_command: str | None = None
     extractor_timeout_seconds: Annotated[float, Field(gt=0)] = 120.0
 
@@ -463,6 +464,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Built-in extraction schema name from `gist-structured-schemas`.",
     )
     parser.add_argument(
+        "--extraction-preset",
+        help="Extraction preset alias from `gist-structured-schemas --presets`.",
+    )
+    parser.add_argument(
         "--extractor-command",
         help=(
             "Optional external structured extractor command. Gist sends JSON to "
@@ -508,9 +513,15 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("Use either --draft-case-from or --draft-cases-from-root, not both")
     if args.case_id and args.draft_cases_from_root is not None:
         raise SystemExit("--case-id can only be used with --draft-case-from")
-    if args.extraction_schema is not None and args.extraction_schema_name is not None:
+    extraction_selectors = [
+        args.extraction_schema is not None,
+        args.extraction_schema_name is not None,
+        args.extraction_preset is not None,
+    ]
+    if sum(extraction_selectors) > 1:
         raise SystemExit(
-            "Use either --extraction-schema or --extraction-schema-name, not both"
+            "Use only one of --extraction-schema, --extraction-schema-name, "
+            "or --extraction-preset"
         )
 
     if args.draft_case_from is not None:
@@ -552,10 +563,11 @@ def main(argv: list[str] | None = None) -> int:
         QualityExtractionOptions(
             schema_path=args.extraction_schema,
             schema_name=args.extraction_schema_name,
+            preset=args.extraction_preset,
             extractor_command=args.extractor_command,
             extractor_timeout_seconds=args.extractor_timeout,
         )
-        if args.extraction_schema is not None or args.extraction_schema_name is not None
+        if any(extraction_selectors)
         else None
     )
     report = run_quality_cases(
@@ -628,6 +640,7 @@ def _write_quality_extraction_artifact(
     schema = resolve_extraction_schema(
         schema_path=options.schema_path,
         schema_name=options.schema_name,
+        preset=options.preset,
     )
     extractor = _structured_extractor(options)
     extraction = extractor.extract(schema=schema, compression=compression)

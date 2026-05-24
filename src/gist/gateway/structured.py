@@ -20,6 +20,13 @@ from gist.reports.structured import (
 
 STRUCTURED_EXTRACTION_VERSION = "gist.structured-extraction.v1"
 SCHEMA_FILE_PATTERN = "*.schema.json"
+EXTRACTION_PRESETS = {
+    "customer-objections": "customer_objections",
+    "feature-requests": "feature_requests",
+    "meeting-decisions": "meeting_decisions",
+    "product-announcements": "product_announcements",
+    "sales-feedback": "sales_feedback",
+}
 
 
 class ExtractionField(BaseModel):
@@ -203,11 +210,16 @@ def extract_from_compression_file(
     compression_path: Path,
     schema_path: Path | None = None,
     schema_name: str | None = None,
+    preset: str | None = None,
     extractor: LocalStructuredExtractor | SubprocessStructuredExtractor | None = None,
 ) -> StructuredExtractionResponse:
     resolved_extractor = extractor or LocalStructuredExtractor()
     return resolved_extractor.extract(
-        schema=resolve_extraction_schema(schema_path=schema_path, schema_name=schema_name),
+        schema=resolve_extraction_schema(
+            schema_path=schema_path,
+            schema_name=schema_name,
+            preset=preset,
+        ),
         compression=load_compression_response(compression_path),
     )
 
@@ -215,13 +227,20 @@ def extract_from_compression_file(
 def resolve_extraction_schema(
     schema_path: Path | None = None,
     schema_name: str | None = None,
+    preset: str | None = None,
 ) -> ExtractionSchema:
-    if schema_path is not None and schema_name is not None:
-        raise ValueError("Use either schema_path or schema_name, not both")
+    selectors = [
+        value is not None
+        for value in (schema_path, schema_name, preset)
+    ]
+    if sum(selectors) > 1:
+        raise ValueError("Use only one of schema_path, schema_name, or preset")
     if schema_path is not None:
         return ExtractionSchema.from_file(schema_path)
+    if preset is not None:
+        schema_name = schema_name_for_extraction_preset(preset)
     if schema_name is None:
-        raise ValueError("schema_path or schema_name is required")
+        raise ValueError("schema_path, schema_name, or preset is required")
 
     normalized_name = _normalize_schema_name(schema_name)
     schema = _resolve_packaged_schema_by_name(normalized_name)
@@ -234,6 +253,16 @@ def resolve_extraction_schema(
     raise ValueError(
         f"unknown extraction schema name `{schema_name}`. "
         f"Available schemas: {available or 'none'}"
+    )
+
+
+def schema_name_for_extraction_preset(preset: str) -> str:
+    normalized_preset = _normalize_preset_name(preset)
+    if normalized_preset in EXTRACTION_PRESETS:
+        return EXTRACTION_PRESETS[normalized_preset]
+    available = ", ".join(EXTRACTION_PRESETS)
+    raise ValueError(
+        f"unknown extraction preset `{preset}`. Available presets: {available}"
     )
 
 
@@ -324,11 +353,28 @@ def schemas_main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="List built-in Gist extraction schemas.")
     parser.add_argument("--json", action="store_true", help="Print schemas as JSON.")
     parser.add_argument(
+        "--presets",
+        action="store_true",
+        help="List extraction presets instead of schema files.",
+    )
+    parser.add_argument(
         "--schema-dir",
         type=Path,
         help="Override the schema directory. Mainly useful for tests and custom builds.",
     )
     args = parser.parse_args(argv)
+
+    if args.presets:
+        if args.json:
+            payload = [
+                {"preset": preset, "schema_name": schema_name}
+                for preset, schema_name in EXTRACTION_PRESETS.items()
+            ]
+            print(json.dumps(payload, indent=2))
+            return 0
+        for preset, schema_name in EXTRACTION_PRESETS.items():
+            print(f"{preset}: {schema_name}")
+        return 0
 
     schemas = list_builtin_extraction_schemas(args.schema_dir)
     if args.json:
@@ -362,6 +408,11 @@ def main(argv: list[str] | None = None) -> int:
         "--schema-name",
         help="Built-in schema name from `gist-structured-schemas`.",
     )
+    schema_group.add_argument(
+        "--preset",
+        choices=sorted(EXTRACTION_PRESETS),
+        help="Extraction preset alias for a built-in schema.",
+    )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
@@ -388,6 +439,7 @@ def main(argv: list[str] | None = None) -> int:
         compression_path=args.compression,
         schema_path=args.schema,
         schema_name=args.schema_name,
+        preset=args.preset,
         extractor=extractor,
     )
     extraction.write_json(args.output)
@@ -423,6 +475,10 @@ def _default_schema_dir() -> Path:
 
 def _normalize_schema_name(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", value.lower()).strip("_")
+
+
+def _normalize_preset_name(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
 
 def build_structured_extraction_prompt(
