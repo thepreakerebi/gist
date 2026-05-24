@@ -849,11 +849,19 @@ def _keyword_terms(text: str, limit: int = 16) -> list[str]:
     for token in re.findall(r"[a-zA-Z][a-zA-Z0-9'-]{2,}", text.lower()):
         normalized = token.strip("'")
         normalized = _TERM_NORMALIZATIONS.get(normalized, normalized)
-        if normalized in _STOPWORDS:
+        if normalized in _STOPWORDS or _is_noisy_keyword(normalized):
             continue
         counts[normalized] = counts.get(normalized, 0) + 1
     ranked = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
     return [term for term, _count in ranked[:limit]]
+
+
+def _is_noisy_keyword(value: str) -> bool:
+    if any(character.isdigit() for character in value):
+        return True
+    if "-" in value or "'" in value:
+        return True
+    return len(value) > 24
 
 
 def _draft_notes(compression: CompressionResponse, case: QualityCase) -> list[str]:

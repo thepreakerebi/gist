@@ -95,6 +95,57 @@ def test_acceptance_cli_writes_reports(tmp_path: Path) -> None:
     assert html.exists()
 
 
+def test_acceptance_cli_drafts_case_from_compression(tmp_path: Path) -> None:
+    compression_path = tmp_path / "compression.json"
+    compression_path.write_text(json.dumps({"compression": _compression_payload()}))
+    output = tmp_path / "draft.jsonl"
+
+    exit_code = main(
+        [
+            "--draft-case-from",
+            str(compression_path),
+            "--case-id",
+            "draft-a",
+            "--draft-output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(output.read_text())
+    assert payload["id"] == "draft-a"
+    assert payload["compression_path"] == str(compression_path)
+    assert payload["expected_answer_terms"]
+    assert "video123abc" not in payload["expected_answer_terms"]
+    assert payload["relevant_ranges"]
+
+
+def test_acceptance_cli_drafts_cases_from_root(tmp_path: Path) -> None:
+    first = tmp_path / "runs" / "video-a" / "query-a" / "compression.json"
+    second = tmp_path / "runs" / "video-b" / "query-b" / "compression.json"
+    first.parent.mkdir(parents=True)
+    second.parent.mkdir(parents=True)
+    first.write_text(json.dumps({"compression": _compression_payload()}))
+    second.write_text(json.dumps({"compression": _compression_payload()}))
+    output = tmp_path / "drafts.jsonl"
+
+    exit_code = main(
+        [
+            "--draft-cases-from-root",
+            str(tmp_path / "runs"),
+            "--draft-max-cases",
+            "1",
+            "--draft-output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 0
+    lines = output.read_text().splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["compression_path"].endswith("compression.json")
+
+
 def _quality_report(pass_rate: float, failures: int) -> QualityReport:
     cases = 2
     passed = int(pass_rate * cases)
@@ -135,7 +186,7 @@ def _compression_payload() -> dict:
     return {
         "video_id": "video",
         "query": "Find pricing objections.",
-        "answer": "Pricing is too expensive.",
+        "answer": "Pricing is too expensive for video123abc.",
         "preset": "balanced",
         "selected": [
             {

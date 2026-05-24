@@ -87,6 +87,15 @@ gist-acceptance \
   --min-avg-token-reduction-percent 90
 ```
 
+Draft editable acceptance cases from existing runs:
+
+```bash
+gist-acceptance \
+  --draft-cases-from-root .gist/runs \
+  --draft-max-cases 20 \
+  --draft-output data/eval/gist-acceptance.draft.jsonl
+```
+
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.

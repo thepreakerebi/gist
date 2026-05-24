@@ -1,4 +1,5 @@
 import argparse
+import json
 from html import escape
 from pathlib import Path
 from typing import Annotated
@@ -7,6 +8,9 @@ from pydantic import BaseModel, Field
 
 from gist.eval.quality import (
     QualityReport,
+    QualityCaseDraft,
+    draft_quality_case,
+    draft_quality_cases_from_root,
     load_quality_cases,
     render_quality_html,
     render_quality_markdown,
@@ -169,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Run Gist acceptance gates against a curated quality dataset."
     )
-    parser.add_argument("--dataset", required=True, type=Path)
+    parser.add_argument("--dataset", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
@@ -184,7 +188,63 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-avg-timestamp-hit-rate", type=float, default=0.8)
     parser.add_argument("--min-avg-token-reduction-percent", type=float, default=90.0)
     parser.add_argument("--max-failure-count", type=int, default=0)
+    parser.add_argument(
+        "--draft-case-from",
+        type=Path,
+        help="Print an editable acceptance case from an existing compression.json.",
+    )
+    parser.add_argument(
+        "--draft-cases-from-root",
+        type=Path,
+        help="Print editable acceptance cases for every compression.json under a root.",
+    )
+    parser.add_argument(
+        "--draft-output",
+        type=Path,
+        help="Write drafted JSONL cases to this file instead of stdout.",
+    )
+    parser.add_argument("--case-id", help="Override the drafted case id.")
+    parser.add_argument("--draft-max-cases", type=int)
+    parser.add_argument(
+        "--draft-min-token-reduction-percent",
+        type=float,
+        default=90.0,
+    )
+    parser.add_argument(
+        "--draft-timestamp-tolerance-seconds",
+        type=float,
+        default=8.0,
+    )
+    parser.add_argument("--draft-max-selected-evidence", type=int)
     args = parser.parse_args(argv)
+
+    if args.draft_case_from is not None and args.draft_cases_from_root is not None:
+        raise SystemExit("Use either --draft-case-from or --draft-cases-from-root, not both")
+    if args.case_id and args.draft_cases_from_root is not None:
+        raise SystemExit("--case-id can only be used with --draft-case-from")
+    if args.draft_case_from is not None:
+        draft = draft_quality_case(
+            compression_path=args.draft_case_from,
+            case_id=args.case_id,
+            min_token_reduction_percent=args.draft_min_token_reduction_percent,
+            timestamp_tolerance_seconds=args.draft_timestamp_tolerance_seconds,
+            max_selected_evidence=args.draft_max_selected_evidence,
+        )
+        _write_acceptance_drafts([draft], output_path=args.draft_output)
+        return 0
+    if args.draft_cases_from_root is not None:
+        drafts = draft_quality_cases_from_root(
+            root=args.draft_cases_from_root,
+            min_token_reduction_percent=args.draft_min_token_reduction_percent,
+            timestamp_tolerance_seconds=args.draft_timestamp_tolerance_seconds,
+            max_selected_evidence=args.draft_max_selected_evidence,
+        )
+        if args.draft_max_cases is not None:
+            drafts = drafts[: args.draft_max_cases]
+        _write_acceptance_drafts(drafts, output_path=args.draft_output)
+        return 0
+    if args.dataset is None:
+        raise SystemExit("--dataset is required unless drafting acceptance cases")
 
     gates = AcceptanceGates(
         min_cases=args.min_cases,
@@ -247,6 +307,24 @@ def _at_most(name: str, actual: float, required: float) -> AcceptanceGateResult:
         required=required,
         message=f"{actual:.2f} <= {required:.2f}" if passed else f"{actual:.2f} > {required:.2f}",
     )
+
+
+def _write_acceptance_drafts(
+    drafts: list[QualityCaseDraft],
+    output_path: Path | None = None,
+) -> None:
+    lines = [
+        json.dumps(draft.case.model_dump(mode="json", exclude_none=True), sort_keys=True)
+        for draft in drafts
+    ]
+    text = "\n".join(lines) + ("\n" if lines else "")
+    if output_path is None:
+        print(text, end="")
+        return
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(text)
+    print(f"drafts={len(drafts)}")
+    print(f"output={output_path}")
 
 
 if __name__ == "__main__":
