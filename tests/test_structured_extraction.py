@@ -203,6 +203,19 @@ def test_builtin_extraction_schemas_are_valid() -> None:
     assert all(schema.fields for schema in schemas)
 
 
+def test_packaged_extraction_schemas_match_repo_templates() -> None:
+    repo_schemas = {
+        path.name: json.loads(path.read_text())
+        for path in sorted(Path("data/extraction").glob("*.schema.json"))
+    }
+    packaged_schemas = {
+        path.name: json.loads(path.read_text())
+        for path in sorted(Path("src/gist/data/extraction").glob("*.schema.json"))
+    }
+
+    assert packaged_schemas == repo_schemas
+
+
 def test_lists_builtin_extraction_schemas() -> None:
     schemas = list_builtin_extraction_schemas()
 
@@ -213,7 +226,7 @@ def test_lists_builtin_extraction_schemas() -> None:
         "product_announcements",
         "sales_feedback",
     }
-    assert all(schema.path.exists() for schema in schemas)
+    assert all("gist/data/extraction" in schema.path for schema in schemas)
 
 
 def test_structured_schemas_cli_outputs_text(capsys) -> None:
@@ -222,7 +235,7 @@ def test_structured_schemas_cli_outputs_text(capsys) -> None:
 
     assert exit_code == 0
     assert "product_announcements" in captured.out
-    assert "data/extraction/product-announcements.schema.json" in captured.out
+    assert "product-announcements.schema.json" in captured.out
 
 
 def test_structured_schemas_cli_outputs_json(capsys) -> None:

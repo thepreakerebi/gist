@@ -1,0 +1,41 @@
+{
+  "name": "customer_objections",
+  "description": "Timestamped objections, concerns, and blockers raised by prospects or customers in calls, interviews, demos, and feedback videos.",
+  "item_type": "customer_objection",
+  "labels": [
+    "pricing objection",
+    "security concern",
+    "implementation concern",
+    "missing feature",
+    "integration concern",
+    "trust concern",
+    "timing objection"
+  ],
+  "fields": [
+    {
+      "name": "label",
+      "description": "The best matching objection category.",
+      "required": true
+    },
+    {
+      "name": "summary",
+      "description": "A concise description of the objection.",
+      "required": true
+    },
+    {
+      "name": "severity",
+      "description": "Low, medium, or high severity based on whether the objection blocks progress.",
+      "required": false
+    },
+    {
+      "name": "speaker",
+      "description": "The person or role raising the objection if identifiable.",
+      "required": false
+    },
+    {
+      "name": "suggested_response",
+      "description": "A concise response or follow-up action implied by the evidence.",
+      "required": false
+    }
+  ]
+}

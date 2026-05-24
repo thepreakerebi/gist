@@ -1,0 +1,41 @@
+{
+  "name": "product_announcements",
+  "description": "Timestamped product launches, updates, and roadmap announcements from keynotes, demos, webinars, and company videos.",
+  "item_type": "product_announcement",
+  "labels": [
+    "new product",
+    "new feature",
+    "product update",
+    "availability",
+    "pricing",
+    "integration",
+    "roadmap"
+  ],
+  "fields": [
+    {
+      "name": "label",
+      "description": "The best matching announcement category.",
+      "required": true
+    },
+    {
+      "name": "product_name",
+      "description": "The product, feature, or service being announced.",
+      "required": true
+    },
+    {
+      "name": "summary",
+      "description": "A concise description of the announcement.",
+      "required": true
+    },
+    {
+      "name": "availability",
+      "description": "Launch timing, rollout status, or availability details if stated.",
+      "required": false
+    },
+    {
+      "name": "key_features",
+      "description": "Important capabilities or benefits mentioned for the product.",
+      "required": false
+    }
+  ]
+}

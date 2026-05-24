@@ -37,6 +37,9 @@ Built-in schemas:
 - `data/extraction/product-announcements.schema.json`: keynotes, launch videos, and demos.
 - `data/extraction/meeting-decisions.schema.json`: decisions, action items, owners, and follow-ups.
 
+The same templates are packaged under `src/gist/data/extraction` so schema
+discovery works after installation, not only from a cloned repository.
+
 List available schemas with:
 
 ```bash

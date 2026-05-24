@@ -1,0 +1,29 @@
+{
+  "name": "sales_feedback",
+  "description": "Timestamped moments from sales or product-feedback videos.",
+  "item_type": "sales_feedback_moment",
+  "labels": [
+    "pricing objection",
+    "feature request",
+    "positive reaction",
+    "negative reaction",
+    "product mention"
+  ],
+  "fields": [
+    {
+      "name": "label",
+      "description": "The best matching feedback category.",
+      "required": true
+    },
+    {
+      "name": "summary",
+      "description": "A concise description of what happened or was said.",
+      "required": true
+    },
+    {
+      "name": "sentiment",
+      "description": "Positive, negative, or neutral reaction.",
+      "required": false
+    }
+  ]
+}

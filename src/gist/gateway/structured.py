@@ -3,6 +3,7 @@ import json
 import re
 import shlex
 import subprocess
+from importlib import resources
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,10 @@ class ExtractionSchema(BaseModel):
     @classmethod
     def from_file(cls, path: Path) -> "ExtractionSchema":
         return cls.model_validate(json.loads(path.read_text()))
+
+    @classmethod
+    def from_json_text(cls, text: str) -> "ExtractionSchema":
+        return cls.model_validate(json.loads(text))
 
 
 class ExtractedItem(BaseModel):
@@ -74,7 +79,7 @@ class BuiltinExtractionSchema(BaseModel):
     description: str
     item_type: str
     labels: list[str]
-    path: Path
+    path: str
 
 
 class LocalStructuredExtractor:
@@ -208,11 +213,19 @@ def extract_from_compression_file(
 def list_builtin_extraction_schemas(
     schema_dir: Path | None = None,
 ) -> list[BuiltinExtractionSchema]:
-    resolved_dir = schema_dir or _default_schema_dir()
-    if not resolved_dir.exists():
+    if schema_dir is not None:
+        return _list_builtin_schemas_from_dir(schema_dir)
+    packaged = _list_packaged_builtin_schemas()
+    if packaged:
+        return packaged
+    return _list_builtin_schemas_from_dir(_default_schema_dir())
+
+
+def _list_builtin_schemas_from_dir(schema_dir: Path) -> list[BuiltinExtractionSchema]:
+    if not schema_dir.exists():
         return []
     schemas = []
-    for path in sorted(resolved_dir.glob(SCHEMA_FILE_PATTERN)):
+    for path in sorted(schema_dir.glob(SCHEMA_FILE_PATTERN)):
         schema = ExtractionSchema.from_file(path)
         schemas.append(
             BuiltinExtractionSchema(
@@ -220,7 +233,32 @@ def list_builtin_extraction_schemas(
                 description=schema.description,
                 item_type=schema.item_type,
                 labels=schema.labels,
-                path=path,
+                path=str(path),
+            )
+        )
+    return schemas
+
+
+def _list_packaged_builtin_schemas() -> list[BuiltinExtractionSchema]:
+    try:
+        schema_root = resources.files("gist").joinpath("data", "extraction")
+    except (ModuleNotFoundError, AttributeError):
+        return []
+    if not schema_root.is_dir():
+        return []
+
+    schemas = []
+    for resource in sorted(schema_root.iterdir(), key=lambda item: item.name):
+        if not resource.name.endswith(".schema.json"):
+            continue
+        schema = ExtractionSchema.from_json_text(resource.read_text())
+        schemas.append(
+            BuiltinExtractionSchema(
+                name=schema.name,
+                description=schema.description,
+                item_type=schema.item_type,
+                labels=schema.labels,
+                path=str(resource),
             )
         )
     return schemas

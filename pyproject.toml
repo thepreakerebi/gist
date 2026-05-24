@@ -60,6 +60,9 @@ sound = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+gist = ["data/extraction/*.schema.json"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"
