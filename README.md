@@ -57,6 +57,16 @@ gist-label-compression \
   --output-dir reports/labels-from-compression
 ```
 
+Run the same labeling task across many existing compression files:
+
+```bash
+gist-label-batch \
+  --input-root .gist/runs \
+  --task "find every time prospects complain about pricing" \
+  --output-dir reports/label-batch \
+  --max-cases 20
+```
+
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
