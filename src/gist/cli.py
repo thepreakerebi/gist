@@ -17,7 +17,7 @@ from gist.gateway.evidence_package import build_evidence_package
 from gist.gateway.local_text import LocalTextEvidenceGateway
 from gist.gateway.ollama import DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_URL, OllamaTextGateway
 from gist.gateway.schemas import GatewayRequest
-from gist.gateway.structured import ExtractionSchema, LocalStructuredExtractor
+from gist.gateway.structured import LocalStructuredExtractor, resolve_extraction_schema
 from gist.media.clips import adaptive_clip_span
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode
@@ -32,7 +32,7 @@ from gist.vision.spatial import (
 )
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Compress a local video into query-relevant Gist evidence clips."
     )
@@ -89,6 +89,10 @@ def main() -> int:
         help="JSON schema for timestamped structured extraction from selected evidence.",
     )
     parser.add_argument(
+        "--extraction-schema-name",
+        help="Built-in extraction schema name from `gist-structured-schemas`.",
+    )
+    parser.add_argument(
         "--extraction-output",
         type=Path,
         help="Optional path for structured extraction JSON output.",
@@ -101,7 +105,12 @@ def main() -> int:
     parser.add_argument("--ollama-model", default=DEFAULT_OLLAMA_MODEL)
     parser.add_argument("--ollama-url", default=DEFAULT_OLLAMA_URL)
     parser.add_argument("--quiet", action="store_true", help="Disable progress logging.")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    if args.extraction_schema is not None and args.extraction_schema_name is not None:
+        raise SystemExit(
+            "Use either --extraction-schema or --extraction-schema-name, not both"
+        )
 
     progress = StepLogger(enabled=not args.quiet)
     run_dir = args.output_root / _safe_stem(args.video_path) / _safe_stem(args.query)
@@ -194,11 +203,14 @@ def main() -> int:
             json.dumps(build_evidence_package(ingestion, compression), indent=2) + "\n"
         )
     extraction_path = None
-    if args.extraction_schema is not None:
+    if args.extraction_schema is not None or args.extraction_schema_name is not None:
         extraction_path = args.extraction_output or run_dir / "extraction.json"
         progress(f"writing structured extraction: {extraction_path}")
         extraction = LocalStructuredExtractor().extract(
-            schema=ExtractionSchema.from_file(args.extraction_schema),
+            schema=resolve_extraction_schema(
+                schema_path=args.extraction_schema,
+                schema_name=args.extraction_schema_name,
+            ),
             compression=compression,
         )
         extraction.write_json(extraction_path)

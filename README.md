@@ -21,7 +21,7 @@ gist /absolute/path/to/video.mp4 \
   --query "find pricing objections and feature requests" \
   --processing-mode auto \
   --adaptive-budget \
-  --extraction-schema data/extraction/sales-feedback.schema.json \
+  --extraction-schema-name sales_feedback \
   --extraction-output reports/extraction.json
 ```
 

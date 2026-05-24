@@ -1,9 +1,12 @@
+import json
 from pathlib import Path
 
+import gist.cli as cli
 from gist.cli import _attach_spatial_masks, _clear_previous_clips
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
 from gist.core.token_estimation import TokenEstimatorProfile
+from gist.media.models import IngestedVideo, VideoMetadata
 
 
 def test_clear_previous_clips_removes_stale_mp4_files_only(tmp_path: Path) -> None:
@@ -85,3 +88,95 @@ def test_attach_spatial_masks_writes_masks_for_visual_evidence(tmp_path: Path) -
     assert with_masks.metrics.estimated_spatial_visual_tokens == 16
     assert with_masks.metrics.estimated_retained_spatial_visual_tokens == 4
     assert with_masks.metrics.estimated_spatial_token_reduction_percent == 75
+
+
+def test_main_cli_accepts_builtin_extraction_schema_name(tmp_path: Path, monkeypatch) -> None:
+    class FakePipeline:
+        def __init__(self, output_root: Path) -> None:
+            self.output_root = output_root
+
+        def run(self, **_kwargs):
+            ingestion = IngestedVideo(
+                video_id="video",
+                source_path=tmp_path / "video.mp4",
+                metadata=VideoMetadata(duration_seconds=60, has_audio=True),
+                frames=[],
+                audio_windows=[],
+            )
+            compression = CompressionResponse(
+                video_id="video",
+                query="find customer objections",
+                preset=CompressionPreset.BALANCED,
+                selected=[
+                    SelectedCandidate(
+                        id="a-1",
+                        modality=Modality.AUDIO,
+                        timestamp_seconds=30,
+                        text="The buyer says pricing is too expensive.",
+                        clip_start_seconds=25,
+                        clip_end_seconds=45,
+                        selection_rank=1,
+                        relevance_score=1,
+                        normalized_score=1,
+                        mmr_score=1,
+                        source_score_type="test",
+                        reason="test",
+                    )
+                ],
+                metrics=CompressionMetrics(
+                    input_candidates=1,
+                    selected_candidates=1,
+                    visual_selected=0,
+                    audio_selected=1,
+                    estimated_candidate_reduction_ratio=1,
+                    estimated_candidate_reduction_percent=0,
+                    dropped_candidates=0,
+                    budget_preset_used=CompressionPreset.BALANCED,
+                ),
+            )
+            return ingestion, compression
+
+    monkeypatch.setattr(cli, "LocalCompressionPipeline", FakePipeline)
+    output_root = tmp_path / "runs"
+    extraction_output = tmp_path / "extraction.json"
+
+    exit_code = cli.main(
+        [
+            str(tmp_path / "video.mp4"),
+            "--query",
+            "find customer objections",
+            "--output-root",
+            str(output_root),
+            "--no-clips",
+            "--no-answer-prune",
+            "--quiet",
+            "--extraction-schema-name",
+            "customer_objections",
+            "--extraction-output",
+            str(extraction_output),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(extraction_output.read_text())
+    assert payload["schema_name"] == "customer_objections"
+    assert payload["items"][0]["label"] == "pricing objection"
+
+
+def test_main_cli_rejects_schema_path_and_schema_name(tmp_path: Path) -> None:
+    try:
+        cli.main(
+            [
+                str(tmp_path / "video.mp4"),
+                "--query",
+                "find customer objections",
+                "--extraction-schema",
+                str(tmp_path / "schema.json"),
+                "--extraction-schema-name",
+                "customer_objections",
+            ]
+        )
+    except SystemExit as exc:
+        assert "Use either --extraction-schema" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
