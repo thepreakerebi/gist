@@ -25,6 +25,7 @@ gist-regression = "gist.eval.regression:main"
 gist-smoke-test = "gist.eval.smoke:main"
 gist-sota-benchmark = "gist.eval.sota:main"
 gist-structured-extract = "gist.gateway.structured:main"
+gist-structured-schemas = "gist.gateway.structured:schemas_main"
 
 [project.optional-dependencies]
 dev = [

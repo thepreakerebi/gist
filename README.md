@@ -37,6 +37,13 @@ Built-in schemas:
 - `data/extraction/product-announcements.schema.json`: keynotes, launch videos, and demos.
 - `data/extraction/meeting-decisions.schema.json`: decisions, action items, owners, and follow-ups.
 
+List available schemas with:
+
+```bash
+gist-structured-schemas
+gist-structured-schemas --json
+```
+
 Run extraction from an existing compression file:
 
 ```bash

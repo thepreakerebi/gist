@@ -17,6 +17,7 @@ from gist.reports.structured import (
 
 
 STRUCTURED_EXTRACTION_VERSION = "gist.structured-extraction.v1"
+SCHEMA_FILE_PATTERN = "*.schema.json"
 
 
 class ExtractionField(BaseModel):
@@ -66,6 +67,14 @@ class StructuredExtractionResponse(BaseModel):
 
 class StructuredExtractionError(RuntimeError):
     """Raised when a structured extraction adapter returns invalid output."""
+
+
+class BuiltinExtractionSchema(BaseModel):
+    name: str
+    description: str
+    item_type: str
+    labels: list[str]
+    path: Path
 
 
 class LocalStructuredExtractor:
@@ -196,6 +205,58 @@ def extract_from_compression_file(
     )
 
 
+def list_builtin_extraction_schemas(
+    schema_dir: Path | None = None,
+) -> list[BuiltinExtractionSchema]:
+    resolved_dir = schema_dir or _default_schema_dir()
+    if not resolved_dir.exists():
+        return []
+    schemas = []
+    for path in sorted(resolved_dir.glob(SCHEMA_FILE_PATTERN)):
+        schema = ExtractionSchema.from_file(path)
+        schemas.append(
+            BuiltinExtractionSchema(
+                name=schema.name,
+                description=schema.description,
+                item_type=schema.item_type,
+                labels=schema.labels,
+                path=path,
+            )
+        )
+    return schemas
+
+
+def schemas_main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="List built-in Gist extraction schemas.")
+    parser.add_argument("--json", action="store_true", help="Print schemas as JSON.")
+    parser.add_argument(
+        "--schema-dir",
+        type=Path,
+        help="Override the schema directory. Mainly useful for tests and custom builds.",
+    )
+    args = parser.parse_args(argv)
+
+    schemas = list_builtin_extraction_schemas(args.schema_dir)
+    if args.json:
+        payload = [schema.model_dump(mode="json") for schema in schemas]
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    if not schemas:
+        print("No built-in extraction schemas found.")
+        return 0
+
+    for schema in schemas:
+        labels = ", ".join(schema.labels)
+        print(f"{schema.name}")
+        print(f"  item_type: {schema.item_type}")
+        print(f"  labels: {labels}")
+        print(f"  path: {schema.path}")
+        if schema.description:
+            print(f"  description: {schema.description}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Extract timestamped structured records from a Gist compression file."
@@ -243,6 +304,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.html_output is not None:
         print(f"html={args.html_output}")
     return 0
+
+
+def _default_schema_dir() -> Path:
+    current = Path(__file__).resolve()
+    for parent in [Path.cwd(), *current.parents]:
+        candidate = parent / "data" / "extraction"
+        if candidate.exists():
+            return candidate
+    return Path.cwd() / "data" / "extraction"
 
 
 def build_structured_extraction_prompt(

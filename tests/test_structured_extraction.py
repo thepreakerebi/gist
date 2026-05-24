@@ -13,7 +13,9 @@ from gist.gateway.structured import (
     build_structured_extraction_payload,
     build_structured_extraction_prompt,
     extract_from_compression_file,
+    list_builtin_extraction_schemas,
     main,
+    schemas_main,
 )
 from gist.reports.structured import (
     render_structured_extraction_html,
@@ -199,6 +201,37 @@ def test_builtin_extraction_schemas_are_valid() -> None:
     assert all(schema.item_type for schema in schemas)
     assert all(schema.labels for schema in schemas)
     assert all(schema.fields for schema in schemas)
+
+
+def test_lists_builtin_extraction_schemas() -> None:
+    schemas = list_builtin_extraction_schemas()
+
+    assert {schema.name for schema in schemas} >= {
+        "customer_objections",
+        "feature_requests",
+        "meeting_decisions",
+        "product_announcements",
+        "sales_feedback",
+    }
+    assert all(schema.path.exists() for schema in schemas)
+
+
+def test_structured_schemas_cli_outputs_text(capsys) -> None:
+    exit_code = schemas_main([])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    assert "product_announcements" in captured.out
+    assert "data/extraction/product-announcements.schema.json" in captured.out
+
+
+def test_structured_schemas_cli_outputs_json(capsys) -> None:
+    exit_code = schemas_main(["--json"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 0
+    payload = json.loads(captured.out)
+    assert any(schema["name"] == "feature_requests" for schema in payload)
 
 
 def test_extract_from_compression_file_writes_model_contract(tmp_path: Path) -> None:
