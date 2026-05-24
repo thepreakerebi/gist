@@ -306,6 +306,24 @@ gist-quality-eval \
   --html-output reports/local-quality/quality.html
 ```
 
+Add `--extraction-schema` to turn every checked compression into structured,
+timestamped product records in the same run:
+
+```bash
+gist-quality-eval \
+  --dataset data/eval/local-quality.jsonl \
+  --output reports/local-quality/quality.json \
+  --markdown-output reports/local-quality/quality.md \
+  --html-output reports/local-quality/quality.html \
+  --output-root reports/local-quality/artifacts \
+  --extraction-schema data/extraction/sales-feedback.schema.json
+```
+
+Each case writes `extraction.json`, `extraction.md`, and `extraction.html` under
+`output-root/<case-id>/extraction/`. Use `--extractor-command` to plug in a
+stronger local or hosted extractor while keeping the Gist evidence package as
+the source of truth.
+
 See `docs/local-quality-evaluation.md` for the dataset format and the quality gates that define when Gist is alpha/beta ready.
 - `timestamp_tolerance_seconds`
 - `visual_candidates`

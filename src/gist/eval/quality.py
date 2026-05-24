@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import shlex
 import sys
 from html import escape
 from pathlib import Path
@@ -14,8 +15,17 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionResponse, Modality
 from gist.eval.regression import TimeRange
+from gist.gateway.structured import (
+    ExtractionSchema,
+    LocalStructuredExtractor,
+    SubprocessStructuredExtractor,
+)
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline
+from gist.reports.structured import (
+    render_structured_extraction_html,
+    render_structured_extraction_markdown,
+)
 
 
 class QualityCase(BaseModel):
@@ -71,6 +81,7 @@ class QualityResult(BaseModel):
     failure_categories: list[str] = Field(default_factory=list)
     recommendation: str | None = None
     failures: list[str] = Field(default_factory=list)
+    extraction: "QualityExtractionArtifact | None" = None
 
 
 class QualitySummary(BaseModel):
@@ -105,6 +116,21 @@ class QualityDatasetCheck(BaseModel):
 class QualityCaseDraft(BaseModel):
     case: QualityCase
     notes: list[str] = Field(default_factory=list)
+
+
+class QualityExtractionArtifact(BaseModel):
+    schema_name: str
+    provider: str
+    items: int
+    json_path: Path
+    markdown_path: Path
+    html_path: Path
+
+
+class QualityExtractionOptions(BaseModel):
+    schema_path: Path
+    extractor_command: str | None = None
+    extractor_timeout_seconds: Annotated[float, Field(gt=0)] = 120.0
 
 
 def load_quality_cases(path: Path) -> list[QualityCase]:
@@ -187,8 +213,16 @@ def check_quality_dataset(cases: list[QualityCase]) -> QualityDatasetCheck:
 def run_quality_cases(
     cases: list[QualityCase],
     output_root: Path = Path(".gist/quality"),
+    extraction_options: QualityExtractionOptions | None = None,
 ) -> QualityReport:
-    results = [evaluate_quality_case(case, output_root=output_root) for case in cases]
+    results = [
+        evaluate_quality_case(
+            case,
+            output_root=output_root,
+            extraction_options=extraction_options,
+        )
+        for case in cases
+    ]
     passed = sum(result.passed for result in results)
     summary = QualitySummary(
         cases=len(results),
@@ -211,6 +245,7 @@ def run_quality_cases(
 def evaluate_quality_case(
     case: QualityCase,
     output_root: Path = Path(".gist/quality"),
+    extraction_options: QualityExtractionOptions | None = None,
 ) -> QualityResult:
     compression = _compression_for_case(case, output_root=output_root)
     answer = compression.answer or ""
@@ -249,6 +284,16 @@ def evaluate_quality_case(
         timestamp_hit_rate=timestamp_hit_rate,
         token_reduction=token_reduction,
     )
+    extraction_artifact = (
+        _write_quality_extraction_artifact(
+            case=case,
+            compression=compression,
+            output_root=output_root,
+            options=extraction_options,
+        )
+        if extraction_options is not None
+        else None
+    )
     return QualityResult(
         id=case.id,
         passed=not failures,
@@ -265,6 +310,7 @@ def evaluate_quality_case(
         failure_categories=failure_categories,
         recommendation=_recommendation(failure_categories),
         failures=failures,
+        extraction=extraction_artifact,
     )
 
 
@@ -282,8 +328,9 @@ def render_quality_markdown(report: QualityReport) -> str:
         f"- Avg token reduction: {report.summary.avg_token_reduction_percent:.2f}%",
         "",
         "| Case | Status | Answer Recall | Evidence Coverage | Evidence Relevance | "
-        "Timestamp Hit | Token Reduction | Selected | Categories | Recommendation | Failures |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|",
+        "Timestamp Hit | Token Reduction | Selected | Extraction | Categories | "
+        "Recommendation | Failures |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|",
     ]
     for result in report.results:
         failures = "; ".join(result.failures)
@@ -295,6 +342,7 @@ def render_quality_markdown(report: QualityReport) -> str:
             f"{result.timestamp_hit_rate:.2f} | "
             f"{result.token_reduction_percent:.2f}% | "
             f"{result.selected_evidence} | "
+            f"{_markdown_extraction_cell(result.extraction)} | "
             f"{', '.join(result.failure_categories)} | "
             f"{result.recommendation or ''} | {failures} |"
         )
@@ -312,6 +360,7 @@ def render_quality_html(report: QualityReport) -> str:
         f"<td>{result.timestamp_hit_rate:.2f}</td>"
         f"<td>{result.token_reduction_percent:.2f}%</td>"
         f"<td>{result.selected_evidence}</td>"
+        f"<td>{_html_extraction_cell(result.extraction)}</td>"
         f"<td>{escape(', '.join(result.failure_categories))}</td>"
         f"<td>{escape(result.recommendation or '')}</td>"
         f"<td>{escape('; '.join(result.failures))}</td>"
@@ -376,6 +425,7 @@ def render_quality_html(report: QualityReport) -> str:
         <th>Timestamp Hit</th>
         <th>Token Reduction</th>
         <th>Selected</th>
+        <th>Extraction</th>
         <th>Categories</th>
         <th>Recommendation</th>
         <th>Failures</th>
@@ -397,6 +447,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
     parser.add_argument("--output-root", type=Path, default=Path(".gist/quality"))
+    parser.add_argument(
+        "--extraction-schema",
+        type=Path,
+        help=(
+            "Optional structured extraction schema to run for each quality case. "
+            "Writes per-case extraction JSON, Markdown, and HTML under output-root."
+        ),
+    )
+    parser.add_argument(
+        "--extractor-command",
+        help=(
+            "Optional external structured extractor command. Gist sends JSON to "
+            "stdin and expects JSON stdout with an `items` array."
+        ),
+    )
+    parser.add_argument("--extractor-timeout", type=float, default=120.0)
     parser.add_argument(
         "--check-only",
         action="store_true",
@@ -471,7 +537,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {warning}")
         return 0 if not check.warnings else 1
 
-    report = run_quality_cases(cases, output_root=args.output_root)
+    extraction_options = (
+        QualityExtractionOptions(
+            schema_path=args.extraction_schema,
+            extractor_command=args.extractor_command,
+            extractor_timeout_seconds=args.extractor_timeout,
+        )
+        if args.extraction_schema is not None
+        else None
+    )
+    report = run_quality_cases(
+        cases,
+        output_root=args.output_root,
+        extraction_options=extraction_options,
+    )
     if args.output is not None:
         report.write_json(args.output)
     if args.markdown_output is not None:
@@ -493,6 +572,11 @@ def main(argv: list[str] | None = None) -> int:
             f"timestamp_hit={result.timestamp_hit_rate:.2f}, "
             f"token_reduction={result.token_reduction_percent:.2f}%"
         )
+        if result.extraction is not None:
+            print(
+                f"  extraction_items={result.extraction.items}, "
+                f"extraction={result.extraction.json_path}"
+            )
         for failure in result.failures:
             print(f"  - {failure}")
     return 0 if report.passed else 1
@@ -521,6 +605,43 @@ def _compression_for_case(case: QualityCase, output_root: Path) -> CompressionRe
     answer = answer_from_evidence(compression)
     answered = compression.model_copy(update={"answer": verify_answer_claims(answer, compression)})
     return annotate_evidence_support(answered)
+
+
+def _write_quality_extraction_artifact(
+    case: QualityCase,
+    compression: CompressionResponse,
+    output_root: Path,
+    options: QualityExtractionOptions,
+) -> QualityExtractionArtifact:
+    schema = ExtractionSchema.from_file(options.schema_path)
+    extractor = _structured_extractor(options)
+    extraction = extractor.extract(schema=schema, compression=compression)
+    artifact_dir = output_root / _safe_case_id(case.id) / "extraction"
+    json_path = artifact_dir / "extraction.json"
+    markdown_path = artifact_dir / "extraction.md"
+    html_path = artifact_dir / "extraction.html"
+    extraction.write_json(json_path)
+    markdown_path.write_text(render_structured_extraction_markdown(extraction))
+    html_path.write_text(render_structured_extraction_html(extraction))
+    return QualityExtractionArtifact(
+        schema_name=extraction.schema_name,
+        provider=extraction.provider,
+        items=len(extraction.items),
+        json_path=json_path,
+        markdown_path=markdown_path,
+        html_path=html_path,
+    )
+
+
+def _structured_extractor(
+    options: QualityExtractionOptions,
+) -> LocalStructuredExtractor | SubprocessStructuredExtractor:
+    if options.extractor_command:
+        return SubprocessStructuredExtractor(
+            command=shlex.split(options.extractor_command),
+            timeout_seconds=options.extractor_timeout_seconds,
+        )
+    return LocalStructuredExtractor()
 
 
 def _write_drafts(drafts: list[QualityCaseDraft], output_path: Path | None) -> None:
@@ -822,6 +943,27 @@ def _category_counts(results: list[QualityResult]) -> dict[str, int]:
         for category in result.failure_categories:
             counts[category] = counts.get(category, 0) + 1
     return dict(sorted(counts.items()))
+
+
+def _markdown_extraction_cell(artifact: QualityExtractionArtifact | None) -> str:
+    if artifact is None:
+        return ""
+    return (
+        f"{artifact.items} items "
+        f"({artifact.schema_name}, {artifact.provider}) "
+        f"`{artifact.html_path}`"
+    )
+
+
+def _html_extraction_cell(artifact: QualityExtractionArtifact | None) -> str:
+    if artifact is None:
+        return ""
+    href = artifact.html_path.resolve().as_uri()
+    label = (
+        f"{artifact.items} items "
+        f"({artifact.schema_name}, {artifact.provider})"
+    )
+    return f'<a href="{escape(href)}">{escape(label)}</a>'
 
 
 def _render_failure_category_summary(category_counts: dict[str, int]) -> str:

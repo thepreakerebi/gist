@@ -5,6 +5,7 @@ from gist.core.presets import CompressionPreset
 from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
 from gist.eval.quality import (
     QualityCase,
+    QualityExtractionOptions,
     check_quality_dataset,
     draft_quality_case,
     draft_quality_cases_from_root,
@@ -145,6 +146,55 @@ def test_run_quality_cases_and_markdown_summary(tmp_path: Path) -> None:
     assert report.summary.pass_rate == 1.0
     assert report.summary.failure_categories == {}
     assert "| slide | pass |" in markdown
+
+
+def test_quality_cases_write_structured_extraction_artifacts(tmp_path: Path) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        answer="The buyer says pricing is too expensive.",
+        selected=[
+            _item(
+                "a-1",
+                timestamp=30,
+                clip_start=25,
+                clip_end=45,
+                text="The buyer says pricing is too expensive.",
+            )
+        ],
+        token_reduction=98.0,
+    )
+    schema_path = tmp_path / "schema.json"
+    schema_path.write_text(
+        json.dumps(
+            {
+                "name": "sales_feedback",
+                "labels": ["pricing objection"],
+            }
+        )
+    )
+
+    report = run_quality_cases(
+        [
+            QualityCase(
+                id="sales-call",
+                compression_path=compression_path,
+                expected_answer_terms=["pricing"],
+                expected_evidence_terms=["pricing"],
+                relevant_timestamps=[30],
+            )
+        ],
+        output_root=tmp_path / "quality",
+        extraction_options=QualityExtractionOptions(schema_path=schema_path),
+    )
+
+    artifact = report.results[0].extraction
+    assert artifact is not None
+    assert artifact.items == 1
+    assert artifact.json_path.exists()
+    assert artifact.markdown_path.exists()
+    assert artifact.html_path.exists()
+    assert "pricing objection" in artifact.markdown_path.read_text()
+    assert "sales_feedback" in render_quality_markdown(report)
 
 
 def test_check_quality_dataset_reports_warnings(tmp_path: Path) -> None:
@@ -300,6 +350,67 @@ def test_quality_cli_writes_batch_drafts(tmp_path: Path) -> None:
     lines = output_path.read_text().splitlines()
     assert len(lines) == 1
     assert json.loads(lines[0])["id"] == "video-a-query-a"
+
+
+def test_quality_cli_can_write_extraction_artifacts(tmp_path: Path) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        answer="The buyer says pricing is too expensive.",
+        selected=[
+            _item(
+                "a-1",
+                timestamp=30,
+                clip_start=25,
+                clip_end=45,
+                text="The buyer says pricing is too expensive.",
+            )
+        ],
+        token_reduction=98.0,
+    )
+    schema_path = tmp_path / "schema.json"
+    schema_path.write_text(
+        json.dumps(
+            {
+                "name": "sales_feedback",
+                "labels": ["pricing objection"],
+            }
+        )
+    )
+    dataset_path = tmp_path / "quality.jsonl"
+    output_path = tmp_path / "quality.json"
+    output_root = tmp_path / "quality-root"
+    dataset_path.write_text(
+        json.dumps(
+            {
+                "id": "sales-call",
+                "compression_path": str(compression_path),
+                "expected_answer_terms": ["pricing"],
+                "expected_evidence_terms": ["pricing"],
+                "relevant_timestamps": [30],
+            }
+        )
+        + "\n"
+    )
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset_path),
+            "--output",
+            str(output_path),
+            "--output-root",
+            str(output_root),
+            "--extraction-schema",
+            str(schema_path),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(output_path.read_text())
+    artifact = payload["results"][0]["extraction"]
+    assert artifact["items"] == 1
+    assert Path(artifact["json_path"]).exists()
+    assert (output_root / "sales-call" / "extraction" / "extraction.html").exists()
 
 
 def _write_compression(
