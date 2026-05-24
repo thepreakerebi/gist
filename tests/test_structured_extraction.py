@@ -15,6 +15,10 @@ from gist.gateway.structured import (
     extract_from_compression_file,
     main,
 )
+from gist.reports.structured import (
+    render_structured_extraction_html,
+    render_structured_extraction_markdown,
+)
 
 
 def test_structured_extractor_returns_timestamped_items(tmp_path: Path) -> None:
@@ -252,6 +256,76 @@ def test_structured_extract_cli_writes_output(tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert json.loads(output_path.read_text())["items"][0]["label"] == "pricing objection"
+
+
+def test_structured_extract_cli_writes_reports(tmp_path: Path) -> None:
+    compression_path = tmp_path / "compression.json"
+    schema_path = tmp_path / "schema.json"
+    output_path = tmp_path / "extraction.json"
+    markdown_path = tmp_path / "extraction.md"
+    html_path = tmp_path / "extraction.html"
+    schema_path.write_text(
+        json.dumps(
+            {
+                "name": "sales_feedback",
+                "labels": ["pricing objection"],
+            }
+        )
+    )
+    compression = _compression(
+        selected=[
+            _item(
+                "a-1",
+                text="The buyer says pricing is too expensive.",
+                clip_start=30,
+                clip_end=45,
+            )
+        ]
+    )
+    compression_path.write_text(
+        json.dumps({"compression": compression.model_dump(mode="json")})
+    )
+
+    exit_code = main(
+        [
+            "--compression",
+            str(compression_path),
+            "--schema",
+            str(schema_path),
+            "--output",
+            str(output_path),
+            "--markdown-output",
+            str(markdown_path),
+            "--html-output",
+            str(html_path),
+        ]
+    )
+
+    assert exit_code == 0
+    assert "pricing objection" in markdown_path.read_text()
+    assert "<html" in html_path.read_text()
+
+
+def test_structured_report_renderers_include_items() -> None:
+    compression = _compression(
+        selected=[
+            _item(
+                "a-1",
+                text="The buyer says pricing is too expensive.",
+                clip_start=30,
+                clip_end=45,
+            )
+        ]
+    )
+    schema = ExtractionSchema(name="sales_feedback", labels=["pricing objection"])
+    extraction = LocalStructuredExtractor().extract(schema, compression)
+
+    markdown = render_structured_extraction_markdown(extraction)
+    html = render_structured_extraction_html(extraction)
+
+    assert "pricing objection" in markdown
+    assert "Gist Structured Extraction Report" in html
+    assert "The buyer says pricing is too expensive." in html
 
 
 def test_structured_extract_cli_uses_subprocess_extractor(tmp_path: Path) -> None:

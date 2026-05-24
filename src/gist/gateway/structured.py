@@ -10,6 +10,10 @@ from pydantic import BaseModel, Field
 
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.gateway.context import render_evidence_context
+from gist.reports.structured import (
+    render_structured_extraction_html,
+    render_structured_extraction_markdown,
+)
 
 
 STRUCTURED_EXTRACTION_VERSION = "gist.structured-extraction.v1"
@@ -199,6 +203,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--compression", required=True, type=Path)
     parser.add_argument("--schema", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--markdown-output", type=Path)
+    parser.add_argument("--html-output", type=Path)
     parser.add_argument(
         "--extractor-command",
         help=(
@@ -223,9 +229,19 @@ def main(argv: list[str] | None = None) -> int:
         extractor=extractor,
     )
     extraction.write_json(args.output)
+    if args.markdown_output is not None:
+        args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
+        args.markdown_output.write_text(render_structured_extraction_markdown(extraction))
+    if args.html_output is not None:
+        args.html_output.parent.mkdir(parents=True, exist_ok=True)
+        args.html_output.write_text(render_structured_extraction_html(extraction))
     print(f"items={len(extraction.items)}")
     print(f"provider={extraction.provider}")
     print(f"output={args.output}")
+    if args.markdown_output is not None:
+        print(f"markdown={args.markdown_output}")
+    if args.html_output is not None:
+        print(f"html={args.html_output}")
     return 0
 
 

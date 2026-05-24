@@ -35,7 +35,9 @@ Run extraction from an existing compression file:
 gist-structured-extract \
   --compression .gist/runs/video-slug/query-slug/compression.json \
   --schema data/extraction/sales-feedback.schema.json \
-  --output reports/extraction.json
+  --output reports/extraction.json \
+  --markdown-output reports/extraction.md \
+  --html-output reports/extraction.html
 ```
 
 Use an external extractor command when you want an LLM/VLM to fill the schema:
