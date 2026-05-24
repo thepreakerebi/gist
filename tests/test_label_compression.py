@@ -40,8 +40,16 @@ def test_label_compression_labels_existing_compression(tmp_path: Path, capsys) -
     assert (output_dir / "extraction.csv").exists()
     assert (output_dir / "extraction.md").exists()
     assert (output_dir / "extraction.html").exists()
+    quality = json.loads((output_dir / "quality.json").read_text())
+    assert quality["item_count"] == 1
+    assert quality["evidence_count"] == 1
+    assert quality["warnings"] == []
+    assert (output_dir / "quality.md").exists()
+    assert (output_dir / "quality.html").exists()
     assert "Gist Label Report" in (output_dir / "report.html").read_text()
     assert "items=1" in captured.out
+    assert "quality_passed=yes" in captured.out
+    assert "quality=" in captured.out
     assert "report=" in captured.out
 
 

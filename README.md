@@ -36,6 +36,9 @@ gist-label /absolute/path/to/video.mp4 \
 
 This writes `reports/labels/extraction.json`, `reports/labels/extraction.csv`,
 and `reports/labels/report.html`.
+Compression-labeling runs also write `quality.json`, `quality.md`, and
+`quality.html` so you can quickly see duplicate rate, weak-field rate,
+timestamp coverage, confidence, and warnings.
 
 Run a fast contract check for the product-labeling path without model or video
 processing:
