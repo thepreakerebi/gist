@@ -34,6 +34,9 @@ gist-label /absolute/path/to/video.mp4 \
   --output-dir reports/labels
 ```
 
+This writes `reports/labels/extraction.json`, `reports/labels/extraction.csv`,
+and `reports/labels/report.html`.
+
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
