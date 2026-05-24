@@ -83,6 +83,74 @@ def test_structured_extractor_skips_evidence_without_matching_label() -> None:
     assert response.items == []
 
 
+def test_structured_extractor_dedupes_overlapping_items() -> None:
+    compression = _compression(
+        selected=[
+            _item(
+                "a-1",
+                text="The buyer says pricing is too expensive and blocks the rollout.",
+                clip_start=30,
+                clip_end=45,
+            ),
+            _item(
+                "a-2",
+                text="The buyer says pricing is too expensive and blocks the rollout.",
+                clip_start=34,
+                clip_end=48,
+            ),
+        ]
+    )
+    schema = ExtractionSchema(
+        name="customer_objections",
+        labels=["pricing objection", "security concern"],
+        fields=[ExtractionField(name="summary", required=True)],
+    )
+
+    response = LocalStructuredExtractor().extract(schema, compression)
+
+    assert len(response.items) == 1
+    assert response.items[0].label == "pricing objection"
+
+
+def test_structured_extractor_uses_schema_keywords_and_concise_summary() -> None:
+    text = (
+        "We need a faster dashboard because the current workflow is slow. "
+        "The customer also mentioned unrelated implementation notes."
+    )
+    compression = _compression(
+        selected=[
+            _item(
+                "a-1",
+                text=text,
+                clip_start=50,
+                clip_end=70,
+            )
+        ]
+    )
+    schema = ExtractionSchema(
+        name="feature_requests",
+        labels=["reporting request", "performance request", "integration request"],
+        fields=[
+            ExtractionField(name="summary", required=True),
+            ExtractionField(name="priority_signal"),
+            ExtractionField(name="pain_point"),
+        ],
+    )
+
+    response = LocalStructuredExtractor().extract(schema, compression)
+
+    assert response.items[0].label == "performance request"
+    assert (
+        response.items[0].description
+        == "We need a faster dashboard because the current workflow is slow."
+    )
+    assert response.items[0].values["summary"] == response.items[0].description
+    assert response.items[0].values["priority_signal"].startswith(
+        "We need a faster dashboard"
+    )
+    assert response.items[0].values["pain_point"].startswith("We need a faster dashboard")
+
+
 def test_structured_prompt_includes_schema_and_evidence() -> None:
     compression = _compression(
         selected=[_item("a-1", text="Pricing is too expensive.", clip_start=1, clip_end=2)]
