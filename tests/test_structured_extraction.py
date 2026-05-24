@@ -184,6 +184,23 @@ def test_extraction_schema_loads_from_file(tmp_path: Path) -> None:
     assert schema.fields[0].name == "summary"
 
 
+def test_builtin_extraction_schemas_are_valid() -> None:
+    schema_paths = sorted(Path("data/extraction").glob("*.schema.json"))
+
+    schemas = [ExtractionSchema.from_file(path) for path in schema_paths]
+
+    assert {schema.name for schema in schemas} >= {
+        "customer_objections",
+        "feature_requests",
+        "meeting_decisions",
+        "product_announcements",
+        "sales_feedback",
+    }
+    assert all(schema.item_type for schema in schemas)
+    assert all(schema.labels for schema in schemas)
+    assert all(schema.fields for schema in schemas)
+
+
 def test_extract_from_compression_file_writes_model_contract(tmp_path: Path) -> None:
     compression_path = tmp_path / "compression.json"
     schema_path = tmp_path / "schema.json"

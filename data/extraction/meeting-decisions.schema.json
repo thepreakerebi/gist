@@ -1,0 +1,41 @@
+{
+  "name": "meeting_decisions",
+  "description": "Timestamped decisions, action items, owners, deadlines, and unresolved follow-ups from meeting recordings.",
+  "item_type": "meeting_record",
+  "labels": [
+    "decision",
+    "action item",
+    "owner assignment",
+    "deadline",
+    "open question",
+    "risk",
+    "follow-up"
+  ],
+  "fields": [
+    {
+      "name": "label",
+      "description": "The best matching meeting-record category.",
+      "required": true
+    },
+    {
+      "name": "summary",
+      "description": "A concise description of the decision, action, risk, or follow-up.",
+      "required": true
+    },
+    {
+      "name": "owner",
+      "description": "The person or team responsible if stated.",
+      "required": false
+    },
+    {
+      "name": "deadline",
+      "description": "The due date or timing expectation if stated.",
+      "required": false
+    },
+    {
+      "name": "status",
+      "description": "Open, agreed, blocked, or completed if inferable from the evidence.",
+      "required": false
+    }
+  ]
+}

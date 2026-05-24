@@ -29,6 +29,14 @@ The first extractor is local and deterministic. It establishes the model-agnosti
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
 
+Built-in schemas:
+
+- `data/extraction/sales-feedback.schema.json`: sales calls, demos, and product feedback.
+- `data/extraction/customer-objections.schema.json`: objections, blockers, and concerns.
+- `data/extraction/feature-requests.schema.json`: requested features and workflow gaps.
+- `data/extraction/product-announcements.schema.json`: keynotes, launch videos, and demos.
+- `data/extraction/meeting-decisions.schema.json`: decisions, action items, owners, and follow-ups.
+
 Run extraction from an existing compression file:
 
 ```bash

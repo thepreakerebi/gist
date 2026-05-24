@@ -1,0 +1,41 @@
+{
+  "name": "feature_requests",
+  "description": "Timestamped feature requests and product improvement suggestions from customers, users, stakeholders, or internal review videos.",
+  "item_type": "feature_request",
+  "labels": [
+    "new capability",
+    "workflow improvement",
+    "integration request",
+    "automation request",
+    "reporting request",
+    "usability request",
+    "performance request"
+  ],
+  "fields": [
+    {
+      "name": "label",
+      "description": "The best matching feature-request category.",
+      "required": true
+    },
+    {
+      "name": "summary",
+      "description": "A concise description of the requested feature or improvement.",
+      "required": true
+    },
+    {
+      "name": "requester",
+      "description": "The person, role, or customer segment requesting it if identifiable.",
+      "required": false
+    },
+    {
+      "name": "pain_point",
+      "description": "The pain or workflow gap motivating the request.",
+      "required": false
+    },
+    {
+      "name": "priority_signal",
+      "description": "Evidence that indicates urgency, frequency, or business impact.",
+      "required": false
+    }
+  ]
+}
