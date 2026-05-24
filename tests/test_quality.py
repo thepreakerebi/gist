@@ -193,6 +193,7 @@ def test_quality_cases_write_structured_extraction_artifacts(tmp_path: Path) -> 
     assert artifact.json_path.exists()
     assert artifact.markdown_path.exists()
     assert artifact.html_path.exists()
+    assert artifact.csv_path.exists()
     assert "pricing objection" in artifact.markdown_path.read_text()
     assert "sales_feedback" in render_quality_markdown(report)
 
@@ -410,7 +411,9 @@ def test_quality_cli_can_write_extraction_artifacts(tmp_path: Path) -> None:
     artifact = payload["results"][0]["extraction"]
     assert artifact["items"] == 1
     assert Path(artifact["json_path"]).exists()
+    assert Path(artifact["csv_path"]).exists()
     assert (output_root / "sales-call" / "extraction" / "extraction.html").exists()
+    assert (output_root / "sales-call" / "extraction" / "extraction.csv").exists()
 
 
 def test_quality_cli_can_use_builtin_extraction_schema_name(tmp_path: Path) -> None:

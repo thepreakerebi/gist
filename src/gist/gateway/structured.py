@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.gateway.context import render_evidence_context
 from gist.reports.structured import (
+    render_structured_extraction_csv,
     render_structured_extraction_html,
     render_structured_extraction_markdown,
 )
@@ -364,6 +365,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
+    parser.add_argument("--csv-output", type=Path)
     parser.add_argument(
         "--extractor-command",
         help=(
@@ -395,6 +397,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.html_output is not None:
         args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(render_structured_extraction_html(extraction))
+    if args.csv_output is not None:
+        args.csv_output.parent.mkdir(parents=True, exist_ok=True)
+        args.csv_output.write_text(render_structured_extraction_csv(extraction))
     print(f"items={len(extraction.items)}")
     print(f"provider={extraction.provider}")
     print(f"output={args.output}")
@@ -402,6 +407,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"markdown={args.markdown_output}")
     if args.html_output is not None:
         print(f"html={args.html_output}")
+    if args.csv_output is not None:
+        print(f"csv={args.csv_output}")
     return 0
 
 

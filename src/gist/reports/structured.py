@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import csv
+import json
 from html import escape
+from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING
 from typing import Any
@@ -132,6 +135,58 @@ def render_structured_extraction_html(
 """
 
 
+def render_structured_extraction_csv(
+    extraction: StructuredExtractionResponse,
+) -> str:
+    value_keys = sorted(
+        {
+            key
+            for item in extraction.items
+            for key in item.values
+        }
+    )
+    fieldnames = [
+        "schema_name",
+        "query",
+        "item_type",
+        "provider",
+        "label",
+        "description",
+        "timestamp_start_seconds",
+        "timestamp_end_seconds",
+        "evidence_id",
+        "evidence_rank",
+        "confidence",
+        "support_text",
+        "clip_path",
+        "values_json",
+        *[f"value_{key}" for key in value_keys],
+    ]
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    for item in extraction.items:
+        row = {
+            "schema_name": extraction.schema_name,
+            "query": extraction.query,
+            "item_type": extraction.item_type,
+            "provider": extraction.provider,
+            "label": item.label,
+            "description": item.description,
+            "timestamp_start_seconds": f"{item.timestamp_start_seconds:.2f}",
+            "timestamp_end_seconds": f"{item.timestamp_end_seconds:.2f}",
+            "evidence_id": item.evidence_id,
+            "evidence_rank": item.evidence_rank,
+            "confidence": f"{item.confidence:.4f}",
+            "support_text": item.support_text,
+            "clip_path": item.clip_path or "",
+            "values_json": json.dumps(item.values, sort_keys=True),
+        }
+        row.update({f"value_{key}": item.values.get(key, "") for key in value_keys})
+        writer.writerow(row)
+    return output.getvalue()
+
+
 def _render_item(index: int, item: dict[str, Any]) -> str:
     clip = _render_clip(item.get("clip_path"))
     values = item.get("values") if isinstance(item.get("values"), dict) else {}
@@ -166,7 +221,7 @@ def _time_range(item: dict[str, Any]) -> str:
 
 
 def _pretty_json(value: dict[str, Any]) -> str:
-    return "{}" if not value else __import__("json").dumps(value, indent=2)
+    return "{}" if not value else json.dumps(value, indent=2)
 
 
 def _cell(value: str) -> str:

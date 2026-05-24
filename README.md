@@ -55,7 +55,8 @@ gist-structured-extract \
   --schema-name sales_feedback \
   --output reports/extraction.json \
   --markdown-output reports/extraction.md \
-  --html-output reports/extraction.html
+  --html-output reports/extraction.html \
+  --csv-output reports/extraction.csv
 ```
 
 Use `--schema /path/to/custom.schema.json` when you need a custom schema file.
@@ -339,10 +340,10 @@ gist-quality-eval \
   --extraction-schema-name sales_feedback
 ```
 
-Each case writes `extraction.json`, `extraction.md`, and `extraction.html` under
-`output-root/<case-id>/extraction/`. Use `--extractor-command` to plug in a
-stronger local or hosted extractor while keeping the Gist evidence package as
-the source of truth.
+Each case writes `extraction.json`, `extraction.md`, `extraction.html`, and
+`extraction.csv` under `output-root/<case-id>/extraction/`. Use
+`--extractor-command` to plug in a stronger local or hosted extractor while
+keeping the Gist evidence package as the source of truth.
 
 See `docs/local-quality-evaluation.md` for the dataset format and the quality gates that define when Gist is alpha/beta ready.
 - `timestamp_tolerance_seconds`

@@ -23,6 +23,7 @@ from gist.gateway.structured import (
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline
 from gist.reports.structured import (
+    render_structured_extraction_csv,
     render_structured_extraction_html,
     render_structured_extraction_markdown,
 )
@@ -125,6 +126,7 @@ class QualityExtractionArtifact(BaseModel):
     json_path: Path
     markdown_path: Path
     html_path: Path
+    csv_path: Path
 
 
 class QualityExtractionOptions(BaseModel):
@@ -633,9 +635,11 @@ def _write_quality_extraction_artifact(
     json_path = artifact_dir / "extraction.json"
     markdown_path = artifact_dir / "extraction.md"
     html_path = artifact_dir / "extraction.html"
+    csv_path = artifact_dir / "extraction.csv"
     extraction.write_json(json_path)
     markdown_path.write_text(render_structured_extraction_markdown(extraction))
     html_path.write_text(render_structured_extraction_html(extraction))
+    csv_path.write_text(render_structured_extraction_csv(extraction))
     return QualityExtractionArtifact(
         schema_name=extraction.schema_name,
         provider=extraction.provider,
@@ -643,6 +647,7 @@ def _write_quality_extraction_artifact(
         json_path=json_path,
         markdown_path=markdown_path,
         html_path=html_path,
+        csv_path=csv_path,
     )
 
 

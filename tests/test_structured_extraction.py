@@ -1,5 +1,7 @@
+import csv
 import json
 import sys
+from io import StringIO
 from pathlib import Path
 
 from gist.core.presets import CompressionPreset
@@ -19,6 +21,7 @@ from gist.gateway.structured import (
     schemas_main,
 )
 from gist.reports.structured import (
+    render_structured_extraction_csv,
     render_structured_extraction_html,
     render_structured_extraction_markdown,
 )
@@ -394,6 +397,7 @@ def test_structured_extract_cli_writes_reports(tmp_path: Path) -> None:
     output_path = tmp_path / "extraction.json"
     markdown_path = tmp_path / "extraction.md"
     html_path = tmp_path / "extraction.html"
+    csv_path = tmp_path / "extraction.csv"
     schema_path.write_text(
         json.dumps(
             {
@@ -428,12 +432,16 @@ def test_structured_extract_cli_writes_reports(tmp_path: Path) -> None:
             str(markdown_path),
             "--html-output",
             str(html_path),
+            "--csv-output",
+            str(csv_path),
         ]
     )
 
     assert exit_code == 0
     assert "pricing objection" in markdown_path.read_text()
     assert "<html" in html_path.read_text()
+    rows = list(csv.DictReader(StringIO(csv_path.read_text())))
+    assert rows[0]["label"] == "pricing objection"
 
 
 def test_structured_report_renderers_include_items() -> None:
@@ -447,15 +455,24 @@ def test_structured_report_renderers_include_items() -> None:
             )
         ]
     )
-    schema = ExtractionSchema(name="sales_feedback", labels=["pricing objection"])
+    schema = ExtractionSchema(
+        name="sales_feedback",
+        labels=["pricing objection"],
+        fields=[ExtractionField(name="label")],
+    )
     extraction = LocalStructuredExtractor().extract(schema, compression)
 
     markdown = render_structured_extraction_markdown(extraction)
     html = render_structured_extraction_html(extraction)
+    csv_text = render_structured_extraction_csv(extraction)
 
     assert "pricing objection" in markdown
     assert "Gist Structured Extraction Report" in html
     assert "The buyer says pricing is too expensive." in html
+    rows = list(csv.DictReader(StringIO(csv_text)))
+    assert rows[0]["schema_name"] == "sales_feedback"
+    assert rows[0]["label"] == "pricing objection"
+    assert rows[0]["value_label"] == "pricing objection"
 
 
 def test_structured_extract_cli_uses_subprocess_extractor(tmp_path: Path) -> None:
