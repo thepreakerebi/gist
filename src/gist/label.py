@@ -1,5 +1,6 @@
 import argparse
 import json
+from collections.abc import Callable
 from html import escape
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from gist.cli import main as gist_main
 from gist.gateway.structured import schema_name_for_extraction_preset, suggest_extraction_preset
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, runner: Callable[[list[str]], int] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Label a video with a suggested Gist extraction preset."
     )
@@ -80,7 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.quiet:
         gist_args.append("--quiet")
 
-    exit_code = gist_main(gist_args)
+    resolved_runner = runner or gist_main
+    exit_code = resolved_runner(gist_args)
     item_count = _extraction_item_count(extraction_json)
     report_html.write_text(
         render_label_report(

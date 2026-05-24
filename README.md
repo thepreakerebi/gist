@@ -37,6 +37,13 @@ gist-label /absolute/path/to/video.mp4 \
 This writes `reports/labels/extraction.json`, `reports/labels/extraction.csv`,
 and `reports/labels/report.html`.
 
+Run a fast contract check for the product-labeling path without model or video
+processing:
+
+```bash
+gist-label-smoke --output-dir reports/label-smoke
+```
+
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger
 LLM/VLM extractors can plug into the same contract later.
