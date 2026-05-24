@@ -64,8 +64,15 @@ gist-label-batch \
   --input-root .gist/runs \
   --task "find every time prospects complain about pricing" \
   --output-dir reports/label-batch \
+  --include "*yc*" \
+  --query-contains pricing \
+  --min-evidence 2 \
   --max-cases 20
 ```
+
+Each batch run writes `batch-manifest.jsonl`. Reuse it with
+`gist-label-batch --manifest reports/label-batch/batch-manifest.jsonl ...` for
+reproducible reruns.
 
 The first extractor is local and deterministic. It establishes the model-agnostic
 contract: schema in, compressed evidence in, timestamped JSON items out. Stronger

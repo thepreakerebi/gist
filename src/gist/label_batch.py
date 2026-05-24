@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import shlex
 from html import escape
@@ -55,6 +56,7 @@ class BatchLabelReport(BaseModel):
     average_items_per_case: float
     pass_rate: float
     warning_count: int
+    manifest_path: str | None = None
     results: list[BatchLabelCaseResult]
 
     def write_json(self, path: Path) -> None:
@@ -69,10 +71,30 @@ def main(argv: list[str] | None = None) -> int:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--compression", type=Path, action="append", default=[])
     source.add_argument("--input-root", type=Path)
+    source.add_argument("--manifest", type=Path)
     parser.add_argument("--task", required=True)
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--preset", choices=sorted(EXTRACTION_PRESETS))
     parser.add_argument("--max-cases", type=int)
+    parser.add_argument(
+        "--include",
+        action="append",
+        default=[],
+        help="Glob pattern for paths to keep.",
+    )
+    parser.add_argument(
+        "--exclude",
+        action="append",
+        default=[],
+        help="Glob pattern for paths to drop.",
+    )
+    parser.add_argument("--query-contains", action="append", default=[])
+    parser.add_argument("--min-evidence", type=int, default=0)
+    parser.add_argument(
+        "--write-manifest",
+        type=Path,
+        help="Write selected compression paths as JSONL for reproducible reruns.",
+    )
     parser.add_argument(
         "--extractor-command",
         help="Optional external extractor command. Receives the structured payload on stdin.",
@@ -84,6 +106,8 @@ def main(argv: list[str] | None = None) -> int:
     if not compression_paths:
         parser.error("no compression.json files found")
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = args.write_manifest or args.output_dir / "batch-manifest.jsonl"
+    write_batch_manifest(compression_paths, manifest_path)
 
     suggestion = suggest_extraction_preset(args.task)
     extraction_preset = args.preset or suggestion.recommended_preset
@@ -115,6 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         extraction_preset=extraction_preset,
         schema_name=schema_name,
         results=results,
+        manifest_path=str(manifest_path),
     )
     report_json = args.output_dir / "batch-report.json"
     report_markdown = args.output_dir / "batch-report.md"
@@ -127,6 +152,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"items={report.total_items}")
     print(f"pass_rate={report.pass_rate:.2%}")
     print(f"warnings={report.warning_count}")
+    print(f"manifest={manifest_path}")
     print(f"report={report_json}")
     print(f"markdown={report_markdown}")
     print(f"html={report_html}")
@@ -207,6 +233,7 @@ def build_batch_report(
     extraction_preset: str,
     schema_name: str,
     results: list[BatchLabelCaseResult],
+    manifest_path: str | None = None,
 ) -> BatchLabelReport:
     case_count = len(results)
     total_items = sum(result.item_count for result in results)
@@ -223,6 +250,7 @@ def build_batch_report(
         average_items_per_case=total_items / case_count if case_count else 0.0,
         pass_rate=passed / case_count if case_count else 0.0,
         warning_count=warning_count,
+        manifest_path=manifest_path,
         results=results,
     )
 
@@ -246,6 +274,7 @@ def render_batch_label_markdown(report: BatchLabelReport) -> str:
 - Average items/case: {report.average_items_per_case:.2f}
 - Pass rate: {report.pass_rate:.2%}
 - Warnings: {report.warning_count}
+- Manifest: {report.manifest_path or "none"}
 
 | Case | Items | Evidence | Passed | Warnings |
 |---|---:|---:|---|---|
@@ -333,11 +362,85 @@ def render_batch_label_html(report: BatchLabelReport) -> str:
 def _compression_paths(args: argparse.Namespace) -> list[Path]:
     if args.input_root is not None:
         paths = sorted(args.input_root.rglob("compression.json"))
+    elif args.manifest is not None:
+        paths = load_batch_manifest(args.manifest)
     else:
         paths = sorted(set(args.compression))
+    paths = _filter_compression_paths(
+        paths=paths,
+        include_patterns=args.include,
+        exclude_patterns=args.exclude,
+        query_terms=args.query_contains,
+        min_evidence=args.min_evidence,
+    )
     if args.max_cases is not None:
         return paths[: args.max_cases]
     return paths
+
+
+def load_batch_manifest(path: Path) -> list[Path]:
+    text = path.read_text().strip()
+    if not text:
+        return []
+    if text.startswith("["):
+        payload = json.loads(text)
+        if not isinstance(payload, list):
+            raise ValueError("batch manifest JSON must be a list")
+        return [_manifest_item_path(item) for item in payload]
+    return [_manifest_item_path(json.loads(line)) for line in text.splitlines() if line.strip()]
+
+
+def write_batch_manifest(paths: list[Path], output: Path) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        json.dumps(
+            {
+                "compression": str(path),
+                "case_id": _case_id(path),
+            },
+            sort_keys=True,
+        )
+        for path in paths
+    ]
+    output.write_text("\n".join(lines) + ("\n" if lines else ""))
+
+
+def _manifest_item_path(item: object) -> Path:
+    if isinstance(item, str):
+        return Path(item)
+    if isinstance(item, dict):
+        value = item.get("compression") or item.get("compression_path") or item.get("path")
+        if isinstance(value, str):
+            return Path(value)
+    raise ValueError("manifest item must be a path string or object with compression path")
+
+
+def _filter_compression_paths(
+    paths: list[Path],
+    include_patterns: list[str],
+    exclude_patterns: list[str],
+    query_terms: list[str],
+    min_evidence: int,
+) -> list[Path]:
+    filtered = []
+    for path in paths:
+        normalized_path = str(path)
+        if include_patterns and not _matches_any(normalized_path, include_patterns):
+            continue
+        if exclude_patterns and _matches_any(normalized_path, exclude_patterns):
+            continue
+        compression = load_compression_response(path)
+        if len(compression.selected) < min_evidence:
+            continue
+        normalized_query = compression.query.lower()
+        if query_terms and not all(term.lower() in normalized_query for term in query_terms):
+            continue
+        filtered.append(path)
+    return filtered
+
+
+def _matches_any(path: str, patterns: list[str]) -> bool:
+    return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
 
 
 def _case_id(path: Path) -> str:
