@@ -87,6 +87,24 @@ gist-acceptance \
   --min-avg-token-reduction-percent 90
 ```
 
+The curated local suite is `data/eval/gist-acceptance.jsonl`. It should be the
+default readiness check while the dataset is still small:
+
+```bash
+gist-acceptance \
+  --dataset data/eval/gist-acceptance.jsonl \
+  --output reports/acceptance-curated.json \
+  --markdown-output reports/acceptance-curated.md \
+  --html-output reports/acceptance-curated.html \
+  --min-cases 8 \
+  --min-pass-rate 0.9 \
+  --min-avg-answer-term-recall 0.85 \
+  --min-avg-evidence-relevance-rate 0.85 \
+  --min-avg-timestamp-hit-rate 0.85 \
+  --min-avg-token-reduction-percent 90 \
+  --max-failure-count 0
+```
+
 Draft editable acceptance cases from existing runs:
 
 ```bash
