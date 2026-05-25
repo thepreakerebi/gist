@@ -132,6 +132,37 @@ def prune_evidence_to_answer_citations(
     )
 
 
+def prune_weakly_grounded_evidence(
+    compression: CompressionResponse,
+    min_items: int = 1,
+) -> CompressionResponse:
+    """Drop weakly grounded evidence when direct/contextual evidence remains."""
+
+    if min_items < 0:
+        raise ValueError("min_items must be non-negative")
+    if len(compression.selected) <= min_items:
+        return compression
+
+    supports = [_support_score(compression, item) for item in compression.selected]
+    retained = [support for support in supports if support.grounding_label != "weak"]
+    if len(retained) < min_items or len(retained) == len(supports):
+        return annotate_evidence_support(compression)
+
+    selected = [
+        _with_grounding_filter_reason(index, support)
+        for index, support in enumerate(
+            sorted(retained, key=lambda support: support.item.timestamp_seconds),
+            start=1,
+        )
+    ]
+    return compression.model_copy(
+        update={
+            "selected": selected,
+            "metrics": _metrics_for_pruned_selection(compression.metrics, selected),
+        }
+    )
+
+
 def consolidate_redundant_evidence(
     compression: CompressionResponse,
     similarity_threshold: float = REDUNDANT_EVIDENCE_SIMILARITY_THRESHOLD,
@@ -385,6 +416,15 @@ def _with_pruning_reason(index: int, support: EvidenceSupport) -> SelectedCandid
 def _with_citation_reason(index: int, support: EvidenceSupport) -> SelectedCandidate:
     item = _with_support_metadata(support)
     reason = f"{item.reason}; retained because the final answer cited this evidence"
+    return item.model_copy(update={"selection_rank": index, "reason": reason})
+
+
+def _with_grounding_filter_reason(index: int, support: EvidenceSupport) -> SelectedCandidate:
+    item = _with_support_metadata(support)
+    reason = (
+        f"{item.reason}; retained after grounding filter "
+        f"({support.grounding_label}: {support.grounding_reason})"
+    )
     return item.model_copy(update={"selection_rank": index, "reason": reason})
 
 

@@ -9,6 +9,7 @@ from gist.core.evidence_pruning import (
     consolidate_redundant_evidence,
     prune_evidence_to_answer,
     prune_evidence_to_answer_citations,
+    prune_weakly_grounded_evidence,
 )
 from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
@@ -185,6 +186,13 @@ def main(argv: list[str] | None = None) -> int:
             compression = _answer_compression(args, compression, progress)
             progress("pruning uncited consolidated evidence")
             compression = prune_evidence_to_answer_citations(compression)
+        before_grounding_ids = [item.id for item in compression.selected]
+        progress("dropping weakly grounded final evidence")
+        compression = prune_weakly_grounded_evidence(compression)
+        after_grounding_ids = [item.id for item in compression.selected]
+        if after_grounding_ids != before_grounding_ids:
+            progress("re-answering from grounded evidence")
+            compression = _answer_compression(args, compression, progress)
     if args.spatial_pruning:
         progress("attaching spatial masks")
         compression = _attach_spatial_masks(

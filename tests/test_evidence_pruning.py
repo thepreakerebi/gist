@@ -3,6 +3,7 @@ from gist.core.evidence_pruning import (
     consolidate_redundant_evidence,
     prune_evidence_to_answer,
     prune_evidence_to_answer_citations,
+    prune_weakly_grounded_evidence,
 )
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import (
@@ -371,6 +372,77 @@ def test_annotate_evidence_support_marks_cross_modal_visual_as_contextual() -> N
 
     assert item.grounding_label == "contextual"
     assert "contextual cross-modal support" in (item.grounding_reason or "")
+
+
+def test_prune_weakly_grounded_evidence_drops_noise_when_grounded_items_remain() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do builders use AI?",
+        answer="Builders use AI for research.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("research", 10, "AI automates research for builders."),
+            _item("noise", 20, "Lunch and travel plans are discussed."),
+            _item("closing", 30, "Thanks for watching."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=3,
+            visual_selected=0,
+            audio_selected=3,
+            estimated_candidate_reduction_ratio=0.15,
+            estimated_candidate_reduction_percent=85,
+            dropped_candidates=17,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=96,
+            estimated_saved_tokens=544,
+            estimated_token_reduction_ratio=0.15,
+            estimated_token_reduction_percent=85,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_weakly_grounded_evidence(compression)
+
+    assert [item.id for item in pruned.selected] == ["research"]
+    assert pruned.selected[0].grounding_label == "direct"
+    assert "grounding filter" in pruned.selected[0].reason
+    assert pruned.metrics.selected_candidates == 1
+
+
+def test_prune_weakly_grounded_evidence_keeps_selection_when_all_items_are_weak() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="pricing",
+        answer="Pricing starts at ten dollars.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("noise-a", 10, "Lunch and travel plans are discussed."),
+            _item("noise-b", 20, "Closing credits."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=2,
+            visual_selected=0,
+            audio_selected=2,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=18,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=64,
+            estimated_saved_tokens=576,
+            estimated_token_reduction_ratio=0.1,
+            estimated_token_reduction_percent=90,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_weakly_grounded_evidence(compression)
+
+    assert [item.id for item in pruned.selected] == ["noise-a", "noise-b"]
+    assert all(item.grounding_label == "weak" for item in pruned.selected)
 
 
 def test_prune_evidence_to_answer_citations_parses_inline_citation_lists() -> None:
