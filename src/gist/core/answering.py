@@ -48,6 +48,10 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
     if visual_answer is not None:
         return visual_answer
 
+    entity_answer = _entity_evidence_answer(compression)
+    if entity_answer is not None:
+        return entity_answer
+
     best = max(
         compression.selected,
         key=lambda item: _answer_score(compression.query, item)
@@ -82,6 +86,84 @@ def _visual_object_answer(compression: CompressionResponse) -> str | None:
     target = _visual_target(compression.query)
     time_span = _time_span(best)
     return f"Visual evidence shows {target}{time_span}."
+
+
+def _entity_evidence_answer(compression: CompressionResponse) -> str | None:
+    query = compression.query.lower().strip()
+    if _is_question_query(query) or _is_text_query(query):
+        return None
+
+    target = _visual_target(compression.query)
+    target_terms = set(target.split())
+    if not target_terms or len(target_terms) > 5:
+        return None
+
+    visual_item = _best_modality_item(compression.selected, "visual")
+    audio_item = _best_text_item(compression.query, compression.selected)
+    if visual_item is None and audio_item is None:
+        return None
+
+    parts: list[str] = []
+    if visual_item is not None:
+        parts.append(f"visual evidence shows {target}{_time_span(visual_item)}")
+    if audio_item is not None:
+        sentence = _best_sentence(compression.query, audio_item.text)
+        if sentence:
+            audio_span = _time_span(audio_item)
+            parts.append(f"transcript evidence mentions {target}{audio_span}: {sentence}")
+
+    if not parts:
+        return None
+    return _ensure_terminal_punctuation(f"Selected evidence indicates that {'; '.join(parts)}")
+
+
+def _ensure_terminal_punctuation(value: str) -> str:
+    return value if value.endswith((".", "?", "!")) else f"{value}."
+
+
+def _is_question_query(query: str) -> bool:
+    return query.startswith(("why ", "what ", "how ", "when ", "where ", "who ", "which "))
+
+
+def _best_modality_item(
+    selected: list[SelectedCandidate],
+    modality: str,
+) -> SelectedCandidate | None:
+    items = [item for item in selected if item.modality.value == modality]
+    if not items:
+        return None
+    return max(
+        items,
+        key=lambda item: (
+            item.visual_support_score or 0.0,
+            item.relevance_score,
+            item.normalized_score,
+            -item.selection_rank,
+        ),
+    )
+
+
+def _best_text_item(query: str, selected: list[SelectedCandidate]) -> SelectedCandidate | None:
+    query_terms = set(re.findall(r"[a-z0-9]+", query.lower())) - _VISUAL_STOPWORDS
+    if not query_terms:
+        return None
+    text_items = [
+        item
+        for item in selected
+        if item.modality.value == "audio"
+        and query_terms & set(re.findall(r"[a-z0-9]+", item.text.lower()))
+    ]
+    if not text_items:
+        return None
+    return max(
+        text_items,
+        key=lambda item: (
+            text_similarity(query, item.text),
+            item.relevance_score,
+            item.normalized_score,
+            -item.selection_rank,
+        ),
+    )
 
 
 def _is_text_query(query: str) -> bool:

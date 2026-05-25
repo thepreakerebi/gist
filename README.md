@@ -96,7 +96,7 @@ gist-acceptance \
   --output reports/acceptance-curated.json \
   --markdown-output reports/acceptance-curated.md \
   --html-output reports/acceptance-curated.html \
-  --min-cases 9 \
+  --min-cases 10 \
   --min-pass-rate 0.9 \
   --min-avg-answer-term-recall 0.85 \
   --min-avg-evidence-relevance-rate 0.85 \

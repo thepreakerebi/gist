@@ -145,6 +145,61 @@ def test_answer_from_evidence_describes_visual_object_instead_of_noisy_ocr() -> 
     )
 
 
+def test_answer_from_evidence_summarizes_short_entity_queries() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="robot hand",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="visual",
+                modality=Modality.VISUAL,
+                timestamp_seconds=43.01,
+                text="visual frame sampled at 43.01 seconds",
+                clip_start_seconds=37.01,
+                clip_end_seconds=49.01,
+                selection_rank=1,
+                relevance_score=0.8,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="clip_scene",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="audio",
+                modality=Modality.AUDIO,
+                timestamp_seconds=45.0,
+                text="Why don't you just admit that you're freaked out by my robot hand?",
+                clip_start_seconds=40.0,
+                clip_end_seconds=50.0,
+                selection_rank=2,
+                relevance_score=0.7,
+                normalized_score=0.9,
+                mmr_score=0.4,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=1,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == (
+        "Selected evidence indicates that visual evidence shows robot hand from 37.01s "
+        "to 49.01s; transcript evidence mentions robot hand from 40.00s to 50.00s: "
+        "Why don't you just admit that you're freaked out by my robot hand?"
+    )
+
+
 def test_verify_answer_claims_drops_unsupported_sentences() -> None:
     compression = CompressionResponse(
         video_id="demo",
