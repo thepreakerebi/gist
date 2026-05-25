@@ -245,6 +245,8 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
         default=0.0,
     )
     support_label = _support_label(moment)
+    grounding_label = _grounding_label(moment)
+    grounding_reason = _grounding_reason(moment)
     segment_ids = ", ".join(
         sorted({item.segment_id for item in moment if item.segment_id is not None})
     ) or "n/a"
@@ -270,10 +272,11 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
     return f"""
     <article class="card evidence">
       <h3>Video evidence {index}</h3>
-      <p><strong>video</strong> around <code>{timestamp:.2f}s</code> <span class="muted">{escape(clip_range)}</span> <span class="support">{escape(support_label)} support</span></p>
+      <p><strong>video</strong> around <code>{timestamp:.2f}s</code> <span class="muted">{escape(clip_range)}</span> <span class="support">{escape(support_label)} support</span> <span class="support">{escape(grounding_label)} grounding</span></p>
       {asset}
       <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
       <p><strong>Why selected:</strong> {escape(rationale)}</p>
+      <p><strong>Grounding check:</strong> {escape(grounding_reason)}</p>
       <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
       {_render_spatial_debug_image(_spatial_debug_item(moment))}
       <p class="muted">segments={escape(segment_ids)}; spatial_masks={escape(spatial_masks)}; spatial_previews={escape(spatial_previews)}; spatial_overlays={escape(spatial_overlays)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
@@ -290,6 +293,35 @@ def _support_label(moment: list[SelectedCandidate]) -> str:
     if "weak" in labels:
         return "weak"
     return "unscored"
+
+
+def _grounding_label(moment: list[SelectedCandidate]) -> str:
+    labels = [item.grounding_label for item in moment if item.grounding_label]
+    if "direct" in labels:
+        return "direct"
+    if "contextual" in labels:
+        return "contextual"
+    if "weak" in labels:
+        return "weak"
+    return "unscored"
+
+
+def _grounding_reason(moment: list[SelectedCandidate]) -> str:
+    reasons = [
+        item.grounding_reason.strip()
+        for item in sorted(moment, key=lambda candidate: candidate.timestamp_seconds)
+        if item.grounding_reason
+    ]
+    if not reasons:
+        return "Grounding has not been scored for this evidence."
+    seen = set()
+    unique_reasons = []
+    for reason in reasons:
+        if reason in seen:
+            continue
+        unique_reasons.append(reason)
+        seen.add(reason)
+    return " | ".join(unique_reasons)
 
 
 def _representative_video(moment: list[SelectedCandidate]) -> SelectedCandidate:

@@ -268,7 +268,11 @@ def test_annotate_evidence_support_adds_support_metadata() -> None:
     assert annotated.selected[0].ocr_support_score == 0
     assert annotated.selected[0].visual_support_score == 0
     assert annotated.selected[0].support_label in {"medium", "strong"}
+    assert annotated.selected[0].grounding_label == "direct"
+    assert "direct transcript support" in (annotated.selected[0].grounding_reason or "")
     assert annotated.selected[1].support_label == "weak"
+    assert annotated.selected[1].grounding_label == "weak"
+    assert "weak grounding" in (annotated.selected[1].grounding_reason or "")
 
 
 def test_annotate_evidence_support_scores_visual_ocr_and_cross_modal() -> None:
@@ -319,6 +323,54 @@ def test_annotate_evidence_support_scores_visual_ocr_and_cross_modal() -> None:
     assert item.cross_modal_support_score == 0.82
     assert item.audio_support_score == 0
     assert item.support_label == "strong"
+    assert item.grounding_label == "direct"
+    assert "direct OCR/text support" in (item.grounding_reason or "")
+
+
+def test_annotate_evidence_support_marks_cross_modal_visual_as_contextual() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="robot hand",
+        answer="Selected evidence shows the robot hand.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="visual",
+                modality=Modality.VISUAL,
+                timestamp_seconds=40,
+                text="visual frame sampled at 40.00 seconds",
+                audio_anchor_timestamp_seconds=42,
+                audio_anchor_score=0.08,
+                selection_rank=1,
+                relevance_score=0.01,
+                normalized_score=0.01,
+                mmr_score=0.5,
+                source_score_type="clip_scene",
+                reason="selected",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=10,
+            selected_candidates=1,
+            visual_selected=1,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=9,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=320,
+            estimated_compressed_tokens=128,
+            estimated_saved_tokens=192,
+            estimated_token_reduction_ratio=0.4,
+            estimated_token_reduction_percent=60,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    item = annotate_evidence_support(compression).selected[0]
+
+    assert item.grounding_label == "contextual"
+    assert "contextual cross-modal support" in (item.grounding_reason or "")
 
 
 def test_prune_evidence_to_answer_citations_parses_inline_citation_lists() -> None:

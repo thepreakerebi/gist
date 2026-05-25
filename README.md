@@ -371,6 +371,9 @@ Compression responses include evidence-level metadata for debugging and evaluati
 - `mmr_score`: final relevance-diversity score at selection time
 - `source_score_type`: `lexical_overlap` or `model_saliency`
 - `reason`: short explanation for why the evidence item was selected
+- `support_label`: coarse support strength from selected evidence to answer/query
+- `grounding_label`: `direct`, `contextual`, or `weak` evidence grounding check
+- `grounding_reason`: human-readable reason for the grounding label
 - `query_aspects`: decomposed query aspects used for scoring when enabled
 - `budget_mode`, `budget_preset_used`, and `budget_expanded`: adaptive-budget routing metadata
 

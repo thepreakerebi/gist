@@ -58,6 +58,8 @@ class SelectedCandidate(BaseModel):
     visual_support_score: float | None = None
     cross_modal_support_score: float | None = None
     support_label: str | None = None
+    grounding_label: str | None = None
+    grounding_reason: str | None = None
     source_score_type: str
     reason: str
 

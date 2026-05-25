@@ -59,6 +59,8 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
                 visual_support_score=0.0,
                 cross_modal_support_score=0.0,
                 support_label="strong",
+                grounding_label="direct",
+                grounding_reason="direct transcript support (answer=0.800, query=0.700)",
             )
         ],
         metrics=CompressionMetrics(
@@ -91,6 +93,8 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "strong support" in html
     assert "Why selected:" in html
     assert "rendered clip comes from transcript evidence" in html
+    assert "direct grounding" in html
+    assert "direct transcript support" in html
     assert "answer_support=0.800" in html
     assert "audio_support=0.770" in html
     assert "64.8%" in html

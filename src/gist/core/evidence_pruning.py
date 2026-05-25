@@ -14,6 +14,8 @@ MIN_CITED_SUPPORT_RELATIVE_THRESHOLD = 0.35
 STRONG_SUPPORT_SCORE = 0.12
 MEDIUM_SUPPORT_SCORE = 0.05
 REDUNDANT_EVIDENCE_SIMILARITY_THRESHOLD = 0.6
+DIRECT_GROUNDING_SCORE = MEDIUM_SUPPORT_SCORE
+CONTEXTUAL_GROUNDING_SCORE = 0.03
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +28,8 @@ class EvidenceSupport:
     ocr_score: float
     visual_score: float
     cross_modal_score: float
+    grounding_label: str
+    grounding_reason: str
 
 
 def annotate_evidence_support(compression: CompressionResponse) -> CompressionResponse:
@@ -188,6 +192,21 @@ def _support_score(
         ocr_score=ocr_score,
         visual_score=visual_score,
         cross_modal_score=cross_modal_score,
+        grounding_label=_grounding_label(
+            audio_score=audio_score,
+            ocr_score=ocr_score,
+            visual_score=visual_score,
+            cross_modal_score=cross_modal_score,
+        ),
+        grounding_reason=_grounding_reason(
+            item=item,
+            answer_score=answer_similarity,
+            query_score=query_similarity,
+            audio_score=audio_score,
+            ocr_score=ocr_score,
+            visual_score=visual_score,
+            cross_modal_score=cross_modal_score,
+        ),
     )
 
 
@@ -240,7 +259,55 @@ def _with_support_metadata(support: EvidenceSupport) -> SelectedCandidate:
             "visual_support_score": support.visual_score,
             "cross_modal_support_score": support.cross_modal_score,
             "support_label": _support_label(support.score),
+            "grounding_label": support.grounding_label,
+            "grounding_reason": support.grounding_reason,
         }
+    )
+
+
+def _grounding_label(
+    audio_score: float,
+    ocr_score: float,
+    visual_score: float,
+    cross_modal_score: float,
+) -> str:
+    direct_score = max(audio_score, ocr_score, visual_score)
+    if direct_score >= DIRECT_GROUNDING_SCORE:
+        return "direct"
+    if cross_modal_score >= CONTEXTUAL_GROUNDING_SCORE:
+        return "contextual"
+    return "weak"
+
+
+def _grounding_reason(
+    item: SelectedCandidate,
+    answer_score: float,
+    query_score: float,
+    audio_score: float,
+    ocr_score: float,
+    visual_score: float,
+    cross_modal_score: float,
+) -> str:
+    if audio_score >= DIRECT_GROUNDING_SCORE:
+        return (
+            "direct transcript support "
+            f"(answer={answer_score:.3f}, query={query_score:.3f})"
+        )
+    if ocr_score >= DIRECT_GROUNDING_SCORE:
+        return (
+            "direct OCR/text support "
+            f"(answer={answer_score:.3f}, query={query_score:.3f})"
+        )
+    if visual_score >= DIRECT_GROUNDING_SCORE:
+        return f"direct visual support (visual={visual_score:.3f})"
+    if cross_modal_score >= CONTEXTUAL_GROUNDING_SCORE:
+        return (
+            "contextual cross-modal support "
+            f"(anchor={item.audio_anchor_score:.3f}, cross_modal={cross_modal_score:.3f})"
+        )
+    return (
+        "weak grounding: no transcript, OCR, visual, or cross-modal score reached "
+        f"{CONTEXTUAL_GROUNDING_SCORE:.3f}"
     )
 
 
