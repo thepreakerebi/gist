@@ -209,11 +209,17 @@ def _support_score(
     query_similarity = text_similarity(compression.query, item.text)
     audio_score = _audio_support_score(item, answer_similarity, query_similarity)
     ocr_score = _ocr_support_score(item, answer_similarity, query_similarity)
-    visual_score = _visual_support_score(item, query_similarity)
+    visual_score = _visual_support_score(compression, item, query_similarity)
     cross_modal_score = _cross_modal_support_score(item, audio_score, visual_score)
     modality_score = max(audio_score, ocr_score, visual_score)
     text_score = (0.7 * answer_similarity) + (0.3 * query_similarity)
-    score = max(text_score, (0.75 * modality_score) + (0.25 * cross_modal_score))
+    score = _combined_support_score(
+        compression=compression,
+        item=item,
+        text_score=text_score,
+        modality_score=modality_score,
+        cross_modal_score=cross_modal_score,
+    )
     return EvidenceSupport(
         item=item,
         score=score,
@@ -362,9 +368,15 @@ def _ocr_support_score(
     return (0.65 * answer_similarity) + (0.35 * query_similarity)
 
 
-def _visual_support_score(item: SelectedCandidate, query_similarity: float) -> float:
+def _visual_support_score(
+    compression: CompressionResponse,
+    item: SelectedCandidate,
+    query_similarity: float,
+) -> float:
     if item.modality != Modality.VISUAL:
         return 0.0
+    if _is_transcript_first_query(compression):
+        return min(query_similarity, 0.04)
     score = max(item.relevance_score, item.normalized_score, query_similarity)
     if _is_ocr_text(item.text):
         score = max(score, query_similarity + 0.05)
@@ -384,6 +396,22 @@ def _cross_modal_support_score(
     if item.modality == Modality.VISUAL:
         return max(anchor_score, min(visual_score + 0.1, 1.0))
     return max(anchor_score * 0.5, audio_score * 0.25)
+
+
+def _combined_support_score(
+    compression: CompressionResponse,
+    item: SelectedCandidate,
+    text_score: float,
+    modality_score: float,
+    cross_modal_score: float,
+) -> float:
+    if _is_transcript_first_query(compression) and item.modality == Modality.VISUAL:
+        return max(text_score, min(cross_modal_score, 0.04))
+    return max(text_score, (0.75 * modality_score) + (0.25 * cross_modal_score))
+
+
+def _is_transcript_first_query(compression: CompressionResponse) -> bool:
+    return getattr(compression.query_intent, "value", None) == "speech_semantic"
 
 
 def _is_ocr_text(text: str) -> bool:

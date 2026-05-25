@@ -76,6 +76,38 @@ def test_local_text_gateway_answers_from_selected_evidence() -> None:
     assert "freaked out" in response.context
 
 
+def test_local_text_gateway_synthesizes_how_answers_from_transcript_sentences() -> None:
+    compression = GistCompressor().compress(
+        CompressionRequest(
+            video_id="demo",
+            query="How do builders use AI to do the work of hundreds of engineers?",
+            duration_seconds=60,
+            audio_candidates=[
+                Candidate(
+                    id="a1",
+                    timestamp_seconds=10,
+                    text=(
+                        "Everyone will have their own personal AI with their own data "
+                        "and integrations. Machine time can do work for builders."
+                        " They also build quality checks and citations."
+                    ),
+                )
+            ],
+        )
+    )
+
+    response = LocalTextEvidenceGateway().answer(
+        GatewayRequest(
+            query="How do builders use AI to do the work of hundreds of engineers?",
+            compression=compression,
+        )
+    )
+
+    assert "personal AI" in response.answer
+    assert "Machine time" in response.answer
+    assert "quality checks" in response.answer
+
+
 def test_subprocess_gateway_reads_stdin_and_parses_json_stdout() -> None:
     compression = GistCompressor().compress(
         CompressionRequest(

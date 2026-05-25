@@ -52,8 +52,12 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
     if entity_answer is not None:
         return entity_answer
 
+    answer_candidates = _answer_candidates(compression)
+    if not answer_candidates:
+        return None
+
     best = max(
-        compression.selected,
+        answer_candidates,
         key=lambda item: _answer_score(compression.query, item)
         + _temporal_target_score(compression.query, item, compression.selected),
     )
@@ -164,6 +168,31 @@ def _best_text_item(query: str, selected: list[SelectedCandidate]) -> SelectedCa
             -item.selection_rank,
         ),
     )
+
+
+def _answer_candidates(compression: CompressionResponse) -> list[SelectedCandidate]:
+    query = compression.query.lower().strip()
+    if _is_text_query(query):
+        return compression.selected
+    if _is_question_query(query):
+        transcript_items = [
+            item
+            for item in compression.selected
+            if item.modality.value == "audio" and not _is_visual_placeholder(item.text)
+        ]
+        if transcript_items:
+            return transcript_items
+    return [
+        item for item in compression.selected if not _is_visual_only_answer_text(item.text)
+    ]
+
+
+def _is_visual_only_answer_text(text: str) -> bool:
+    return _is_visual_placeholder(text) or text.lower().startswith("on-screen text near")
+
+
+def _is_visual_placeholder(text: str) -> bool:
+    return text.lower().startswith("visual frame sampled at")
 
 
 def _is_text_query(query: str) -> bool:

@@ -6,6 +6,7 @@ from gist.core.evidence_pruning import (
     prune_weakly_grounded_evidence,
 )
 from gist.core.presets import CompressionPreset
+from gist.core.query_intent import QueryIntent
 from gist.core.schemas import (
     CompressionMetrics,
     CompressionResponse,
@@ -372,6 +373,98 @@ def test_annotate_evidence_support_marks_cross_modal_visual_as_contextual() -> N
 
     assert item.grounding_label == "contextual"
     assert "contextual cross-modal support" in (item.grounding_reason or "")
+
+
+def test_annotate_evidence_support_does_not_overtrust_visual_for_speech_query() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do builders use AI?",
+        answer="Builders use AI for research.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.SPEECH_SEMANTIC,
+        selected=[
+            SelectedCandidate(
+                id="visual",
+                modality=Modality.VISUAL,
+                timestamp_seconds=40,
+                text="visual frame sampled at 40.00 seconds",
+                selection_rank=1,
+                relevance_score=1.0,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="clip_scene",
+                reason="selected",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=10,
+            selected_candidates=1,
+            visual_selected=1,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=9,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=320,
+            estimated_compressed_tokens=128,
+            estimated_saved_tokens=192,
+            estimated_token_reduction_ratio=0.4,
+            estimated_token_reduction_percent=60,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    item = annotate_evidence_support(compression).selected[0]
+
+    assert item.visual_support_score == 0
+    assert item.grounding_label == "weak"
+
+
+def test_prune_evidence_to_answer_prefers_transcript_over_contextual_visual_for_speech() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do builders use AI?",
+        answer="Builders use AI for research.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.SPEECH_SEMANTIC,
+        selected=[
+            SelectedCandidate(
+                id="visual",
+                modality=Modality.VISUAL,
+                timestamp_seconds=40,
+                text="visual frame sampled at 40.00 seconds",
+                audio_anchor_timestamp_seconds=42,
+                audio_anchor_score=0.99,
+                selection_rank=1,
+                relevance_score=1.0,
+                normalized_score=2.0,
+                mmr_score=0.5,
+                source_score_type="clip_scene",
+                reason="selected",
+            ),
+            _item("audio", 42, "Builders use AI for research and writing."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=10,
+            selected_candidates=2,
+            visual_selected=1,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=0.2,
+            estimated_candidate_reduction_percent=80,
+            dropped_candidates=8,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=320,
+            estimated_compressed_tokens=160,
+            estimated_saved_tokens=160,
+            estimated_token_reduction_ratio=0.5,
+            estimated_token_reduction_percent=50,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression, max_items=1, min_items=1)
+
+    assert [item.id for item in pruned.selected] == ["audio"]
 
 
 def test_prune_weakly_grounded_evidence_drops_noise_when_grounded_items_remain() -> None:

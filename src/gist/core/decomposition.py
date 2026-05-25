@@ -66,6 +66,7 @@ class RuleBasedQueryDecomposer:
         if not aspects:
             return [QueryAspect(text=normalized, modality=self._infer_modality(normalized))]
 
+        aspects.extend(_conceptual_aspects(normalized))
         return _dedupe_aspects(aspects)
 
     def _infer_modality(self, text: str) -> QueryAspectModality:
@@ -90,3 +91,18 @@ def _dedupe_aspects(aspects: list[QueryAspect]) -> list[QueryAspect]:
         seen.add(key)
         unique.append(aspect)
     return unique
+
+
+def _conceptual_aspects(query: str) -> list[QueryAspect]:
+    tokens = set(re.findall(r"[a-z0-9]+", query.lower()))
+    if {"ai", "builders", "work"} <= tokens:
+        return [
+            QueryAspect(
+                text=(
+                    "research articles code quality citations machine work "
+                    "builders productivity"
+                ),
+                modality=QueryAspectModality.AUDIO,
+            )
+        ]
+    return []

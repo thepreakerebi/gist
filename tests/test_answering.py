@@ -200,6 +200,90 @@ def test_answer_from_evidence_summarizes_short_entity_queries() -> None:
     )
 
 
+def test_answer_from_evidence_uses_transcript_for_question_not_visual_placeholder() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do top builders use AI to do the work of hundreds of engineers?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="visual",
+                modality=Modality.VISUAL,
+                timestamp_seconds=359.76,
+                text="visual frame sampled at 359.76 seconds",
+                selection_rank=1,
+                relevance_score=1.0,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="clip_scene",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="audio",
+                modality=Modality.AUDIO,
+                timestamp_seconds=382.0,
+                text="Top builders use AI to automate research, write code, and review work.",
+                selection_rank=2,
+                relevance_score=0.7,
+                normalized_score=0.9,
+                mmr_score=0.4,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=1,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == (
+        "Top builders use AI to automate research, write code, and review work."
+    )
+
+
+def test_answer_from_evidence_rejects_visual_only_ocr_for_non_text_question() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="How do top builders use AI?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="ocr",
+                modality=Modality.VISUAL,
+                timestamp_seconds=884.81,
+                text="on-screen text near 884.81 seconds: ee ere",
+                selection_rank=1,
+                relevance_score=1.0,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="ocr",
+                reason="test",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=1,
+            selected_candidates=1,
+            visual_selected=1,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) is None
+
+
 def test_verify_answer_claims_drops_unsupported_sentences() -> None:
     compression = CompressionResponse(
         video_id="demo",
