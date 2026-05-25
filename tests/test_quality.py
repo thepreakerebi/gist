@@ -57,6 +57,7 @@ def test_evaluate_quality_case_passes_when_answer_and_evidence_align(tmp_path: P
     assert result.passed is True
     assert result.answer_term_recall == 1.0
     assert result.evidence_relevance_rate == 1.0
+    assert result.grounded_evidence_rate == 1.0
 
 
 def test_evaluate_quality_case_reports_quality_failures(tmp_path: Path) -> None:
@@ -107,6 +108,38 @@ def test_evaluate_quality_case_reports_quality_failures(tmp_path: Path) -> None:
     assert any("token reduction" in failure for failure in result.failures)
 
 
+def test_evaluate_quality_case_can_gate_grounded_evidence_rate(tmp_path: Path) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        answer="Pricing starts at ten dollars.",
+        selected=[
+            _item(
+                "a-1",
+                timestamp=100,
+                clip_start=90,
+                clip_end=110,
+                text="Lunch and travel plans are discussed.",
+            )
+        ],
+        token_reduction=99.0,
+    )
+    case = QualityCase(
+        id="weak-grounding",
+        compression_path=compression_path,
+        expected_answer_terms=["pricing"],
+        expected_evidence_terms=[],
+        min_answer_term_recall=1.0,
+        min_grounded_evidence_rate=1.0,
+    )
+
+    result = evaluate_quality_case(case)
+
+    assert result.passed is False
+    assert result.grounded_evidence_rate == 0.0
+    assert "evidence_grounding" in result.failure_categories
+    assert any("grounded evidence rate" in failure for failure in result.failures)
+
+
 def test_run_quality_cases_and_markdown_summary(tmp_path: Path) -> None:
     compression_path = _write_compression(
         tmp_path,
@@ -144,6 +177,7 @@ def test_run_quality_cases_and_markdown_summary(tmp_path: Path) -> None:
 
     assert report.passed is True
     assert report.summary.pass_rate == 1.0
+    assert report.summary.avg_grounded_evidence_rate == 1.0
     assert report.summary.failure_categories == {}
     assert "| slide | pass |" in markdown
 

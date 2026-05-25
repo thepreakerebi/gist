@@ -101,6 +101,7 @@ gist-acceptance \
   --min-avg-answer-term-recall 0.85 \
   --min-avg-evidence-relevance-rate 0.85 \
   --min-avg-timestamp-hit-rate 0.85 \
+  --min-avg-grounded-evidence-rate 0.85 \
   --min-avg-token-reduction-percent 90 \
   --max-failure-count 0
 ```

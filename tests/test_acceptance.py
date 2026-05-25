@@ -20,6 +20,7 @@ def test_acceptance_passes_when_quality_meets_gates() -> None:
             min_avg_answer_term_recall=0.8,
             min_avg_evidence_relevance_rate=0.8,
             min_avg_timestamp_hit_rate=0.8,
+            min_avg_grounded_evidence_rate=0.8,
             min_avg_token_reduction_percent=90.0,
             max_failure_count=0,
         ),
@@ -29,6 +30,7 @@ def test_acceptance_passes_when_quality_meets_gates() -> None:
     assert all(result.passed for result in report.gate_results)
     assert "Gist Acceptance Report" in render_acceptance_markdown(report)
     assert "Gist Acceptance Report" in render_acceptance_html(report)
+    assert any(result.name == "avg_grounded_evidence_rate" for result in report.gate_results)
 
 
 def test_acceptance_fails_when_gate_is_not_met() -> None:
@@ -159,6 +161,7 @@ def _quality_report(pass_rate: float, failures: int) -> QualityReport:
             evidence_term_coverage=0.9,
             evidence_relevance_rate=0.9,
             timestamp_hit_rate=0.9,
+            grounded_evidence_rate=0.9,
             token_reduction_percent=95.0,
             selected_evidence=1,
             visual_evidence=0,
@@ -176,6 +179,7 @@ def _quality_report(pass_rate: float, failures: int) -> QualityReport:
             avg_evidence_term_coverage=0.9,
             avg_evidence_relevance_rate=0.9,
             avg_timestamp_hit_rate=0.9,
+            avg_grounded_evidence_rate=0.9,
             avg_token_reduction_percent=95.0,
         ),
         results=results,

@@ -24,6 +24,7 @@ class AcceptanceGates(BaseModel):
     min_avg_answer_term_recall: Annotated[float, Field(ge=0, le=1)] = 0.8
     min_avg_evidence_relevance_rate: Annotated[float, Field(ge=0, le=1)] = 0.8
     min_avg_timestamp_hit_rate: Annotated[float, Field(ge=0, le=1)] = 0.8
+    min_avg_grounded_evidence_rate: Annotated[float, Field(ge=0, le=1)] = 0.8
     min_avg_token_reduction_percent: Annotated[float, Field(ge=0, le=100)] = 90.0
     max_failure_count: Annotated[int, Field(ge=0)] = 0
 
@@ -68,6 +69,11 @@ def evaluate_acceptance(quality: QualityReport, gates: AcceptanceGates) -> Accep
             gates.min_avg_timestamp_hit_rate,
         ),
         _at_least(
+            "avg_grounded_evidence_rate",
+            quality.summary.avg_grounded_evidence_rate,
+            gates.min_avg_grounded_evidence_rate,
+        ),
+        _at_least(
             "avg_token_reduction_percent",
             quality.summary.avg_token_reduction_percent,
             gates.min_avg_token_reduction_percent,
@@ -96,6 +102,7 @@ def render_acceptance_markdown(report: AcceptanceReport) -> str:
 - Avg answer recall: {report.quality.summary.avg_answer_term_recall:.2f}
 - Avg evidence relevance: {report.quality.summary.avg_evidence_relevance_rate:.2f}
 - Avg timestamp hit: {report.quality.summary.avg_timestamp_hit_rate:.2f}
+- Avg grounded evidence: {report.quality.summary.avg_grounded_evidence_rate:.2f}
 - Avg token reduction: {report.quality.summary.avg_token_reduction_percent:.2f}%
 
 ## Gates
@@ -153,6 +160,10 @@ def render_acceptance_html(report: AcceptanceReport) -> str:
     <strong>Avg timestamp hit:</strong> {report.quality.summary.avg_timestamp_hit_rate:.2f}
   </div>
   <div class="metric">
+    <strong>Avg grounded evidence:</strong>
+    {report.quality.summary.avg_grounded_evidence_rate:.2f}
+  </div>
+  <div class="metric">
     <strong>Avg token reduction:</strong> {report.quality.summary.avg_token_reduction_percent:.2f}%
   </div>
   <h2>Gates</h2>
@@ -186,6 +197,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-avg-answer-term-recall", type=float, default=0.8)
     parser.add_argument("--min-avg-evidence-relevance-rate", type=float, default=0.8)
     parser.add_argument("--min-avg-timestamp-hit-rate", type=float, default=0.8)
+    parser.add_argument("--min-avg-grounded-evidence-rate", type=float, default=0.8)
     parser.add_argument("--min-avg-token-reduction-percent", type=float, default=90.0)
     parser.add_argument("--max-failure-count", type=int, default=0)
     parser.add_argument(
@@ -252,6 +264,7 @@ def main(argv: list[str] | None = None) -> int:
         min_avg_answer_term_recall=args.min_avg_answer_term_recall,
         min_avg_evidence_relevance_rate=args.min_avg_evidence_relevance_rate,
         min_avg_timestamp_hit_rate=args.min_avg_timestamp_hit_rate,
+        min_avg_grounded_evidence_rate=args.min_avg_grounded_evidence_rate,
         min_avg_token_reduction_percent=args.min_avg_token_reduction_percent,
         max_failure_count=args.max_failure_count,
     )

@@ -52,6 +52,7 @@ class QualityCase(BaseModel):
     min_evidence_term_coverage: Annotated[float, Field(ge=0, le=1)] = 0.0
     min_evidence_relevance_rate: Annotated[float, Field(ge=0, le=1)] = 0.0
     min_timestamp_hit_rate: Annotated[float, Field(ge=0, le=1)] = 0.0
+    min_grounded_evidence_rate: Annotated[float, Field(ge=0, le=1)] = 0.0
     min_token_reduction_percent: Annotated[float, Field(ge=0, le=100)] = 0.0
     max_selected_evidence: Annotated[int, Field(gt=0)] | None = None
     min_visual_evidence: Annotated[int, Field(ge=0)] = 0
@@ -75,6 +76,7 @@ class QualityResult(BaseModel):
     evidence_term_coverage: float
     evidence_relevance_rate: float
     timestamp_hit_rate: float
+    grounded_evidence_rate: float
     token_reduction_percent: float
     selected_evidence: int
     visual_evidence: int
@@ -93,6 +95,7 @@ class QualitySummary(BaseModel):
     avg_evidence_term_coverage: float
     avg_evidence_relevance_rate: float
     avg_timestamp_hit_rate: float
+    avg_grounded_evidence_rate: float
     avg_token_reduction_percent: float
     failure_categories: dict[str, int] = Field(default_factory=dict)
 
@@ -236,6 +239,7 @@ def run_quality_cases(
         avg_evidence_term_coverage=_average(result.evidence_term_coverage for result in results),
         avg_evidence_relevance_rate=_average(result.evidence_relevance_rate for result in results),
         avg_timestamp_hit_rate=_average(result.timestamp_hit_rate for result in results),
+        avg_grounded_evidence_rate=_average(result.grounded_evidence_rate for result in results),
         avg_token_reduction_percent=_average(result.token_reduction_percent for result in results),
         failure_categories=_category_counts(results),
     )
@@ -251,7 +255,7 @@ def evaluate_quality_case(
     output_root: Path = Path(".gist/quality"),
     extraction_options: QualityExtractionOptions | None = None,
 ) -> QualityResult:
-    compression = _compression_for_case(case, output_root=output_root)
+    compression = annotate_evidence_support(_compression_for_case(case, output_root=output_root))
     answer = compression.answer or ""
     answer_recall = _term_recall(case.expected_answer_terms, answer)
     evidence_text = " ".join(item.text for item in compression.selected)
@@ -269,6 +273,7 @@ def evaluate_quality_case(
         expected_ranges=relevant_ranges,
         tolerance_seconds=case.timestamp_tolerance_seconds,
     )
+    grounded_rate = _grounded_evidence_rate(compression)
     token_reduction = compression.metrics.estimated_token_reduction_percent
     failures = _quality_failures(
         case=case,
@@ -277,6 +282,7 @@ def evaluate_quality_case(
         evidence_coverage=evidence_coverage,
         relevance_rate=relevance_rate,
         timestamp_hit_rate=timestamp_hit_rate,
+        grounded_rate=grounded_rate,
         token_reduction=token_reduction,
     )
     failure_categories = _failure_categories(
@@ -286,6 +292,7 @@ def evaluate_quality_case(
         evidence_coverage=evidence_coverage,
         relevance_rate=relevance_rate,
         timestamp_hit_rate=timestamp_hit_rate,
+        grounded_rate=grounded_rate,
         token_reduction=token_reduction,
     )
     extraction_artifact = (
@@ -307,6 +314,7 @@ def evaluate_quality_case(
         evidence_term_coverage=evidence_coverage,
         evidence_relevance_rate=relevance_rate,
         timestamp_hit_rate=timestamp_hit_rate,
+        grounded_evidence_rate=grounded_rate,
         token_reduction_percent=token_reduction,
         selected_evidence=compression.metrics.selected_candidates,
         visual_evidence=compression.metrics.visual_selected,
@@ -329,12 +337,13 @@ def render_quality_markdown(report: QualityReport) -> str:
         f"- Avg evidence term coverage: {report.summary.avg_evidence_term_coverage:.2f}",
         f"- Avg evidence relevance rate: {report.summary.avg_evidence_relevance_rate:.2f}",
         f"- Avg timestamp hit rate: {report.summary.avg_timestamp_hit_rate:.2f}",
+        f"- Avg grounded evidence rate: {report.summary.avg_grounded_evidence_rate:.2f}",
         f"- Avg token reduction: {report.summary.avg_token_reduction_percent:.2f}%",
         "",
         "| Case | Status | Answer Recall | Evidence Coverage | Evidence Relevance | "
-        "Timestamp Hit | Token Reduction | Selected | Extraction | Categories | "
+        "Timestamp Hit | Grounded | Token Reduction | Selected | Extraction | Categories | "
         "Recommendation | Failures |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---|---|",
     ]
     for result in report.results:
         failures = "; ".join(result.failures)
@@ -344,6 +353,7 @@ def render_quality_markdown(report: QualityReport) -> str:
             f"{result.evidence_term_coverage:.2f} | "
             f"{result.evidence_relevance_rate:.2f} | "
             f"{result.timestamp_hit_rate:.2f} | "
+            f"{result.grounded_evidence_rate:.2f} | "
             f"{result.token_reduction_percent:.2f}% | "
             f"{result.selected_evidence} | "
             f"{_markdown_extraction_cell(result.extraction)} | "
@@ -362,6 +372,7 @@ def render_quality_html(report: QualityReport) -> str:
         f"<td>{result.evidence_term_coverage:.2f}</td>"
         f"<td>{result.evidence_relevance_rate:.2f}</td>"
         f"<td>{result.timestamp_hit_rate:.2f}</td>"
+        f"<td>{result.grounded_evidence_rate:.2f}</td>"
         f"<td>{result.token_reduction_percent:.2f}%</td>"
         f"<td>{result.selected_evidence}</td>"
         f"<td>{_html_extraction_cell(result.extraction)}</td>"
@@ -414,6 +425,9 @@ def render_quality_html(report: QualityReport) -> str:
     <strong>Avg timestamp hit:</strong> {report.summary.avg_timestamp_hit_rate:.2f}
   </div>
   <div class="metric">
+    <strong>Avg grounded evidence:</strong> {report.summary.avg_grounded_evidence_rate:.2f}
+  </div>
+  <div class="metric">
     <strong>Avg token reduction:</strong> {report.summary.avg_token_reduction_percent:.2f}%
   </div>
   {_render_failure_category_summary(report.summary.failure_categories)}
@@ -427,6 +441,7 @@ def render_quality_html(report: QualityReport) -> str:
         <th>Evidence Coverage</th>
         <th>Evidence Relevance</th>
         <th>Timestamp Hit</th>
+        <th>Grounded</th>
         <th>Token Reduction</th>
         <th>Selected</th>
         <th>Extraction</th>
@@ -594,6 +609,7 @@ def main(argv: list[str] | None = None) -> int:
             f"evidence_coverage={result.evidence_term_coverage:.2f}, "
             f"evidence_relevance={result.evidence_relevance_rate:.2f}, "
             f"timestamp_hit={result.timestamp_hit_rate:.2f}, "
+            f"grounded={result.grounded_evidence_rate:.2f}, "
             f"token_reduction={result.token_reduction_percent:.2f}%"
         )
         if result.extraction is not None:
@@ -697,6 +713,7 @@ def _quality_failures(
     evidence_coverage: float,
     relevance_rate: float,
     timestamp_hit_rate: float,
+    grounded_rate: float,
     token_reduction: float,
 ) -> list[str]:
     failures: list[str] = []
@@ -719,6 +736,11 @@ def _quality_failures(
         failures.append(
             f"timestamp hit rate {timestamp_hit_rate:.2f} below required "
             f"{case.min_timestamp_hit_rate:.2f}"
+        )
+    if grounded_rate < case.min_grounded_evidence_rate:
+        failures.append(
+            f"grounded evidence rate {grounded_rate:.2f} below required "
+            f"{case.min_grounded_evidence_rate:.2f}"
         )
     if token_reduction < case.min_token_reduction_percent:
         failures.append(
@@ -753,6 +775,7 @@ def _failure_categories(
     evidence_coverage: float,
     relevance_rate: float,
     timestamp_hit_rate: float,
+    grounded_rate: float,
     token_reduction: float,
 ) -> list[str]:
     categories: list[str] = []
@@ -765,6 +788,8 @@ def _failure_categories(
         categories.append("evidence_retrieval")
     if timestamp_hit_rate < case.min_timestamp_hit_rate:
         categories.append("temporal_localization")
+    if grounded_rate < case.min_grounded_evidence_rate:
+        categories.append("evidence_grounding")
     if token_reduction < case.min_token_reduction_percent:
         categories.append("compression_budget")
     if (
@@ -789,6 +814,8 @@ def _recommendation(categories: list[str]) -> str | None:
         return "Tune candidate scoring, query decomposition, or scene/audio fusion."
     if "temporal_localization" in categories:
         return "Adjust clip span, transcript anchoring, or temporal context expansion."
+    if "evidence_grounding" in categories:
+        return "Tighten grounding-aware pruning or improve cross-modal support scoring."
     if "answer_grounding" in categories:
         return "Improve answer synthesis and citation pruning from selected evidence."
     if "compression_budget" in categories:
@@ -821,6 +848,8 @@ def _case_warnings(case: QualityCase) -> list[str]:
         warnings.append(f"{case.id}: min_answer_term_recall is not enforcing quality")
     if case.min_evidence_relevance_rate == 0:
         warnings.append(f"{case.id}: min_evidence_relevance_rate is not enforcing quality")
+    if case.min_grounded_evidence_rate == 0:
+        warnings.append(f"{case.id}: min_grounded_evidence_rate is not enforcing grounding")
     if case.min_token_reduction_percent == 0:
         warnings.append(f"{case.id}: min_token_reduction_percent is not enforcing compression")
     return warnings
@@ -949,6 +978,16 @@ def _evidence_relevance_rate(
         if text_match or time_match:
             relevant += 1
     return relevant / len(compression.selected)
+
+
+def _grounded_evidence_rate(compression: CompressionResponse) -> float:
+    if not compression.selected:
+        return 0.0
+    grounded = sum(
+        item.grounding_label in {"direct", "contextual"}
+        for item in compression.selected
+    )
+    return grounded / len(compression.selected)
 
 
 def _term_recall(expected_terms: list[str], text: str) -> float:
