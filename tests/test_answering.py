@@ -106,6 +106,45 @@ def test_answer_from_evidence_prefers_post_anchor_evidence_for_after_queries() -
     assert answer_from_evidence(compression) == "on-screen text near 5.00 seconds: BLUE BOX"
 
 
+def test_answer_from_evidence_describes_visual_object_instead_of_noisy_ocr() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="show the robot hand on screen",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="visual",
+                modality=Modality.VISUAL,
+                timestamp_seconds=34.41,
+                text="on-screen text near 34.41 seconds: ‘hat-4 Veta bi . A |",
+                clip_start_seconds=30.4,
+                clip_end_seconds=38.4,
+                selection_rank=1,
+                relevance_score=0.9,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="lexical_overlap",
+                reason="test",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=1,
+            selected_candidates=1,
+            visual_selected=1,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == (
+        "Visual evidence shows robot hand from 30.40s to 38.40s."
+    )
+
+
 def test_verify_answer_claims_drops_unsupported_sentences() -> None:
     compression = CompressionResponse(
         video_id="demo",

@@ -18,11 +18,35 @@ WHY_ANSWER_TERMS = {
 }
 MIN_CLAIM_SUPPORT_SCORE = 0.12
 MIN_CLAIM_CONTENT_TOKENS = 4
+_VISUAL_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "at",
+    "in",
+    "is",
+    "me",
+    "of",
+    "on",
+    "screen",
+    "show",
+    "shown",
+    "the",
+    "to",
+    "video",
+    "what",
+    "when",
+    "where",
+}
 
 
 def answer_from_evidence(compression: CompressionResponse) -> str | None:
     if not compression.selected:
         return None
+
+    visual_answer = _visual_object_answer(compression)
+    if visual_answer is not None:
+        return visual_answer
 
     best = max(
         compression.selected,
@@ -36,6 +60,75 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
     if compression.query.lower().strip().startswith("why"):
         return _why_answer(sentence)
     return sentence
+
+
+def _visual_object_answer(compression: CompressionResponse) -> str | None:
+    query = compression.query.lower().strip()
+    if _is_text_query(query):
+        return None
+    if not _is_visual_object_query(query):
+        return None
+    visual_items = [item for item in compression.selected if item.modality.value == "visual"]
+    if not visual_items:
+        return None
+    best = max(
+        visual_items,
+        key=lambda item: (
+            item.visual_support_score or 0.0,
+            item.relevance_score,
+            item.normalized_score,
+        ),
+    )
+    target = _visual_target(compression.query)
+    time_span = _time_span(best)
+    return f"Visual evidence shows {target}{time_span}."
+
+
+def _is_text_query(query: str) -> bool:
+    return any(term in f" {query} " for term in [" text ", " words ", " caption ", " written "])
+
+
+def _is_visual_object_query(query: str) -> bool:
+    visual_markers = {
+        "appear",
+        "appears",
+        "display",
+        "displayed",
+        "look",
+        "screen",
+        "see",
+        "show",
+        "shown",
+        "visible",
+        "watch",
+    }
+    query_terms = set(re.findall(r"[a-z0-9]+", query))
+    if query_terms & visual_markers:
+        return True
+    return query.startswith(("where ", "when ")) and bool(query_terms - _VISUAL_STOPWORDS)
+
+
+def _visual_target(query: str) -> str:
+    terms = [
+        token
+        for token in re.findall(r"[a-z0-9]+", query.lower())
+        if token not in _VISUAL_STOPWORDS
+    ]
+    return " ".join(terms) if terms else "the requested visual target"
+
+
+def _time_span(item: SelectedCandidate) -> str:
+    start = (
+        item.clip_start_seconds
+        if item.clip_start_seconds is not None
+        else item.scene_start_seconds
+    )
+    end = item.clip_end_seconds if item.clip_end_seconds is not None else item.scene_end_seconds
+    if start is None or end is None:
+        return f" near {item.timestamp_seconds:.2f} seconds"
+    if start == end:
+        return f" near {start:.2f} seconds"
+    return f" from {min(start, end):.2f}s to {max(start, end):.2f}s"
 
 
 def verify_answer_claims(
