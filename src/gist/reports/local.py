@@ -11,6 +11,8 @@ from gist.media.models import IngestedVideo
 MOMENT_GROUP_SECONDS = 15.0
 MAX_DISPLAY_MOMENTS = 6
 NEAR_DUPLICATE_TRANSCRIPT_THRESHOLD = 0.35
+
+
 def render_local_compression_report(
     ingestion: IngestedVideo,
     compression: CompressionResponse,
@@ -208,7 +210,8 @@ def _clip_ranges_overlap(left: SelectedCandidate, right: SelectedCandidate) -> b
 def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
     representative = _representative_video(moment)
     asset = _render_asset(representative)
-    transcript = _moment_transcript(moment)
+    transcript = _moment_transcript(moment, representative=representative)
+    rationale = _support_rationale(moment, representative)
     timestamp = _moment_timestamp(moment)
     item_ids = ", ".join(item.id for item in moment)
     score = max((item.relevance_score for item in moment), default=0.0)
@@ -270,6 +273,7 @@ def _render_evidence_moment(index: int, moment: list[SelectedCandidate]) -> str:
       <p><strong>video</strong> around <code>{timestamp:.2f}s</code> <span class="muted">{escape(clip_range)}</span> <span class="support">{escape(support_label)} support</span></p>
       {asset}
       <p><strong>Transcript/context:</strong> {escape(transcript)}</p>
+      <p><strong>Why selected:</strong> {escape(rationale)}</p>
       <p class="muted">Internal candidates grouped: {escape(item_ids)}</p>
       {_render_spatial_debug_image(_spatial_debug_item(moment))}
       <p class="muted">segments={escape(segment_ids)}; spatial_masks={escape(spatial_masks)}; spatial_previews={escape(spatial_previews)}; spatial_overlays={escape(spatial_overlays)}; support={support_score:.3f}; answer_support={answer_support:.3f}; query_support={query_support:.3f}; audio_support={audio_support:.3f}; ocr_support={ocr_support:.3f}; visual_support={visual_support:.3f}; cross_modal_support={cross_modal_support:.3f}; best_score={score:.3f}; best_mmr={mmr:.3f}</p>
@@ -325,12 +329,20 @@ def _spatial_debug_item(moment: list[SelectedCandidate]) -> SelectedCandidate:
     return _representative_video(moment)
 
 
-def _moment_transcript(moment: list[SelectedCandidate]) -> str:
+def _moment_transcript(
+    moment: list[SelectedCandidate],
+    representative: SelectedCandidate | None = None,
+) -> str:
     snippets = []
     seen = set()
-    for item in sorted(moment, key=lambda candidate: candidate.timestamp_seconds):
-        if item.modality != Modality.AUDIO:
-            continue
+    audio_items = [item for item in moment if item.modality == Modality.AUDIO]
+    if representative is not None:
+        overlapping_audio = [
+            item for item in audio_items if _clip_ranges_overlap(representative, item)
+        ]
+        if overlapping_audio:
+            audio_items = overlapping_audio
+    for item in sorted(audio_items, key=lambda candidate: candidate.timestamp_seconds):
         text = item.text.strip()
         if not text or text in seen:
             continue
@@ -339,6 +351,32 @@ def _moment_transcript(moment: list[SelectedCandidate]) -> str:
     if snippets:
         return " ".join(snippets)
     return "Transcript unavailable for this visual-only moment."
+
+
+def _support_rationale(
+    moment: list[SelectedCandidate],
+    representative: SelectedCandidate,
+) -> str:
+    reasons: list[str] = []
+    if representative.modality == Modality.AUDIO:
+        reasons.append("rendered clip comes from transcript evidence")
+    else:
+        reasons.append("rendered clip comes from visual evidence")
+    if any(
+        item.modality == Modality.AUDIO and _clip_ranges_overlap(representative, item)
+        for item in moment
+    ):
+        reasons.append("transcript overlaps the rendered clip")
+    elif any(item.modality == Modality.AUDIO for item in moment):
+        reasons.append("transcript is nearby context, not an exact clip overlap")
+    if representative.audio_anchor_score > 0:
+        reasons.append(
+            f"visual anchor score {representative.audio_anchor_score:.2f}"
+        )
+    best_support = max((item.evidence_support_score or 0.0 for item in moment), default=0.0)
+    if best_support > 0:
+        reasons.append(f"evidence support score {best_support:.3f}")
+    return "; ".join(reasons) + "."
 
 
 def _moment_timestamp(moment: list[SelectedCandidate]) -> float:

@@ -89,6 +89,8 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "Refunds are available for eligible plans." in html
     assert "long processing selected" in html
     assert "strong support" in html
+    assert "Why selected:" in html
+    assert "rendered clip comes from transcript evidence" in html
     assert "answer_support=0.800" in html
     assert "audio_support=0.770" in html
     assert "64.8%" in html
@@ -178,6 +180,7 @@ def test_render_local_compression_report_groups_audio_and_visual_into_video_mome
     assert audio_clip_path.resolve().as_uri() in html
     assert visual_clip_path.resolve().as_uri() not in html
     assert "He is freaked out by my robot hand." in html
+    assert "transcript overlaps the rendered clip" in html
 
 
 def test_render_local_compression_report_hides_visual_only_and_caps_moments(
