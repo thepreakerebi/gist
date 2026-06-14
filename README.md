@@ -283,7 +283,7 @@ gist /absolute/path/to/video.mp4 \
   --query "where does the speaker explain the refund policy?" \
   --processing-mode auto \
   --visual-scorer baseline \
-  --audio-scorer baseline
+  --audio-scorer auto
 ```
 
 For long videos, leave `--processing-mode auto` unless you need strict control. Auto mode
@@ -303,7 +303,7 @@ curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
     "processing_mode": "auto",
     "preset": "balanced",
     "visual_scorer": "baseline",
-    "audio_scorer": "baseline",
+    "audio_scorer": "auto",
     "adaptive_budget": false,
     "decompose_query": false,
     "sample_count": 128,
@@ -312,6 +312,13 @@ curl -X POST http://127.0.0.1:8000/v1/local-video-compressions \
 ```
 
 Use `"visual_scorer": "clip"` to score sampled frames with CLIP after installing the optional vision dependencies. The default `"baseline"` mode remains dependency-light and deterministic. CLAP and Whisper adapters will extend the audio side without changing the compression API contract.
+
+The CLI and local compression API default to `"audio_scorer": "auto"`. When the optional audio
+dependencies are installed, auto mode routes speech-semantic questions on videos at least 10
+minutes long to Whisper. It keeps shorter or non-speech requests on the dependency-light baseline
+scorer and safely falls back to baseline when Whisper is unavailable. The compression response and
+HTML report record the resolved scorer. Set `baseline`, `whisper`, or `clap` explicitly to bypass
+automatic routing.
 
 Use `"audio_scorer": "whisper"` to transcribe extracted audio windows with Faster Whisper after installing the optional audio dependencies. The transcript becomes the audio candidate text, so Gist-core can rank speech windows by query relevance.
 

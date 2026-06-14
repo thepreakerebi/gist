@@ -8,6 +8,7 @@ class VisualScoringMode(StrEnum):
 
 
 class AudioScoringMode(StrEnum):
+    AUTO = "auto"
     BASELINE = "baseline"
     WHISPER = "whisper"
     CLAP = "clap"

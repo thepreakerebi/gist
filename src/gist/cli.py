@@ -61,7 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--audio-scorer",
         choices=list(AudioScoringMode),
-        default=AudioScoringMode.BASELINE,
+        default=AudioScoringMode.AUTO,
     )
     parser.add_argument("--adaptive-budget", action="store_true")
     parser.add_argument("--decompose-query", action="store_true")

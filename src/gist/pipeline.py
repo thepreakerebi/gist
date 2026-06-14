@@ -1,6 +1,7 @@
-from pathlib import Path
-import os
 import inspect
+import os
+from importlib.util import find_spec
+from pathlib import Path
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
@@ -17,6 +18,7 @@ from gist.core.compressor import GistCompressor
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.progress import ProgressCallback
+from gist.core.query_intent import QueryIntent, route_query_intent
 from gist.core.schemas import CompressionRequest, CompressionResponse
 from gist.core.token_estimation import TokenEstimatorProfile, estimate_tokens
 from gist.media.ingestion import MediaIngestor
@@ -72,6 +74,11 @@ class LocalCompressionPipeline:
             visual_ocr=visual_ocr,
             progress=progress,
         )
+        resolved_audio_scorer = resolve_audio_scorer(
+            requested=audio_scorer,
+            query=query,
+            duration_seconds=ingested.metadata.duration_seconds,
+        )
 
         if progress is not None:
             progress("compressing candidate set")
@@ -95,7 +102,12 @@ class LocalCompressionPipeline:
             raw_visual_count=len(ingested.frames),
             raw_audio_count=len(ingested.audio_windows),
         )
-        compression = compression.model_copy(update={"answer": answer_from_evidence(compression)})
+        compression = compression.model_copy(
+            update={
+                "answer": answer_from_evidence(compression),
+                "audio_scorer_used": resolved_audio_scorer,
+            }
+        )
         if progress is not None:
             progress(f"compression complete: selected={compression.metrics.selected_candidates}")
         return ingested, compression
@@ -136,10 +148,18 @@ class LocalCompressionPipeline:
         elif progress is not None:
             progress("ingestion cache hit")
 
+        resolved_audio_scorer = resolve_audio_scorer(
+            requested=audio_scorer,
+            query=query,
+            duration_seconds=ingested.metadata.duration_seconds,
+        )
+        if progress is not None and resolved_audio_scorer != audio_scorer:
+            progress(f"audio scorer auto-routed to {resolved_audio_scorer.value}")
+
         audio_context_window_count = _audio_context_window_count(ingested)
         candidate_generator = self._candidate_generator_for(
             visual_scorer=visual_scorer,
-            audio_scorer=audio_scorer,
+            audio_scorer=resolved_audio_scorer,
             audio_context_window_count=audio_context_window_count,
             visual_ocr=visual_ocr,
         )
@@ -147,7 +167,7 @@ class LocalCompressionPipeline:
             ingestion=ingested,
             query=query,
             visual_scorer=visual_scorer,
-            audio_scorer=audio_scorer,
+            audio_scorer=resolved_audio_scorer,
             audio_context_window_count=audio_context_window_count,
             visual_ocr=visual_ocr,
         )
@@ -233,6 +253,26 @@ class LocalCompressionPipeline:
 def recommended_processing_mode(video_path: Path, ingestor: MediaIngestor) -> ProcessingMode:
     metadata = ingestor.processor.probe(video_path)
     return plan_ingestion(metadata.duration_seconds, mode=ProcessingMode.AUTO).mode
+
+
+def resolve_audio_scorer(
+    requested: AudioScoringMode,
+    query: str,
+    duration_seconds: float,
+    whisper_available: bool | None = None,
+) -> AudioScoringMode:
+    if requested != AudioScoringMode.AUTO:
+        return requested
+    query_intent, _reason = route_query_intent(query)
+    if whisper_available is None:
+        whisper_available = find_spec("faster_whisper") is not None
+    if (
+        query_intent == QueryIntent.SPEECH_SEMANTIC
+        and duration_seconds >= 600
+        and whisper_available
+    ):
+        return AudioScoringMode.WHISPER
+    return AudioScoringMode.BASELINE
 
 
 def _audio_context_window_count(ingested: IngestedVideo) -> int:

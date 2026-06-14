@@ -5,6 +5,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from gist.core.decomposition import QueryAspect
+from gist.core.modes import AudioScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.query_intent import QueryIntent
 from gist.core.token_estimation import TokenEstimatorProfile
@@ -121,6 +122,7 @@ class CompressionResponse(BaseModel):
     preset: CompressionPreset
     query_intent: QueryIntent | None = None
     routing_reason: str | None = None
+    audio_scorer_used: AudioScoringMode | None = None
     query_aspects: list[QueryAspect] = Field(default_factory=list)
     selected: list[SelectedCandidate]
     metrics: CompressionMetrics

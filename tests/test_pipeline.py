@@ -11,7 +11,7 @@ from gist.media.models import (
     IngestionSettings,
     VideoMetadata,
 )
-from gist.pipeline import LocalCompressionPipeline
+from gist.pipeline import LocalCompressionPipeline, resolve_audio_scorer
 
 
 class FakeIngestor:
@@ -88,6 +88,63 @@ def test_local_pipeline_ingests_generates_candidates_and_compresses(tmp_path: Pa
     assert compression.metrics.input_candidates == 3
     assert compression.metrics.raw_input_candidates == 3
     assert compression.metrics.selected_candidates == 3
+    assert compression.audio_scorer_used == AudioScoringMode.BASELINE
+
+
+def test_auto_audio_scorer_routes_long_speech_queries_to_whisper() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="What does the speaker say about pricing?",
+            duration_seconds=3600,
+            whisper_available=True,
+        )
+        == AudioScoringMode.WHISPER
+    )
+
+
+def test_auto_audio_scorer_keeps_short_or_non_speech_queries_on_baseline() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="What does the speaker say about pricing?",
+            duration_seconds=120,
+            whisper_available=True,
+        )
+        == AudioScoringMode.BASELINE
+    )
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="Show the red robot hand on screen",
+            duration_seconds=3600,
+            whisper_available=True,
+        )
+        == AudioScoringMode.BASELINE
+    )
+
+
+def test_auto_audio_scorer_falls_back_when_whisper_is_unavailable() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="What does the speaker say about pricing?",
+            duration_seconds=3600,
+            whisper_available=False,
+        )
+        == AudioScoringMode.BASELINE
+    )
+
+
+def test_explicit_audio_scorer_bypasses_auto_routing() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.CLAP,
+            query="What does the speaker say about pricing?",
+            duration_seconds=3600,
+        )
+        == AudioScoringMode.CLAP
+    )
 
 
 def test_local_pipeline_reuses_disk_cache_on_repeated_runs(tmp_path: Path) -> None:

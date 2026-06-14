@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from gist.core.modes import AudioScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import (
     CompressionMetrics,
@@ -34,6 +35,7 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
         video_id="video-1",
         query="refund policy",
         answer="Refunds are available for eligible plans.",
+        audio_scorer_used=AudioScoringMode.WHISPER,
         preset=CompressionPreset.BALANCED,
         selected=[
             SelectedCandidate(
@@ -90,6 +92,7 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "refund policy" in html
     assert "Refunds are available for eligible plans." in html
     assert "long processing selected" in html
+    assert "whisper" in html
     assert "strong support" in html
     assert "Why selected:" in html
     assert "rendered clip comes from transcript evidence" in html

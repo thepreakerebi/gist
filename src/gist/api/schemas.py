@@ -23,7 +23,7 @@ class LocalVideoCompressionRequest(MediaIngestionRequest):
     query: Annotated[str, Field(min_length=1)]
     preset: CompressionPreset = CompressionPreset.BALANCED
     visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE
-    audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE
+    audio_scorer: AudioScoringMode = AudioScoringMode.AUTO
     adaptive_budget: bool = False
     decompose_query: bool = False
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC

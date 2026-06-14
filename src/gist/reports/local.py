@@ -104,6 +104,7 @@ def render_local_compression_report(
         {settings_rows}
         {raw_rows}
         <tr><th>Compressor input candidates</th><td>{compression.metrics.input_candidates}</td></tr>
+        <tr><th>Audio scorer used</th><td>{escape(str(compression.audio_scorer_used or "unknown"))}</td></tr>
         <tr><th>Dropped candidates</th><td>{compression.metrics.dropped_candidates}</td></tr>
         <tr><th>Spatial visual tokens</th><td>{compression.metrics.estimated_retained_spatial_visual_tokens} / {compression.metrics.estimated_spatial_visual_tokens} retained</td></tr>
         <tr><th>Budget</th><td>{escape(compression.metrics.budget_mode)} / {escape(compression.metrics.budget_preset_used.value)}</td></tr>
