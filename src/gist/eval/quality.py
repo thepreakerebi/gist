@@ -13,6 +13,7 @@ from gist.core.answering import answer_from_evidence, verify_answer_claims
 from gist.core.evidence_pruning import annotate_evidence_support
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
+from gist.core.query_intent import QueryIntent
 from gist.core.schemas import CompressionResponse, Modality
 from gist.eval.regression import TimeRange
 from gist.gateway.structured import (
@@ -31,6 +32,8 @@ from gist.reports.structured import (
 
 class QualityCase(BaseModel):
     id: Annotated[str, Field(min_length=1)]
+    query_category: QueryIntent | None = None
+    domain: str | None = None
     query: Annotated[str, Field(min_length=1)] | None = None
     compression_path: Path | None = None
     video_path: Path | None = None

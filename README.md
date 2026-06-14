@@ -489,6 +489,22 @@ replay the gates without rerunning ingestion or transcription. Lower
 `--minimum-duration-seconds` only for deliberate development checks; the default enforces the
 one-hour product target.
 
+Track progress toward the curated 30-question target with:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --output reports/long-video-suite/readiness.json \
+  --markdown-output reports/long-video-suite/readiness.md \
+  --html-output reports/long-video-suite/readiness.html
+```
+
+Readiness requires 30 verified questions, five distinct 60+ minute videos, three domains, and at
+least three questions in each core category: speech, visual, temporal, global summary, and mixed
+audio-visual. Add `--run-quality` after the manifest reaches sufficient coverage. The committed
+dataset contains only cases already verified from local reports, so a failed readiness command
+accurately shows the remaining curation work.
+
 ## Cloud Benchmarking
 
 Real Video-LLM benchmark runs should be executed on a GPU machine rather than a local laptop.
