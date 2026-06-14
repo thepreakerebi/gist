@@ -465,6 +465,30 @@ Real-video examples use the local video pipeline, so `--output-root` stores extr
 The report compares Gist variants against a uniform timestamp baseline and includes reduction percent, timestamp hit rate, modality coverage, and latency.
 Use `--html-output` for a self-contained evidence inspection report.
 
+## Long-Video Smoke Gate
+
+Use one command to run the normal Gist pipeline on a 60+ minute video and fail unless the
+expected answer terms, transcript evidence, ground-truth time ranges, grounding quality, scorer
+routing, and token reduction all meet their thresholds:
+
+```bash
+gist-long-video-smoke \
+  --video /absolute/path/to/long-video.mp4 \
+  --query "How do top builders use AI?" \
+  --expected-answer-term builders \
+  --expected-answer-term research \
+  --expected-evidence-term builders \
+  --expected-evidence-term research \
+  --relevant-range 350:400 \
+  --relevant-range 2350:2380
+```
+
+The command writes JSON, Markdown, and HTML summaries under `reports/long-video-smoke` and the
+normal compression report under `.gist/runs`. Use `--compression path/to/compression.json` to
+replay the gates without rerunning ingestion or transcription. Lower
+`--minimum-duration-seconds` only for deliberate development checks; the default enforces the
+one-hour product target.
+
 ## Cloud Benchmarking
 
 Real Video-LLM benchmark runs should be executed on a GPU machine rather than a local laptop.
