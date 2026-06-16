@@ -13,6 +13,7 @@ from gist.core.evidence_pruning import (
 )
 from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
+from gist.core.quality_gate import apply_quality_gate
 from gist.core.schemas import CompressionResponse, Modality, SelectedCandidate
 from gist.gateway.evidence_package import build_evidence_package
 from gist.gateway.local_text import LocalTextEvidenceGateway
@@ -201,6 +202,8 @@ def main(argv: list[str] | None = None) -> int:
             grid_size=args.spatial_grid_size,
             retention_ratio=args.spatial_retention_ratio,
         )
+
+    compression = apply_quality_gate(compression)
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")

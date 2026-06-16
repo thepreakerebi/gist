@@ -114,6 +114,12 @@ class CompressionMetrics(BaseModel):
     estimated_spatial_token_reduction_percent: float = 0.0
 
 
+class QualityWarning(BaseModel):
+    code: str
+    message: str
+    severity: str = "warning"
+
+
 class CompressionResponse(BaseModel):
     video_id: str
     query: str
@@ -126,3 +132,4 @@ class CompressionResponse(BaseModel):
     query_aspects: list[QueryAspect] = Field(default_factory=list)
     selected: list[SelectedCandidate]
     metrics: CompressionMetrics
+    quality_warnings: list[QualityWarning] = Field(default_factory=list)

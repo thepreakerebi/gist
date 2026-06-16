@@ -29,6 +29,9 @@ def build_evidence_package(
         "query_intent": str(compression.query_intent) if compression.query_intent else None,
         "routing_reason": compression.routing_reason,
         "compression": compression.metrics.model_dump(mode="json"),
+        "quality_warnings": [
+            warning.model_dump(mode="json") for warning in compression.quality_warnings
+        ],
         "evidence": [_evidence_item(item) for item in compression.selected],
         "prompt": build_evidence_prompt(compression),
     }

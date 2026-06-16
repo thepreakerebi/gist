@@ -1,7 +1,13 @@
 from pathlib import Path
 
 from gist.core.presets import CompressionPreset
-from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
+from gist.core.schemas import (
+    CompressionMetrics,
+    CompressionResponse,
+    Modality,
+    QualityWarning,
+    SelectedCandidate,
+)
 from gist.core.token_estimation import TokenEstimatorProfile
 from gist.gateway.evidence_package import EVIDENCE_PACKAGE_VERSION, build_evidence_package
 from gist.media.models import IngestedVideo, VideoMetadata
@@ -62,6 +68,9 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
             budget_preset_used=CompressionPreset.BALANCED,
             token_estimator=TokenEstimatorProfile.GENERIC,
         ),
+        quality_warnings=[
+            QualityWarning(code="weak_answer", message="Answer is too short.")
+        ],
     )
 
     package = build_evidence_package(ingestion, compression)
@@ -70,6 +79,7 @@ def test_build_evidence_package_exports_model_ready_contract(tmp_path: Path) -> 
     assert package["query"] == "What happened?"
     assert package["answer_hint"] == "The speaker explains the event."
     assert package["answer_provider"] == "local-text-evidence"
+    assert package["quality_warnings"][0]["code"] == "weak_answer"
     assert package["evidence"][0]["clip_path"] == str(clip_path)
     assert package["evidence"][0]["spatial_mask_path"] == str(tmp_path / "mask.json")
     assert package["evidence"][0]["spatial_mask_preview_path"] == str(tmp_path / "mask.svg")

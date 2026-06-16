@@ -41,6 +41,7 @@ def render_local_compression_report(
         <tr><th>Raw input candidates</th><td>{compression.metrics.raw_input_candidates}</td></tr>
         <tr><th>Fused candidate moments</th><td>{compression.metrics.fused_input_candidates or compression.metrics.input_candidates}</td></tr>
         """
+    quality = _render_quality_gate(compression)
 
     return f"""<!doctype html>
 <html lang="en">
@@ -72,6 +73,9 @@ def render_local_compression_report(
     .metric {{ font-size: 28px; font-weight: 700; }}
     .muted {{ color: var(--muted); }}
     .support {{ display: inline-block; padding: 3px 8px; border-radius: 999px; background: #e6f2ea; color: #145c43; font-weight: 700; }}
+    .warning {{ background: #fff5dc; border-color: #e8c46a; }}
+    .warning strong {{ color: #7a4b00; }}
+    .ok {{ background: #ecf8ef; border-color: #b6dfc2; }}
     code {{ background: #e9f1eb; padding: 2px 5px; border-radius: 5px; }}
     video {{ display: block; width: min(760px, 100%); margin: 12px 0; background: #000; border-radius: 10px; }}
     img {{ display: block; max-width: min(520px, 100%); height: auto; margin: 12px 0; border-radius: 10px; border: 1px solid var(--line); }}
@@ -88,6 +92,8 @@ def render_local_compression_report(
     {_render_answer(compression.answer)}
     <p class="muted">Intent: {escape(str(compression.query_intent or "unknown"))}. {escape(compression.routing_reason or "")}</p>
   </section>
+
+  {quality}
 
   <section class="grid">
     <div class="card"><div class="metric">{len(moments)}</div><div class="muted">video evidence moments</div></div>
@@ -125,6 +131,30 @@ def _render_answer(answer: str | None) -> str:
     if not answer:
         return ""
     return f"<p><strong>Answer:</strong> {escape(answer)}</p>"
+
+
+def _render_quality_gate(compression: CompressionResponse) -> str:
+    if not compression.quality_warnings:
+        return """
+  <section class="card ok">
+    <h2>Quality Gate</h2>
+    <p><strong>Passed:</strong> no runtime quality warnings.</p>
+  </section>
+"""
+    items = "\n".join(
+        "<li>"
+        f"<strong>{escape(warning.code)}</strong> "
+        f"({escape(warning.severity)}): {escape(warning.message)}"
+        "</li>"
+        for warning in compression.quality_warnings
+    )
+    return f"""
+  <section class="card warning">
+    <h2>Quality Gate</h2>
+    <p><strong>Needs review:</strong> this run triggered runtime quality warnings.</p>
+    <ul>{items}</ul>
+  </section>
+"""
 
 
 def _evidence_moments(

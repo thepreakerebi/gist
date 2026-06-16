@@ -6,6 +6,7 @@ from gist.core.schemas import (
     CompressionMetrics,
     CompressionResponse,
     Modality,
+    QualityWarning,
     SelectedCandidate,
 )
 from gist.core.token_estimation import TokenEstimatorProfile
@@ -105,6 +106,8 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "evidence" in html
     assert "<video" in html
     assert clip_path.resolve().as_uri() in html
+    assert "Quality Gate" in html
+    assert "Passed" in html
 
 
 def test_render_local_compression_report_groups_audio_and_visual_into_video_moment(
@@ -282,3 +285,44 @@ def test_render_local_compression_report_hides_visual_only_and_caps_moments(
     assert visual_clip_path.resolve().as_uri() not in html
     assert transcripts[0] not in html
     assert transcripts[7] in html
+
+
+def test_render_local_compression_report_includes_quality_warnings(tmp_path: Path) -> None:
+    ingestion = IngestedVideo(
+        video_id="video-1",
+        source_path=tmp_path / "video.mp4",
+        metadata=VideoMetadata(duration_seconds=60, has_audio=True),
+        frames=[],
+        audio_windows=[],
+        settings=None,
+    )
+    compression = CompressionResponse(
+        video_id="video-1",
+        query="What happened?",
+        answer="Unknown.",
+        preset=CompressionPreset.BALANCED,
+        selected=[],
+        metrics=CompressionMetrics(
+            input_candidates=1,
+            selected_candidates=0,
+            visual_selected=0,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=0,
+            estimated_candidate_reduction_percent=100,
+            dropped_candidates=1,
+            budget_preset_used=CompressionPreset.BALANCED,
+        ),
+        quality_warnings=[
+            QualityWarning(
+                code="no_evidence",
+                message="No final evidence was selected.",
+                severity="error",
+            )
+        ],
+    )
+
+    html = render_local_compression_report(ingestion, compression)
+
+    assert "Quality Gate" in html
+    assert "Needs review" in html
+    assert "no_evidence" in html
