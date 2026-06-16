@@ -338,7 +338,38 @@ def _is_non_claim_line(claim: str) -> bool:
 def _claim_support_score(claim: str, selected: list[SelectedCandidate]) -> float:
     if unique_token_count(claim) < MIN_CLAIM_CONTENT_TOKENS:
         return 1.0
-    return max(text_similarity(claim, item.text) for item in selected)
+    claim_variants = {claim, _strip_attribution_prefix(claim)}
+    return max(
+        max(text_similarity(variant, item.text), _token_overlap_support(variant, item.text))
+        for variant in claim_variants
+        for item in selected
+    )
+
+
+def _strip_attribution_prefix(claim: str) -> str:
+    return re.sub(
+        r"^\s*(the\s+)?(presenter|speaker|narrator)\s+(says?|explains?|describes?)\s+",
+        "",
+        claim,
+        flags=re.IGNORECASE,
+    )
+
+
+def _token_overlap_support(claim: str, evidence: str) -> float:
+    claim_terms = _claim_terms(claim)
+    if not claim_terms:
+        return 0.0
+    evidence_terms = _claim_terms(evidence)
+    overlap = len(claim_terms & evidence_terms) / len(claim_terms)
+    return overlap * 0.2
+
+
+def _claim_terms(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", text.lower())
+        if token not in _VISUAL_STOPWORDS and len(token) > 2
+    }
 
 
 def _temporal_target_score(

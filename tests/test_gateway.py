@@ -108,6 +108,41 @@ def test_local_text_gateway_synthesizes_how_answers_from_transcript_sentences() 
     assert "quality checks" in response.answer
 
 
+def test_local_text_gateway_synthesizes_presenter_speech_answers() -> None:
+    compression = GistCompressor().compress(
+        CompressionRequest(
+            video_id="demo",
+            query="What does the presenter say about the person demoing the product?",
+            duration_seconds=60,
+            audio_candidates=[
+                Candidate(
+                    id="a1",
+                    timestamp_seconds=10,
+                    text=(
+                        "got off of YouTube, it was an independent person demoing it. "
+                        "So this one actually wasn't produced by Microsoft. "
+                        "So this is him actually running the product. "
+                        "And what he's doing is the first thing he does is he creates a fun pose."
+                    ),
+                )
+            ],
+        )
+    )
+
+    response = LocalTextEvidenceGateway().answer(
+        GatewayRequest(
+            query="What does the presenter say about the person demoing the product?",
+            compression=compression,
+        )
+    )
+
+    assert response.answer.startswith("The presenter says")
+    assert "running the product" in response.answer
+    assert "he creates a fun pose" in response.answer.lower()
+    assert "got off of YouTube" not in response.answer
+    assert "what he's doing" not in response.answer.lower()
+
+
 def test_subprocess_gateway_reads_stdin_and_parses_json_stdout() -> None:
     compression = GistCompressor().compress(
         CompressionRequest(
