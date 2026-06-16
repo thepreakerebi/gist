@@ -1,10 +1,9 @@
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
 from gist.core.scoring import text_similarity
 from gist.core.token_estimation import TOKEN_ESTIMATE_PROFILES
-
 
 DEFAULT_MAX_PRUNED_EVIDENCE = 4
 DEFAULT_MIN_PRUNED_EVIDENCE = 3
@@ -57,6 +56,12 @@ def prune_evidence_to_answer(
         raise ValueError("min_items must be non-negative")
     if min_items > max_items:
         raise ValueError("min_items must not exceed max_items")
+    if _is_visual_text_query(compression):
+        max_items = min(max_items, 2)
+        min_items = min(min_items, 1)
+    if _is_mixed_speech_answer_query(compression):
+        max_items = min(max_items, 2)
+        min_items = min(min_items, 1)
     if not compression.answer or len(compression.selected) <= max_items:
         return compression
 
@@ -74,6 +79,12 @@ def prune_evidence_to_answer(
     retained = [support for support in ranked if support.score >= threshold][:max_items]
     if len(retained) < min_items:
         retained = ranked[: min(min_items, len(ranked))]
+    retained = _ensure_mixed_av_audio_retained(
+        compression=compression,
+        retained=retained,
+        ranked=ranked,
+        max_items=max_items,
+    )
 
     selected = [
         _with_pruning_reason(index, support)
@@ -116,6 +127,12 @@ def prune_evidence_to_answer_citations(
         ranked=ranked,
         min_items=min_items,
     )
+    retained = _ensure_mixed_av_audio_retained(
+        compression=compression,
+        retained=retained,
+        ranked=ranked,
+        max_items=len(compression.selected),
+    )
 
     selected = [
         _with_citation_reason(index, support)
@@ -147,6 +164,12 @@ def prune_weakly_grounded_evidence(
     retained = [support for support in supports if support.grounding_label != "weak"]
     if len(retained) < min_items or len(retained) == len(supports):
         return annotate_evidence_support(compression)
+    retained = _ensure_mixed_av_audio_retained(
+        compression=compression,
+        retained=retained,
+        ranked=supports,
+        max_items=len(compression.selected),
+    )
 
     selected = [
         _with_grounding_filter_reason(index, support)
@@ -193,6 +216,10 @@ def consolidate_redundant_evidence(
     ]
     if len(selected) < min_items:
         return compression
+    selected = _ensure_mixed_av_audio_selected(
+        compression=compression,
+        selected=selected,
+    )
     return compression.model_copy(
         update={
             "selected": selected,
@@ -285,6 +312,91 @@ def _support_filtered_citations(
     return cited
 
 
+def _ensure_mixed_av_audio_retained(
+    compression: CompressionResponse,
+    retained: list[EvidenceSupport],
+    ranked: list[EvidenceSupport],
+    max_items: int,
+) -> list[EvidenceSupport]:
+    if not _is_mixed_av_query(compression) or _has_audio_evidence(retained):
+        return retained
+
+    best_audio = _best_audio_support(ranked)
+    if best_audio is None:
+        return retained
+
+    updated = [*retained, best_audio]
+    if len(updated) <= max_items:
+        return updated
+
+    removable = [
+        support
+        for support in updated
+        if support.item.id != best_audio.item.id and support.item.modality != Modality.AUDIO
+    ]
+    if not removable:
+        return updated[:max_items]
+
+    weakest = min(
+        removable,
+        key=lambda support: (
+            support.score,
+            support.item.relevance_score,
+            support.item.normalized_score,
+        ),
+    )
+    return [support for support in updated if support.item.id != weakest.item.id]
+
+
+def _ensure_mixed_av_audio_selected(
+    compression: CompressionResponse,
+    selected: list[SelectedCandidate],
+) -> list[SelectedCandidate]:
+    has_audio = any(item.modality == Modality.AUDIO for item in selected)
+    if not _is_mixed_av_query(compression) or has_audio:
+        return selected
+
+    audio_items = [item for item in compression.selected if item.modality == Modality.AUDIO]
+    if not audio_items:
+        return selected
+
+    best_audio = max(
+        audio_items,
+        key=lambda item: (
+            item.evidence_support_score or 0.0,
+            item.relevance_score,
+            item.normalized_score,
+        ),
+    )
+    return sorted([*selected, best_audio], key=lambda item: item.timestamp_seconds)
+
+
+def _is_mixed_av_query(compression: CompressionResponse) -> bool:
+    return getattr(compression.query_intent, "value", None) == "mixed_av"
+
+
+def _has_audio_evidence(supports: list[EvidenceSupport]) -> bool:
+    return any(support.item.modality == Modality.AUDIO for support in supports)
+
+
+def _best_audio_support(supports: list[EvidenceSupport]) -> EvidenceSupport | None:
+    audio_supports = [
+        support
+        for support in supports
+        if support.item.modality == Modality.AUDIO and not _is_visual_only_text(support.item.text)
+    ]
+    if not audio_supports:
+        return None
+    return max(
+        audio_supports,
+        key=lambda support: (
+            support.score,
+            support.item.relevance_score,
+            support.item.normalized_score,
+        ),
+    )
+
+
 def _with_support_metadata(support: EvidenceSupport) -> SelectedCandidate:
     return support.item.model_copy(
         update={
@@ -375,8 +487,10 @@ def _visual_support_score(
 ) -> float:
     if item.modality != Modality.VISUAL:
         return 0.0
-    if _is_transcript_first_query(compression):
+    if _should_demote_visual_support(compression):
         return min(query_similarity, 0.04)
+    if _is_visual_text_query(compression):
+        return min(query_similarity, 0.2) if _is_ocr_text(item.text) else 0.0
     score = max(item.relevance_score, item.normalized_score, query_similarity)
     if _is_ocr_text(item.text):
         score = max(score, query_similarity + 0.05)
@@ -405,17 +519,59 @@ def _combined_support_score(
     modality_score: float,
     cross_modal_score: float,
 ) -> float:
-    if _is_transcript_first_query(compression) and item.modality == Modality.VISUAL:
+    if _should_demote_visual_support(compression) and item.modality == Modality.VISUAL:
         return max(text_score, min(cross_modal_score, 0.04))
     return max(text_score, (0.75 * modality_score) + (0.25 * cross_modal_score))
+
+
+def _should_demote_visual_support(compression: CompressionResponse) -> bool:
+    return _is_transcript_first_query(compression) or _is_mixed_speech_answer_query(compression)
 
 
 def _is_transcript_first_query(compression: CompressionResponse) -> bool:
     return getattr(compression.query_intent, "value", None) == "speech_semantic"
 
 
+def _is_mixed_speech_answer_query(compression: CompressionResponse) -> bool:
+    if not _is_mixed_av_query(compression):
+        return False
+    query = f" {compression.query.lower()} "
+    return any(
+        marker in query
+        for marker in [
+            " say ",
+            " says ",
+            " said ",
+            " tell ",
+            " tells ",
+            " told ",
+            " explain ",
+            " explains ",
+            " explained ",
+            " presenter ",
+            " speaker ",
+        ]
+    )
+
+
 def _is_ocr_text(text: str) -> bool:
     return text.lower().startswith("on-screen text near")
+
+
+def _is_visual_text_query(compression: CompressionResponse) -> bool:
+    query = f" {compression.query.lower()} "
+    return any(
+        marker in query
+        for marker in [
+            " text ",
+            " words ",
+            " caption ",
+            " written ",
+            " title ",
+            " logo ",
+            " label ",
+        ]
+    )
 
 
 def _is_visual_only_text(text: str) -> bool:

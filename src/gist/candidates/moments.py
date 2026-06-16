@@ -3,7 +3,6 @@ from gist.core.answering import WHY_ANSWER_TERMS
 from gist.core.schemas import Candidate
 from gist.core.scoring import lexical_relevance
 
-
 DEFAULT_VISUAL_RADIUS_SECONDS = 12.0
 DEFAULT_MIN_AUDIO_RELEVANCE = 0.12
 DEFAULT_MAX_AUDIO_MOMENTS = 8
@@ -15,6 +14,7 @@ def fuse_transcript_moments(
     visual_radius_seconds: float = DEFAULT_VISUAL_RADIUS_SECONDS,
     min_audio_relevance: float = DEFAULT_MIN_AUDIO_RELEVANCE,
     max_audio_moments: int = DEFAULT_MAX_AUDIO_MOMENTS,
+    preserve_visual_context_audio: bool = False,
 ) -> CandidateSet:
     """Build transcript-centered evidence moments with nearby visual grounding.
 
@@ -49,6 +49,15 @@ def fuse_transcript_moments(
         else:
             scored_audio.append((_moment_relevance(query, audio, audio_relevance), audio))
 
+    if preserve_visual_context_audio:
+        _add_visual_context_audio(
+            scored_audio=scored_audio,
+            used_visual_ids=used_visual_ids,
+            candidates=candidates,
+            query=query,
+            visual_radius_seconds=max(visual_radius_seconds, 30.0),
+        )
+
     fused_audio = [
         candidate
         for _score, candidate in sorted(
@@ -62,9 +71,72 @@ def fuse_transcript_moments(
     orphan_visuals = [
         visual
         for visual in candidates.visual
-        if visual.id not in used_visual_ids and lexical_relevance(query, visual) >= min_audio_relevance
+        if visual.id not in used_visual_ids
+        and lexical_relevance(query, visual) >= min_audio_relevance
     ]
     return CandidateSet(visual=orphan_visuals, audio=fused_audio)
+
+
+def _add_visual_context_audio(
+    scored_audio: list[tuple[float, Candidate]],
+    used_visual_ids: set[str],
+    candidates: CandidateSet,
+    query: str,
+    visual_radius_seconds: float,
+) -> None:
+    existing_audio_ids = {
+        candidate.id.split("+", maxsplit=1)[0]
+        for _score, candidate in scored_audio
+    }
+    scored_visuals = sorted(
+        (
+            (_visual_relevance(query, visual), visual)
+            for visual in candidates.visual
+        ),
+        key=lambda item: (item[0], -item[1].timestamp_seconds),
+        reverse=True,
+    )
+    if not scored_visuals:
+        return
+
+    minimum_visual_score = max(
+        DEFAULT_MIN_AUDIO_RELEVANCE,
+        scored_visuals[0][0] * 0.6,
+    )
+    relevant_visuals = [
+        (score, visual)
+        for score, visual in scored_visuals
+        if score >= minimum_visual_score
+    ]
+    for visual_score, visual in relevant_visuals[:8]:
+        nearby_audio = [
+            audio
+            for audio in candidates.audio
+            if audio.id not in existing_audio_ids
+            and abs(audio.timestamp_seconds - visual.timestamp_seconds)
+            <= visual_radius_seconds
+        ]
+        if not nearby_audio:
+            continue
+        audio = min(
+            nearby_audio,
+            key=lambda item: abs(item.timestamp_seconds - visual.timestamp_seconds),
+        )
+        existing_audio_ids.add(audio.id)
+        used_visual_ids.add(visual.id)
+        scored_audio.append(
+            (
+                visual_score,
+                _audio_with_visual_grounding(audio, visual),
+            )
+        )
+
+
+def _visual_relevance(query: str, visual: Candidate) -> float:
+    return max(
+        lexical_relevance(query, visual),
+        float(visual.saliency_score or 0.0),
+    )
 
 
 def _nearest_visual(

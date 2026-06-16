@@ -59,7 +59,11 @@ def test_fuse_transcript_moments_drops_weak_audio_noise() -> None:
 
 def test_fuse_transcript_moments_validates_radius() -> None:
     with pytest.raises(ValueError, match="visual_radius_seconds"):
-        fuse_transcript_moments(CandidateSet(visual=[], audio=[]), query="x", visual_radius_seconds=0)
+        fuse_transcript_moments(
+            CandidateSet(visual=[], audio=[]),
+            query="x",
+            visual_radius_seconds=0,
+        )
 
 
 def test_fuse_transcript_moments_caps_audio_moments_by_relevance() -> None:
@@ -67,7 +71,11 @@ def test_fuse_transcript_moments_caps_audio_moments_by_relevance() -> None:
         visual=[],
         audio=[
             Candidate(id="a-low", timestamp_seconds=10, text="robot hand"),
-            Candidate(id="a-high", timestamp_seconds=20, text="robot hand afraid chased nightmares"),
+            Candidate(
+                id="a-high",
+                timestamp_seconds=20,
+                text="robot hand afraid chased nightmares",
+            ),
         ],
     )
 
@@ -97,3 +105,42 @@ def test_fuse_transcript_moments_reranks_why_answer_signals() -> None:
     )
 
     assert [candidate.id for candidate in fused.audio] == ["a-answer"]
+
+
+def test_fuse_transcript_moments_preserves_audio_near_relevant_mixed_visual() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id="visual-hit",
+                timestamp_seconds=100,
+                text="visual frame sampled during body tracking",
+                saliency_score=0.9,
+            ),
+            Candidate(
+                id="visual-noise",
+                timestamp_seconds=500,
+                text="unrelated frame",
+                saliency_score=0.1,
+            ),
+        ],
+        audio=[
+            Candidate(
+                id="audio-near",
+                timestamp_seconds=105,
+                text="the joints move in real time",
+            ),
+            Candidate(
+                id="audio-far",
+                timestamp_seconds=700,
+                text="closing remarks",
+            ),
+        ],
+    )
+
+    fused = fuse_transcript_moments(
+        candidates,
+        query="person and on-screen skeleton",
+        preserve_visual_context_audio=True,
+    )
+
+    assert [candidate.id for candidate in fused.audio] == ["audio-near+visual-hit"]

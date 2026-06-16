@@ -178,7 +178,11 @@ def test_compressor_boosts_visual_evidence_near_relevant_audio() -> None:
         visual_candidates=[
             Candidate(id="v-start", timestamp_seconds=0, text="visual frame sampled at 0 seconds"),
             Candidate(id="v-near", timestamp_seconds=58, text="visual frame sampled at 58 seconds"),
-            Candidate(id="v-end", timestamp_seconds=118, text="visual frame sampled at 118 seconds"),
+            Candidate(
+                id="v-end",
+                timestamp_seconds=118,
+                text="visual frame sampled at 118 seconds",
+            ),
         ],
         audio_candidates=[
             Candidate(
@@ -461,6 +465,47 @@ def test_adaptive_budget_expands_when_anchored_visuals_crowd_out_audio() -> None
         == "aggressive budget underrepresented source audio evidence"
     )
     assert response.metrics.audio_selected >= 2
+
+
+def test_mixed_av_selection_keeps_nearby_audio_and_visual_evidence() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query=(
+            "What does the presenter say about the demonstration "
+            "showing a person and an on-screen skeleton?"
+        ),
+        duration_seconds=3600,
+        preset=CompressionPreset.BALANCED,
+        task_aware_selection=True,
+        query_intent=QueryIntent.MIXED_AV,
+        visual_candidates=[
+            Candidate(
+                id=f"visual-{index}",
+                timestamp_seconds=float(100 + index * 100),
+                text="visual frame sampled during the body tracking demonstration",
+                saliency_score=1.0 - index * 0.01,
+            )
+            for index in range(12)
+        ],
+        audio_candidates=[
+            Candidate(
+                id="audio-near",
+                timestamp_seconds=105,
+                text="the system tracks the joints of the person in real time",
+            ),
+            Candidate(
+                id="audio-far",
+                timestamp_seconds=3000,
+                text="unrelated closing remarks",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.metrics.visual_selected >= 2
+    assert response.metrics.audio_selected >= 1
+    assert any(item.id == "audio-near" for item in response.selected)
 
 
 def test_adaptive_budget_keeps_aggressive_for_grounded_transcript_moments() -> None:

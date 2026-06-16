@@ -103,6 +103,21 @@ def test_auto_audio_scorer_routes_long_speech_queries_to_whisper() -> None:
     )
 
 
+def test_auto_audio_scorer_routes_long_mixed_queries_to_whisper() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query=(
+                "What does the presenter say about the demonstration "
+                "showing a person and an on-screen skeleton?"
+            ),
+            duration_seconds=3600,
+            whisper_available=True,
+        )
+        == AudioScoringMode.WHISPER
+    )
+
+
 def test_auto_audio_scorer_keeps_short_or_non_speech_queries_on_baseline() -> None:
     assert (
         resolve_audio_scorer(
@@ -254,3 +269,91 @@ def test_local_pipeline_shortlists_longform_candidates_before_compression(tmp_pa
     assert compression.metrics.raw_input_candidates == 40
     assert compression.metrics.fused_input_candidates == compression.metrics.input_candidates
     assert "a-10+v-10" in {item.id for item in compression.selected}
+
+
+def test_local_pipeline_fuses_mixed_av_before_longform_shortlisting(tmp_path: Path) -> None:
+    class LongIngestor(FakeIngestor):
+        def ingest(
+            self,
+            video_path: Path,
+            sample_count: int | None,
+            audio_window_seconds: float | None,
+            processing_mode: ProcessingMode = ProcessingMode.LONG,
+        ) -> IngestedVideo:
+            ingested = super().ingest(
+                video_path=video_path,
+                sample_count=sample_count,
+                audio_window_seconds=audio_window_seconds,
+                processing_mode=ProcessingMode.LONG,
+            )
+            return ingested.model_copy(
+                update={
+                    "metadata": VideoMetadata(duration_seconds=90 * 60, has_audio=True),
+                    "frames": [
+                        ExtractedFrame(
+                            index=index,
+                            timestamp_seconds=float(index * 180),
+                            path=Path(f"frame-{index}.jpg"),
+                        )
+                        for index in range(30)
+                    ],
+                    "audio_windows": [
+                        AudioWindow(
+                            index=index,
+                            start_seconds=float(index * 180 + 5),
+                            duration_seconds=30,
+                            path=Path(f"audio-{index}.wav"),
+                        )
+                        for index in range(30)
+                    ],
+                }
+            )
+
+    class MixedCandidateGenerator:
+        def generate(self, ingested_video: IngestedVideo, query: str):
+            from gist.candidates.baseline import CandidateSet
+
+            return CandidateSet(
+                visual=[
+                    Candidate(
+                        id=f"v-{index}",
+                        timestamp_seconds=frame.timestamp_seconds,
+                        text="person on-screen skeleton"
+                        if index == 20
+                        else f"visual keyword decoy {index}",
+                        asset_path=frame.path,
+                        saliency_score=0.9 if index == 20 else 0.1,
+                    )
+                    for index, frame in enumerate(ingested_video.frames)
+                ],
+                audio=[
+                    Candidate(
+                        id=f"a-{index}",
+                        timestamp_seconds=window.start_seconds,
+                        text="the presenter explains that the joints move in real time"
+                        if index == 20
+                        else "general narration",
+                        asset_path=window.path,
+                    )
+                    for index, window in enumerate(ingested_video.audio_windows)
+                ],
+            )
+
+    pipeline = LocalCompressionPipeline(
+        output_root=tmp_path,
+        ingestor=LongIngestor(),
+        candidate_generator=MixedCandidateGenerator(),
+    )
+
+    _ingestion, compression = pipeline.run(
+        video_path=tmp_path / "long.mp4",
+        query="What does the presenter say about the person and on-screen skeleton?",
+        processing_mode=ProcessingMode.LONG,
+        sample_count=None,
+        audio_window_seconds=None,
+        adaptive_budget=False,
+        decompose_query=False,
+    )
+
+    selected_ids = {item.id for item in compression.selected}
+    assert any(item.startswith("a-20+v-20") for item in selected_ids)

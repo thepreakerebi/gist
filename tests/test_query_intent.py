@@ -8,6 +8,15 @@ def test_routes_temporal_speech_query() -> None:
     assert "temporal" in reason
 
 
+def test_routes_temporal_slide_query_without_treating_it_as_speech() -> None:
+    intent, reason = route_query_intent(
+        "What slide appears immediately after the Worldwide Telescope slide?"
+    )
+
+    assert intent == QueryIntent.TEMPORAL_BEFORE_AFTER
+    assert "temporal" in reason
+
+
 def test_routes_visual_query() -> None:
     intent, reason = route_query_intent("show the person holding the tool")
 

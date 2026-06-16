@@ -727,6 +727,106 @@ def test_consolidate_redundant_evidence_collapses_overlapping_audio_windows() ->
     assert [item.id for item in consolidated.selected] == ["answer"]
 
 
+def test_prune_evidence_to_answer_keeps_only_supporting_ocr_for_title_query() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What title appears on the opening screen?",
+        answer="on-screen text near 8.00 seconds: KINECT",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _visual_item(
+                "opening",
+                8,
+                "on-screen text near 8.00 seconds: KINECT",
+                relevance_score=0.8,
+            ),
+            _visual_item(
+                "noise",
+                2700,
+                "on-screen text near 2700.00 seconds: product projection",
+                relevance_score=1.0,
+            ),
+            _visual_item(
+                "placeholder",
+                3200,
+                "visual frame sampled at 3200.00 seconds",
+                relevance_score=0.7,
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=100,
+            selected_candidates=3,
+            visual_selected=3,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=0.03,
+            estimated_candidate_reduction_percent=97,
+            dropped_candidates=97,
+            budget_preset_used=CompressionPreset.BALANCED,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression)
+
+    assert [item.id for item in pruned.selected] == ["opening"]
+
+
+def test_prune_evidence_to_answer_keeps_mixed_av_audio_evidence() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What does the presenter say about the person and on-screen skeleton?",
+        answer="I could not derive a reliable answer from the selected evidence.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.MIXED_AV,
+        selected=[
+            _visual_item("visual-1", 100, "on-screen text near 100.00 seconds: e", 1.0),
+            _visual_item("visual-2", 200, "on-screen text near 200.00 seconds: c", 0.9),
+            _visual_item("visual-3", 300, "on-screen text near 300.00 seconds: x", 0.8),
+            _visual_item("visual-4", 400, "on-screen text near 400.00 seconds: y", 0.7),
+            _item(
+                "audio-1+visual-2",
+                205,
+                "The presenter explains that the person is running the product demo.",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=50,
+            selected_candidates=5,
+            visual_selected=4,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=0.1,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=45,
+            budget_preset_used=CompressionPreset.BALANCED,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression, max_items=4, min_items=3)
+
+    assert [item.id for item in pruned.selected] == ["audio-1+visual-2"]
+    assert pruned.metrics.audio_selected == 1
+    assert pruned.metrics.visual_selected == 0
+
+
+def _visual_item(
+    id_: str,
+    timestamp_seconds: float,
+    text: str,
+    relevance_score: float,
+) -> SelectedCandidate:
+    return SelectedCandidate(
+        id=id_,
+        modality=Modality.VISUAL,
+        timestamp_seconds=timestamp_seconds,
+        text=text,
+        selection_rank=1,
+        relevance_score=relevance_score,
+        normalized_score=relevance_score,
+        mmr_score=1,
+        source_score_type="clip_scene",
+        reason="selected",
+    )
+
+
 def _item(id_: str, timestamp_seconds: float, text: str) -> SelectedCandidate:
     return SelectedCandidate(
         id=id_,

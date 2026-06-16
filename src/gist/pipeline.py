@@ -182,13 +182,7 @@ class LocalCompressionPipeline:
                 ingested_video=ingested,
                 query=query,
             )
-            candidates = _maybe_shortlist_longform_segments(
-                candidates=candidates,
-                ingested=ingested,
-                query=query,
-                progress=progress,
-            )
-            candidates = _maybe_fuse_longform_moments(
+            candidates = _prepare_longform_candidates(
                 candidates=candidates,
                 ingested=ingested,
                 query=query,
@@ -226,6 +220,7 @@ class LocalCompressionPipeline:
                 model_size=os.getenv("GIST_WHISPER_MODEL_SIZE", "base"),
                 device=os.getenv("GIST_WHISPER_DEVICE", "cpu"),
                 compute_type=os.getenv("GIST_WHISPER_COMPUTE_TYPE", "int8"),
+                cache_dir=self.output_root / "cache" / "transcripts",
             )
         elif audio_scorer == AudioScoringMode.CLAP:
             audio_score_adapter = HuggingFaceClapAudioScorer()
@@ -267,7 +262,7 @@ def resolve_audio_scorer(
     if whisper_available is None:
         whisper_available = find_spec("faster_whisper") is not None
     if (
-        query_intent == QueryIntent.SPEECH_SEMANTIC
+        query_intent in {QueryIntent.SPEECH_SEMANTIC, QueryIntent.MIXED_AV}
         and duration_seconds >= 600
         and whisper_available
     ):
@@ -299,6 +294,44 @@ def _maybe_shortlist_longform_segments(
     )
 
 
+def _prepare_longform_candidates(
+    candidates: CandidateSet,
+    ingested: IngestedVideo,
+    query: str,
+    progress: ProgressCallback | None = None,
+) -> CandidateSet:
+    query_intent, _reason = route_query_intent(query)
+    if query_intent == QueryIntent.MIXED_AV:
+        # Mixed AV needs raw transcript windows available when moment fusion
+        # anchors speech to nearby visual events. If we shortlist first, weakly
+        # lexical transcript windows can be discarded permanently.
+        fused = _maybe_fuse_longform_moments(
+            candidates=candidates,
+            ingested=ingested,
+            query=query,
+            progress=progress,
+        )
+        return _maybe_shortlist_longform_segments(
+            candidates=fused,
+            ingested=ingested,
+            query=query,
+            progress=progress,
+        )
+
+    shortlisted = _maybe_shortlist_longform_segments(
+        candidates=candidates,
+        ingested=ingested,
+        query=query,
+        progress=progress,
+    )
+    return _maybe_fuse_longform_moments(
+        candidates=shortlisted,
+        ingested=ingested,
+        query=query,
+        progress=progress,
+    )
+
+
 def _maybe_fuse_longform_moments(
     candidates: CandidateSet,
     ingested: IngestedVideo,
@@ -312,7 +345,12 @@ def _maybe_fuse_longform_moments(
 
     if progress is not None:
         progress("fusing transcript-centered evidence moments")
-    return fuse_transcript_moments(candidates=candidates, query=query)
+    query_intent, _reason = route_query_intent(query)
+    return fuse_transcript_moments(
+        candidates=candidates,
+        query=query,
+        preserve_visual_context_audio=query_intent == QueryIntent.MIXED_AV,
+    )
 
 
 def _with_raw_reduction_metrics(

@@ -24,7 +24,6 @@ from gist.core.scoring import (
 )
 from gist.core.token_estimation import estimate_tokens
 
-
 AUDIO_VISUAL_ANCHOR_MIN_RELEVANCE = 0.15
 AUDIO_VISUAL_ANCHOR_RELATIVE_RELEVANCE = 0.6
 AUDIO_VISUAL_ANCHOR_SIGMA_SECONDS = 8.0
@@ -155,6 +154,12 @@ class GistCompressor:
             )
         if query_intent == QueryIntent.VISUAL_OBJECT_ACTION:
             selections = self._ensure_visual_query_coverage(
+                selections=selections,
+                candidates=scored,
+                max_items=config.max_items,
+            )
+        if query_intent == QueryIntent.MIXED_AV:
+            selections = self._ensure_mixed_av_coverage(
                 selections=selections,
                 candidates=scored,
                 max_items=config.max_items,
@@ -623,6 +628,84 @@ class GistCompressor:
 
         return self._rerank_selections(balanced)
 
+    def _ensure_mixed_av_coverage(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[Selection]:
+        visual_selections = [
+            selection
+            for selection in selections
+            if selection.candidate.modality == Modality.VISUAL
+        ]
+        audio_selections = [
+            selection
+            for selection in selections
+            if selection.candidate.modality == Modality.AUDIO
+        ]
+        audio_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.AUDIO
+        ]
+        if not visual_selections or not audio_candidates:
+            return selections
+
+        target_audio = min(len(audio_candidates), max(2, max_items // 3))
+        if len(audio_selections) >= target_audio:
+            return selections
+
+        selected_ids = {selection.candidate.id for selection in selections}
+        visual_anchors = sorted(
+            (selection.candidate for selection in visual_selections),
+            key=lambda candidate: (
+                candidate.normalized_score,
+                candidate.relevance_score,
+            ),
+            reverse=True,
+        )
+        nearby_audio = sorted(
+            (
+                candidate
+                for candidate in audio_candidates
+                if candidate.id not in selected_ids
+            ),
+            key=lambda candidate: (
+                min(
+                    abs(candidate.timestamp_seconds - visual.timestamp_seconds)
+                    for visual in visual_anchors
+                ),
+                -candidate.normalized_score,
+                -candidate.relevance_score,
+            ),
+        )
+
+        balanced = list(selections)
+        audio_count = len(audio_selections)
+        for candidate in nearby_audio:
+            if audio_count >= target_audio:
+                break
+            if len(balanced) >= max_items and not self._drop_weakest_modality(
+                balanced,
+                modality=Modality.VISUAL,
+                minimum_remaining=2,
+            ):
+                break
+            balanced.append(
+                Selection(
+                    candidate=candidate,
+                    selection_rank=0,
+                    mmr_score=candidate.normalized_score,
+                    reason=(
+                        "Included as nearby transcript evidence because mixed audio-visual "
+                        "queries require both what is shown and what is said."
+                    ),
+                )
+            )
+            audio_count += 1
+        return self._rerank_selections(balanced)
+
     def _ensure_counting_visual_neighbors(
         self,
         selections: list[Selection],
@@ -814,6 +897,23 @@ class GistCompressor:
         if not removable:
             return False
 
+        weakest = min(removable, key=lambda selection: selection.mmr_score)
+        selections.remove(weakest)
+        return True
+
+    def _drop_weakest_modality(
+        self,
+        selections: list[Selection],
+        modality: Modality,
+        minimum_remaining: int,
+    ) -> bool:
+        removable = [
+            selection
+            for selection in selections
+            if selection.candidate.modality == modality
+        ]
+        if len(removable) <= minimum_remaining:
+            return False
         weakest = min(removable, key=lambda selection: selection.mmr_score)
         selections.remove(weakest)
         return True

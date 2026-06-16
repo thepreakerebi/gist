@@ -1,5 +1,6 @@
 from gist.core.answering import answer_from_evidence, verify_answer_claims
 from gist.core.presets import CompressionPreset
+from gist.core.query_intent import QueryIntent
 from gist.core.schemas import (
     CompressionMetrics,
     CompressionResponse,
@@ -104,6 +105,56 @@ def test_answer_from_evidence_prefers_post_anchor_evidence_for_after_queries() -
     )
 
     assert answer_from_evidence(compression) == "on-screen text near 5.00 seconds: BLUE BOX"
+
+
+def test_answer_from_evidence_prefers_earliest_ocr_for_opening_title_query() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What title and product image appear on the opening projection screen?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="opening",
+                modality=Modality.VISUAL,
+                timestamp_seconds=8,
+                text="on-screen text near 8.00 seconds: KINECT",
+                selection_rank=1,
+                relevance_score=0.8,
+                normalized_score=0.8,
+                mmr_score=0.5,
+                source_score_type="ocr",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="later",
+                modality=Modality.VISUAL,
+                timestamp_seconds=2700,
+                text="on-screen text near 2700.00 seconds: product projection",
+                selection_rank=2,
+                relevance_score=1,
+                normalized_score=1,
+                mmr_score=0.6,
+                source_score_type="ocr",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=2,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert (
+        answer_from_evidence(compression)
+        == "on-screen text near 8.00 seconds: KINECT"
+    )
 
 
 def test_answer_from_evidence_describes_visual_object_instead_of_noisy_ocr() -> None:
@@ -246,6 +297,59 @@ def test_answer_from_evidence_uses_transcript_for_question_not_visual_placeholde
 
     assert answer_from_evidence(compression) == (
         "Top builders use AI to automate research, write code, and review work."
+    )
+
+
+def test_answer_from_evidence_uses_transcript_for_mixed_av_question() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query=(
+            "What does the presenter say about the demonstration "
+            "showing a person and an on-screen skeleton?"
+        ),
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.MIXED_AV,
+        selected=[
+            SelectedCandidate(
+                id="visual",
+                modality=Modality.VISUAL,
+                timestamp_seconds=100,
+                text="visual frame sampled during the demonstration",
+                selection_rank=1,
+                relevance_score=1,
+                normalized_score=1,
+                mmr_score=1,
+                source_score_type="clip_scene",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="audio",
+                modality=Modality.AUDIO,
+                timestamp_seconds=105,
+                text="The system tracks the person's joints in real time.",
+                selection_rank=2,
+                relevance_score=0.5,
+                normalized_score=0.5,
+                mmr_score=0.5,
+                source_score_type="whisper",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=1,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+        ),
+    )
+
+    assert (
+        answer_from_evidence(compression)
+        == "The system tracks the person's joints in real time."
     )
 
 

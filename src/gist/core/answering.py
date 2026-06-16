@@ -1,8 +1,8 @@
 import re
 
+from gist.core.query_intent import QueryIntent
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.core.scoring import text_similarity, unique_token_count
-
 
 WHY_ANSWER_TERMS = {
     "afraid",
@@ -72,6 +72,8 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
 
 def _visual_object_answer(compression: CompressionResponse) -> str | None:
     query = compression.query.lower().strip()
+    if compression.query_intent == QueryIntent.MIXED_AV:
+        return None
     if _is_text_query(query):
         return None
     if not _is_visual_object_query(query):
@@ -196,7 +198,18 @@ def _is_visual_placeholder(text: str) -> bool:
 
 
 def _is_text_query(query: str) -> bool:
-    return any(term in f" {query} " for term in [" text ", " words ", " caption ", " written "])
+    return any(
+        term in f" {query} "
+        for term in [
+            " text ",
+            " words ",
+            " caption ",
+            " written ",
+            " title ",
+            " logo ",
+            " label ",
+        ]
+    )
 
 
 def _is_visual_object_query(query: str) -> bool:
@@ -334,7 +347,17 @@ def _temporal_target_score(
     selected: list[SelectedCandidate],
 ) -> float:
     query_lower = query.lower()
-    if " after " not in f" {query_lower} " and " before " not in f" {query_lower} ":
+    has_direction = (
+        " after " in f" {query_lower} " or " before " in f" {query_lower} "
+    )
+    if not has_direction and any(
+        marker in f" {query_lower} "
+        for marker in [" opening ", " beginning ", " first ", " start "]
+    ):
+        earliest_timestamp = min(candidate.timestamp_seconds for candidate in selected)
+        distance_seconds = max(item.timestamp_seconds - earliest_timestamp, 0.0)
+        return max(1.5 - distance_seconds / 60.0, -0.5)
+    if not has_direction:
         return 0.0
 
     direction = "after" if " after " in f" {query_lower} " else "before"
