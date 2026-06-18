@@ -7,6 +7,7 @@ from gist.audio.scorers import AudioWindowScorer
 from gist.audio.transcribers import AudioTranscriber
 from gist.core.progress import ProgressCallback
 from gist.core.schemas import Candidate
+from gist.core.temporal_query import parse_temporal_query
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
 from gist.vision.ocr_protocol import FrameOcr
 from gist.vision.scene import SceneSegment, detect_scene_segments, scene_by_frame_index
@@ -57,6 +58,11 @@ class BaselineCandidateGenerator:
         if progress is not None:
             progress("scoring visual frames")
         visual_scores = self._score_visual_frames(ingested_video, query)
+        temporal_anchor_scores, temporal_target_scores = self._score_temporal_frames(
+            ingested_video,
+            query,
+        )
+        temporal_query = parse_temporal_query(query)
         if progress is not None:
             progress("detecting visual scenes")
         visual_scenes = self._scene_segments(ingested_video, visual_scores)
@@ -76,6 +82,9 @@ class BaselineCandidateGenerator:
                     ingested_video.video_id,
                     frame,
                     visual_scores.get(frame.path),
+                    temporal_anchor_scores.get(frame.path),
+                    temporal_target_scores.get(frame.path),
+                    temporal_query.direction if temporal_query is not None else None,
                     frame_ocr_text.get(frame.path),
                     scene_by_frame.get(frame.index),
                 )
@@ -132,6 +141,25 @@ class BaselineCandidateGenerator:
             relevance_by_frame=relevance_by_frame,
         )
 
+    def _score_temporal_frames(
+        self,
+        ingested_video: IngestedVideo,
+        query: str,
+    ) -> tuple[dict[Path, float], dict[Path, float]]:
+        temporal_query = parse_temporal_query(query)
+        if temporal_query is None or self.visual_scorer is None:
+            return {}, {}
+        return (
+            self.visual_scorer.score_frames(
+                ingested_video.frames,
+                query=temporal_query.anchor,
+            ),
+            self.visual_scorer.score_frames(
+                ingested_video.frames,
+                query=temporal_query.target,
+            ),
+        )
+
     def _transcribe_audio_windows(self, ingested_video: IngestedVideo) -> dict[Path, str]:
         if self.audio_transcriber is None:
             return {}
@@ -184,6 +212,9 @@ class BaselineCandidateGenerator:
         video_id: str,
         frame: ExtractedFrame,
         saliency_score: float | None,
+        temporal_anchor_score: float | None,
+        temporal_target_score: float | None,
+        temporal_direction: str | None,
         ocr_text: str | None,
         scene: SceneSegment | None,
     ) -> Candidate:
@@ -199,6 +230,9 @@ class BaselineCandidateGenerator:
             segment_id=scene.id if scene else None,
             scene_start_seconds=scene.start_seconds if scene else None,
             scene_end_seconds=scene.end_seconds if scene else None,
+            temporal_anchor_score=temporal_anchor_score,
+            temporal_target_score=temporal_target_score,
+            temporal_direction=temporal_direction,
         )
 
     def _audio_candidate(

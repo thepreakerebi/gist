@@ -28,6 +28,9 @@ class Candidate(BaseModel):
     scene_start_seconds: float | None = None
     scene_end_seconds: float | None = None
     spatial_mask_path: Path | None = None
+    temporal_anchor_score: float | None = None
+    temporal_target_score: float | None = None
+    temporal_direction: str | None = None
 
 
 class SelectedCandidate(BaseModel):
@@ -47,6 +50,9 @@ class SelectedCandidate(BaseModel):
     spatial_mask_overlay_path: Path | None = None
     audio_anchor_timestamp_seconds: float | None = None
     audio_anchor_score: float = 0.0
+    temporal_anchor_score: float | None = None
+    temporal_target_score: float | None = None
+    temporal_direction: str | None = None
     selection_rank: int
     relevance_score: float
     normalized_score: float

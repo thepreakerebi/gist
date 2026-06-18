@@ -147,3 +147,48 @@ def test_shortlist_relevant_segments_uses_model_saliency_when_available() -> Non
     )
 
     assert [candidate.id for candidate in shortlisted.visual] == ["v-high"]
+
+
+def test_shortlist_relevant_segments_preserves_temporal_anchor_and_target() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id="decoy",
+                timestamp_seconds=10,
+                text="title",
+                saliency_score=0.99,
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.9,
+                temporal_direction="after",
+            ),
+            Candidate(
+                id="anchor",
+                timestamp_seconds=3500,
+                text="editing interface",
+                saliency_score=0.2,
+                temporal_anchor_score=0.95,
+                temporal_target_score=0.1,
+                temporal_direction="after",
+            ),
+            Candidate(
+                id="target",
+                timestamp_seconds=3510,
+                text="KINECT title",
+                saliency_score=0.2,
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.85,
+                temporal_direction="after",
+            ),
+        ],
+        audio=[],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="What title appears after the editing interface?",
+        duration_seconds=3600,
+        segment_seconds=5,
+        max_segments=1,
+    )
+
+    assert {"anchor", "target"} <= {candidate.id for candidate in shortlisted.visual}

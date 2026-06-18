@@ -3,6 +3,7 @@ import re
 from gist.core.query_intent import QueryIntent
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.core.scoring import text_similarity, unique_token_count
+from gist.core.temporal_query import parse_temporal_query, rank_temporal_pairs
 
 WHY_ANSWER_TERMS = {
     "afraid",
@@ -377,6 +378,10 @@ def _temporal_target_score(
     item: SelectedCandidate,
     selected: list[SelectedCandidate],
 ) -> float:
+    model_score = _model_temporal_target_score(query, item, selected)
+    if model_score is not None:
+        return model_score
+
     query_lower = query.lower()
     has_direction = (
         " after " in f" {query_lower} " or " before " in f" {query_lower} "
@@ -417,6 +422,39 @@ def _temporal_target_score(
     if direction == "before" and item.timestamp_seconds < anchor_time:
         return 0.6
     return 0.0
+
+
+def _model_temporal_target_score(
+    query: str,
+    item: SelectedCandidate,
+    selected: list[SelectedCandidate],
+) -> float | None:
+    temporal_items = [
+        candidate
+        for candidate in selected
+        if candidate.temporal_anchor_score is not None
+        and candidate.temporal_target_score is not None
+        and candidate.temporal_direction in {"after", "before"}
+    ]
+    if not temporal_items:
+        return None
+
+    temporal_query = parse_temporal_query(query)
+    if temporal_query is None:
+        return None
+    pairs = rank_temporal_pairs(
+        temporal_items,
+        direction=temporal_query.direction,
+        target_query=temporal_query.target,
+    )
+    if not pairs:
+        return None
+    _, anchor, target = pairs[0]
+    if item.id == anchor.id:
+        return -1.0
+    if item.id != target.id:
+        return -0.75
+    return 3.0
 
 
 def _anchor_terms(query_lower: str, direction: str) -> set[str]:

@@ -1,0 +1,28 @@
+[
+  {
+    "video_id": "50bac0df8ed34ad0",
+    "title": "Paul Graham / Y Combinator discussion",
+    "domain": "startup education",
+    "duration_seconds": 4046.169977,
+    "local_artifact_root": ".gist/runs/paul-graham-y-combinator",
+    "source_notes": "Existing local evaluation video; preserve source and license records before public redistribution."
+  },
+  {
+    "video_id": "539597cd20bdf6a8",
+    "title": "Tears of Steel extended test video",
+    "domain": "narrative film",
+    "duration_seconds": 3670.38,
+    "local_artifact_root": ".gist/runs/tears-of-steel-61min",
+    "source_notes": "Blender Foundation open movie material; verify redistribution terms for the exact extended file."
+  },
+  {
+    "video_id": "77ce0f01bddcf2cc",
+    "title": "Microsoft Kinect Keynote at Art && Code 2011",
+    "domain": "developer technology",
+    "duration_seconds": 4173.039706,
+    "source_url": "https://archive.org/details/microsoft-keynote-art-code-2011",
+    "license": "CC BY-SA 4.0",
+    "local_video_path": ".gist/videos/archive/microsoft-kinect-keynote-art-code-2011.mp4",
+    "local_artifact_root": ".gist/runs/microsoft-kinect-keynote-art-code-2011"
+  }
+]

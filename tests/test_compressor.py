@@ -328,6 +328,50 @@ def test_visual_query_reserves_budget_for_direct_visual_evidence() -> None:
     assert "v-hand" in {item.id for item in response.selected}
 
 
+def test_temporal_query_keeps_anchor_and_directional_target() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="What title appears after the editing interface?",
+        duration_seconds=3600,
+        preset=CompressionPreset.AGGRESSIVE,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(
+                id="opening-title",
+                timestamp_seconds=10,
+                text="KINECT opening title",
+                saliency_score=0.95,
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.95,
+                temporal_direction="after",
+            ),
+            Candidate(
+                id="editing-interface",
+                timestamp_seconds=3500,
+                text="video editing interface",
+                temporal_anchor_score=0.95,
+                temporal_target_score=0.1,
+                temporal_direction="after",
+            ),
+            Candidate(
+                id="successor-title",
+                timestamp_seconds=3510,
+                text="KINECT for Windows",
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.9,
+                temporal_direction="after",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER
+    assert {"editing-interface", "successor-title"}.issubset(
+        {item.id for item in response.selected}
+    )
+
+
 def test_negative_query_prefers_audio_coverage() -> None:
     request = CompressionRequest(
         video_id="demo",

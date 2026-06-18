@@ -107,6 +107,77 @@ def test_answer_from_evidence_prefers_post_anchor_evidence_for_after_queries() -
     assert answer_from_evidence(compression) == "on-screen text near 5.00 seconds: BLUE BOX"
 
 
+def test_answer_from_evidence_uses_model_temporal_target_scores() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What title appears after the editing interface?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="opening",
+                modality=Modality.VISUAL,
+                timestamp_seconds=8,
+                text="on-screen text near 8.00 seconds: KINECT",
+                selection_rank=1,
+                relevance_score=1,
+                normalized_score=1,
+                mmr_score=0.8,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.98,
+                temporal_direction="after",
+            ),
+            SelectedCandidate(
+                id="anchor",
+                modality=Modality.VISUAL,
+                timestamp_seconds=3529,
+                text="video editing interface",
+                selection_rank=2,
+                relevance_score=0.9,
+                normalized_score=0.9,
+                mmr_score=0.7,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.99,
+                temporal_target_score=0.1,
+                temporal_direction="after",
+            ),
+            SelectedCandidate(
+                id="target",
+                modality=Modality.VISUAL,
+                timestamp_seconds=3537,
+                text="on-screen text near 3537.00 seconds: KINECT for Windows",
+                selection_rank=3,
+                relevance_score=0.7,
+                normalized_score=0.7,
+                mmr_score=0.6,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.9,
+                temporal_direction="after",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=3,
+            selected_candidates=3,
+            visual_selected=3,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert (
+        answer_from_evidence(compression)
+        == "on-screen text near 3537.00 seconds: KINECT for Windows"
+    )
+
+
 def test_answer_from_evidence_prefers_earliest_ocr_for_opening_title_query() -> None:
     compression = CompressionResponse(
         video_id="demo",

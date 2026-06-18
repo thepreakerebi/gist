@@ -4,6 +4,7 @@ import math
 from gist.candidates.baseline import CandidateSet
 from gist.core.schemas import Candidate
 from gist.core.scoring import lexical_relevance
+from gist.core.temporal_query import parse_temporal_query, rank_temporal_pairs
 
 
 DEFAULT_SEGMENT_SECONDS = 120.0
@@ -49,6 +50,13 @@ def shortlist_relevant_segments(
         reverse=True,
     )[:max_segments]
     selected_ids = {group.id for group in selected_groups}
+    selected_ids.update(
+        _temporal_group_ids(
+            candidates=candidates.visual,
+            groups=groups,
+            query=query,
+        )
+    )
     visual = [
         _candidate_with_group(candidate, groups)
         for candidate in candidates.visual
@@ -109,7 +117,15 @@ def _group_from_candidates(
         duration_seconds=duration_seconds,
         segment_seconds=segment_seconds,
     )
-    scores = [lexical_relevance(query, candidate) for candidate in candidates]
+    scores = [
+        max(
+            lexical_relevance(query, candidate),
+            float(candidate.saliency_score or 0.0),
+            float(candidate.temporal_anchor_score or 0.0),
+            float(candidate.temporal_target_score or 0.0),
+        )
+        for candidate in candidates
+    ]
     score = max(scores, default=0.0)
     return SegmentCandidateGroup(
         id=group_id,
@@ -188,3 +204,40 @@ def _candidate_with_group(
             else group.end_seconds,
         }
     )
+
+
+def _temporal_group_ids(
+    candidates: list[Candidate],
+    groups: list[SegmentCandidateGroup],
+    query: str,
+    max_distance_seconds: float = 120.0,
+) -> set[str]:
+    temporal_query = parse_temporal_query(query)
+    scored = [
+        candidate
+        for candidate in candidates
+        if candidate.temporal_anchor_score is not None
+        and candidate.temporal_target_score is not None
+    ]
+    if temporal_query is None or not scored:
+        return set()
+
+    pairs = rank_temporal_pairs(
+        scored,
+        direction=temporal_query.direction,
+        target_query=temporal_query.target,
+        max_distance_seconds=max_distance_seconds,
+    )
+    selected_ids: set[str] = set()
+    for _, anchor, target in pairs[:12]:
+        selected_ids.add(_group_id_for_candidate(anchor, groups))
+        selected_ids.add(_group_id_for_candidate(target, groups))
+    return {group_id for group_id in selected_ids if group_id}
+
+
+def _group_id_for_candidate(
+    candidate: Candidate,
+    groups: list[SegmentCandidateGroup],
+) -> str:
+    group = next((item for item in groups if candidate in item.candidates), None)
+    return group.id if group is not None else candidate.segment_id or ""

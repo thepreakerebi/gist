@@ -23,6 +23,7 @@ from gist.core.scoring import (
     z_scores,
 )
 from gist.core.token_estimation import estimate_tokens
+from gist.core.temporal_query import rank_temporal_pairs
 
 AUDIO_VISUAL_ANCHOR_MIN_RELEVANCE = 0.15
 AUDIO_VISUAL_ANCHOR_RELATIVE_RELEVANCE = 0.6
@@ -50,6 +51,9 @@ class ScoredCandidate:
     aspect: str
     audio_anchor_timestamp_seconds: float | None
     audio_anchor_score: float
+    temporal_anchor_score: float | None
+    temporal_target_score: float | None
+    temporal_direction: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,7 +143,13 @@ class GistCompressor:
         query_intent: QueryIntent | None,
     ) -> list[Selection]:
         config = PRESETS[preset]
-        scored = self._apply_scene_aware_visual_budget(scored, config.max_items)
+        all_scored = scored
+        scored = self._apply_scene_aware_visual_budget(all_scored, config.max_items)
+        if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER:
+            scored = self._preserve_temporal_pair_candidates(
+                all_candidates=all_scored,
+                budgeted_candidates=scored,
+            )
         selections = self._select_with_mmr(
             candidates=scored,
             max_items=config.max_items,
@@ -158,6 +168,12 @@ class GistCompressor:
                 candidates=scored,
                 max_items=config.max_items,
             )
+        if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER:
+            selections = self._ensure_temporal_pair_coverage(
+                selections=selections,
+                candidates=scored,
+                max_items=config.max_items,
+            )
         if query_intent == QueryIntent.MIXED_AV:
             selections = self._ensure_mixed_av_coverage(
                 selections=selections,
@@ -171,6 +187,49 @@ class GistCompressor:
                 max_items=config.max_items,
             )
         return selections
+
+    def _preserve_temporal_pair_candidates(
+        self,
+        all_candidates: list[ScoredCandidate],
+        budgeted_candidates: list[ScoredCandidate],
+    ) -> list[ScoredCandidate]:
+        temporal_candidates = [
+            candidate
+            for candidate in all_candidates
+            if candidate.modality == Modality.VISUAL
+            and candidate.temporal_anchor_score is not None
+            and candidate.temporal_target_score is not None
+            and candidate.temporal_direction in {"after", "before"}
+        ]
+        if len(temporal_candidates) < 2:
+            return budgeted_candidates
+
+        direction = temporal_candidates[0].temporal_direction
+        assert direction is not None
+        target_query = next(
+            (
+                candidate.aspect
+                for candidate in temporal_candidates
+                if any(
+                    marker in candidate.aspect.lower()
+                    for marker in ("name", "text", "title", "word")
+                )
+            ),
+            temporal_candidates[0].aspect,
+        )
+        pairs = rank_temporal_pairs(
+            temporal_candidates,
+            direction=direction,
+            target_query=target_query,
+        )
+        if not pairs:
+            return budgeted_candidates
+
+        _, anchor, target = pairs[0]
+        by_id = {candidate.id: candidate for candidate in budgeted_candidates}
+        by_id[anchor.id] = anchor
+        by_id[target.id] = target
+        return list(by_id.values())
 
     def _apply_scene_aware_visual_budget(
         self,
@@ -288,6 +347,9 @@ class GistCompressor:
                         selection.candidate.audio_anchor_timestamp_seconds
                     ),
                     audio_anchor_score=selection.candidate.audio_anchor_score,
+                    temporal_anchor_score=selection.candidate.temporal_anchor_score,
+                    temporal_target_score=selection.candidate.temporal_target_score,
+                    temporal_direction=selection.candidate.temporal_direction,
                     selection_rank=selection.selection_rank,
                     relevance_score=selection.candidate.relevance_score,
                     normalized_score=selection.candidate.normalized_score,
@@ -411,6 +473,9 @@ class GistCompressor:
                 aspect=query,
                 audio_anchor_timestamp_seconds=None,
                 audio_anchor_score=0.0,
+                temporal_anchor_score=candidate.temporal_anchor_score,
+                temporal_target_score=candidate.temporal_target_score,
+                temporal_direction=candidate.temporal_direction,
             )
             for candidate, raw_score, normalized_score in zip(
                 candidates,
@@ -494,6 +559,9 @@ class GistCompressor:
                     aspect=candidate.aspect,
                     audio_anchor_timestamp_seconds=anchor.timestamp_seconds,
                     audio_anchor_score=anchor_score,
+                    temporal_anchor_score=candidate.temporal_anchor_score,
+                    temporal_target_score=candidate.temporal_target_score,
+                    temporal_direction=candidate.temporal_direction,
                 )
             )
         return anchored
@@ -771,6 +839,75 @@ class GistCompressor:
                 )
             )
         return self._rerank_selections(balanced)
+
+    def _ensure_temporal_pair_coverage(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+        max_distance_seconds: float = 120.0,
+    ) -> list[Selection]:
+        temporal_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.VISUAL
+            and candidate.temporal_anchor_score is not None
+            and candidate.temporal_target_score is not None
+            and candidate.temporal_direction in {"after", "before"}
+        ]
+        if len(temporal_candidates) < 2:
+            return selections
+
+        direction = temporal_candidates[0].temporal_direction
+        assert direction is not None
+        target_query = next(
+            (
+                candidate.aspect
+                for candidate in temporal_candidates
+                if any(
+                    marker in candidate.aspect.lower()
+                    for marker in ("name", "text", "title", "word")
+                )
+            ),
+            temporal_candidates[0].aspect,
+        )
+        pairs = rank_temporal_pairs(
+            temporal_candidates,
+            direction=direction,
+            target_query=target_query,
+            max_distance_seconds=max_distance_seconds,
+        )
+        if not pairs:
+            return selections
+        _, anchor, target = pairs[0]
+        required_ids = {anchor.id, target.id}
+        retained = [
+            selection
+            for selection in selections
+            if selection.candidate.id not in required_ids
+        ]
+        retained.sort(key=lambda selection: selection.mmr_score, reverse=True)
+        retained = retained[: max(max_items - 2, 0)]
+        retained.extend(
+            [
+                Selection(
+                    candidate=anchor,
+                    selection_rank=0,
+                    mmr_score=float(anchor.temporal_anchor_score or 0.0),
+                    reason="Included as the visual anchor for a temporal query.",
+                ),
+                Selection(
+                    candidate=target,
+                    selection_rank=0,
+                    mmr_score=float(target.temporal_target_score or 0.0),
+                    reason=(
+                        "Included as the nearest high-relevance visual target "
+                        f"{target.temporal_direction} the temporal anchor."
+                    ),
+                ),
+            ]
+        )
+        return self._rerank_selections(retained)
 
     def _ensure_visual_query_coverage(
         self,

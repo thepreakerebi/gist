@@ -10,6 +10,16 @@ class FakeVisualScorer:
         return {frame.path: 0.9 for frame in frames}
 
 
+class FakeTemporalVisualScorer:
+    def score_frames(self, frames: list[ExtractedFrame], query: str) -> dict[Path, float]:
+        score = 0.2
+        if "editing interface" in query:
+            score = 0.8
+        elif "title appears" in query:
+            score = 0.7
+        return {frame.path: score for frame in frames}
+
+
 class FakeAudioTranscriber:
     def transcribe_windows(self, windows: list[AudioWindow]) -> dict[Path, str]:
         return {window.path: "speaker explains pricing" for window in windows}
@@ -87,6 +97,30 @@ def test_baseline_candidate_generator_can_attach_visual_saliency_scores() -> Non
     )
 
     assert candidates.visual[0].saliency_score == 0.9
+
+
+def test_baseline_candidate_generator_attaches_temporal_visual_scores() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=2.0, has_audio=False),
+        frames=[
+            ExtractedFrame(index=0, timestamp_seconds=0.0, path=Path("frame.jpg")),
+        ],
+        audio_windows=[],
+    )
+
+    candidates = BaselineCandidateGenerator(
+        visual_scorer=FakeTemporalVisualScorer()
+    ).generate(
+        manifest,
+        query="What title appears after the editing interface?",
+    )
+
+    candidate = candidates.visual[0]
+    assert candidate.temporal_anchor_score == 0.8
+    assert candidate.temporal_target_score == 0.7
+    assert candidate.temporal_direction == "after"
 
 
 def test_baseline_candidate_generator_uses_frame_ocr_as_visual_text() -> None:
