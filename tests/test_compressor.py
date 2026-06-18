@@ -328,6 +328,44 @@ def test_visual_query_reserves_budget_for_direct_visual_evidence() -> None:
     assert "v-hand" in {item.id for item in response.selected}
 
 
+def test_opening_visual_query_keeps_earliest_ocr_frame() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="What course title appears on the opening lecture slide?",
+        duration_seconds=4500,
+        preset=CompressionPreset.AGGRESSIVE,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(
+                id="opening-title",
+                timestamp_seconds=0,
+                text="on-screen text near 0 seconds: Bio-Inspired Motor Control",
+                saliency_score=0.1,
+                segment_id="opening",
+            ),
+            Candidate(
+                id="later-title",
+                timestamp_seconds=638,
+                text="on-screen text near 638 seconds: Legged Locomotion in Nature",
+                saliency_score=0.95,
+                segment_id="later",
+            ),
+            Candidate(
+                id="closing-title",
+                timestamp_seconds=4400,
+                text="on-screen text near 4400 seconds: Summary",
+                saliency_score=0.8,
+                segment_id="closing",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.query_intent == QueryIntent.VISUAL_OBJECT_ACTION
+    assert "opening-title" in {item.id for item in response.selected}
+
+
 def test_temporal_query_keeps_anchor_and_directional_target() -> None:
     request = CompressionRequest(
         video_id="demo",

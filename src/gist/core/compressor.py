@@ -145,6 +145,10 @@ class GistCompressor:
         config = PRESETS[preset]
         all_scored = scored
         scored = self._apply_scene_aware_visual_budget(all_scored, config.max_items)
+        scored = self._preserve_opening_visual_candidate(
+            all_candidates=all_scored,
+            budgeted_candidates=scored,
+        )
         if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER:
             scored = self._preserve_temporal_pair_candidates(
                 all_candidates=all_scored,
@@ -168,6 +172,11 @@ class GistCompressor:
                 candidates=scored,
                 max_items=config.max_items,
             )
+            selections = self._ensure_opening_visual_coverage(
+                selections=selections,
+                candidates=scored,
+                max_items=config.max_items,
+            )
         if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER:
             selections = self._ensure_temporal_pair_coverage(
                 selections=selections,
@@ -187,6 +196,21 @@ class GistCompressor:
                 max_items=config.max_items,
             )
         return selections
+
+    def _preserve_opening_visual_candidate(
+        self,
+        all_candidates: list[ScoredCandidate],
+        budgeted_candidates: list[ScoredCandidate],
+    ) -> list[ScoredCandidate]:
+        if not self._is_opening_visual_query(all_candidates):
+            return budgeted_candidates
+        opening = self._opening_visual_candidate(all_candidates)
+        if opening is None:
+            return budgeted_candidates
+
+        by_id = {candidate.id: candidate for candidate in budgeted_candidates}
+        by_id[opening.id] = opening
+        return list(by_id.values())
 
     def _preserve_temporal_pair_candidates(
         self,
@@ -960,6 +984,69 @@ class GistCompressor:
             )
             selected_visual += 1
         return self._rerank_selections(balanced)
+
+    def _ensure_opening_visual_coverage(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[Selection]:
+        if not self._is_opening_visual_query(candidates):
+            return selections
+        opening = self._opening_visual_candidate(candidates)
+        if opening is None or any(
+            selection.candidate.id == opening.id for selection in selections
+        ):
+            return selections
+
+        retained = sorted(
+            selections,
+            key=lambda selection: selection.mmr_score,
+            reverse=True,
+        )[: max(max_items - 1, 0)]
+        retained.append(
+            Selection(
+                candidate=opening,
+                selection_rank=0,
+                mmr_score=opening.normalized_score,
+                reason="Included as the earliest OCR-bearing frame for an opening query.",
+            )
+        )
+        return self._rerank_selections(retained)
+
+    def _is_opening_visual_query(
+        self,
+        candidates: list[ScoredCandidate],
+    ) -> bool:
+        return any(
+            candidate.modality == Modality.VISUAL
+            and any(
+                marker in candidate.aspect.lower()
+                for marker in ("opening", "beginning", " start", "first")
+            )
+            for candidate in candidates
+        )
+
+    def _opening_visual_candidate(
+        self,
+        candidates: list[ScoredCandidate],
+    ) -> ScoredCandidate | None:
+        visual = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.VISUAL
+        ]
+        if not visual:
+            return None
+        ocr_candidates = [
+            candidate
+            for candidate in visual
+            if candidate.text.lower().startswith("on-screen text")
+        ]
+        return min(
+            ocr_candidates or visual,
+            key=lambda candidate: (candidate.timestamp_seconds, candidate.id),
+        )
 
     def _ensure_negative_audio_coverage(
         self,

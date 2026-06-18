@@ -192,3 +192,36 @@ def test_shortlist_relevant_segments_preserves_temporal_anchor_and_target() -> N
     )
 
     assert {"anchor", "target"} <= {candidate.id for candidate in shortlisted.visual}
+
+
+def test_shortlist_relevant_segments_preserves_opening_segment() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id="opening",
+                timestamp_seconds=0,
+                text="on-screen text: Bio-Inspired Motor Control",
+                saliency_score=0.01,
+            ),
+            *[
+                Candidate(
+                    id=f"later-{index}",
+                    timestamp_seconds=float(index * 120),
+                    text="highly relevant lecture slide",
+                    saliency_score=1.0,
+                )
+                for index in range(1, 8)
+            ],
+        ],
+        audio=[],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="What title appears on the opening lecture slide?",
+        duration_seconds=1200,
+        segment_seconds=120,
+        max_segments=2,
+    )
+
+    assert "opening" in {candidate.id for candidate in shortlisted.visual}

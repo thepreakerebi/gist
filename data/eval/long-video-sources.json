@@ -24,5 +24,29 @@
     "license": "CC BY-SA 4.0",
     "local_video_path": ".gist/videos/archive/microsoft-kinect-keynote-art-code-2011.mp4",
     "local_artifact_root": ".gist/runs/microsoft-kinect-keynote-art-code-2011"
+  },
+  {
+    "video_id": "140287f5bdfa0ca4",
+    "title": "Bio-Inspired Motor Control 2012 - Lecture 01",
+    "domain": "robotics education",
+    "duration_seconds": 4502.080862,
+    "source_url": "https://archive.org/details/Bio-inspiredMotorControl2012-Lecture01",
+    "download_url": "https://archive.org/download/Bio-inspiredMotorControl2012-Lecture01/BIMC12_L01_V04.ogv",
+    "md5": "e6c58bfcfcaf5fe76e01af48a5cfde66",
+    "license": "CC BY-NC-ND 3.0",
+    "local_video_path": ".gist/videos/archive/bio-inspired-motor-control-lecture-01.ogv",
+    "local_artifact_root": ".gist/runs/bio-inspired-motor-control-lecture-01"
+  },
+  {
+    "video_id": "5d8fcb11a908ce4f",
+    "title": "Bio-Inspired Motor Control 2012 - Lecture 02",
+    "domain": "robotics education",
+    "duration_seconds": 5183.617166,
+    "source_url": "https://archive.org/details/Bio-inspiredMotorControl2012-Lecture02",
+    "download_url": "https://archive.org/download/Bio-inspiredMotorControl2012-Lecture02/BIMC12_L02_V02.ogv",
+    "md5": "3d03b9df53c449b637e1a59e77763a2d",
+    "license": "CC BY-NC-ND 3.0",
+    "local_video_path": ".gist/videos/archive/bio-inspired-motor-control-lecture-02.ogv",
+    "local_artifact_root": ".gist/runs/bio-inspired-motor-control-lecture-02"
   }
 ]

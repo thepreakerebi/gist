@@ -57,6 +57,9 @@ def shortlist_relevant_segments(
             query=query,
         )
     )
+    opening_group_id = _opening_group_id(candidates.visual, groups, query)
+    if opening_group_id is not None:
+        selected_ids.add(opening_group_id)
     visual = [
         _candidate_with_group(candidate, groups)
         for candidate in candidates.visual
@@ -241,3 +244,24 @@ def _group_id_for_candidate(
 ) -> str:
     group = next((item for item in groups if candidate in item.candidates), None)
     return group.id if group is not None else candidate.segment_id or ""
+
+
+def _opening_group_id(
+    candidates: list[Candidate],
+    groups: list[SegmentCandidateGroup],
+    query: str,
+) -> str | None:
+    query_lower = query.lower()
+    if not any(
+        marker in query_lower
+        for marker in ("opening", "beginning", " start", "first")
+    ):
+        return None
+    if not candidates:
+        return None
+
+    opening = min(
+        candidates,
+        key=lambda candidate: (candidate.timestamp_seconds, candidate.id),
+    )
+    return _group_id_for_candidate(opening, groups) or None
