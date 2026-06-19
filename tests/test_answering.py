@@ -178,6 +178,61 @@ def test_answer_from_evidence_uses_model_temporal_target_scores() -> None:
     )
 
 
+def test_answer_from_evidence_treats_slide_query_as_ocr_text() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What slide appears after the Further Reading Materials slide?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="anchor",
+                modality=Modality.VISUAL,
+                timestamp_seconds=100,
+                text="on-screen text near 100 seconds: Further Reading Materials",
+                segment_id="scene-1",
+                selection_rank=1,
+                relevance_score=1,
+                normalized_score=1,
+                mmr_score=1,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.95,
+                temporal_target_score=0.1,
+                temporal_direction="after",
+            ),
+            SelectedCandidate(
+                id="target",
+                modality=Modality.VISUAL,
+                timestamp_seconds=110,
+                text="on-screen text near 110 seconds: Next Week",
+                segment_id="scene-2",
+                selection_rank=2,
+                relevance_score=0.8,
+                normalized_score=0.8,
+                mmr_score=0.8,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.7,
+                temporal_direction="after",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=2,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == "on-screen text near 110 seconds: Next Week"
+
+
 def test_answer_from_evidence_prefers_earliest_ocr_for_opening_title_query() -> None:
     compression = CompressionResponse(
         video_id="demo",

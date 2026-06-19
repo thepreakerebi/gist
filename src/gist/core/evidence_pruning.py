@@ -570,6 +570,7 @@ def _is_visual_text_query(compression: CompressionResponse) -> bool:
             " title ",
             " logo ",
             " label ",
+            " slide ",
         ]
     )
 

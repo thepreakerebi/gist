@@ -7,6 +7,7 @@ from gist.audio.scorers import AudioWindowScorer
 from gist.audio.transcribers import AudioTranscriber
 from gist.core.progress import ProgressCallback
 from gist.core.schemas import Candidate
+from gist.core.scoring import text_similarity
 from gist.core.temporal_query import parse_temporal_query
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
 from gist.vision.ocr_protocol import FrameOcr
@@ -85,6 +86,8 @@ class BaselineCandidateGenerator:
                     temporal_anchor_scores.get(frame.path),
                     temporal_target_scores.get(frame.path),
                     temporal_query.direction if temporal_query is not None else None,
+                    temporal_query.anchor if temporal_query is not None else None,
+                    temporal_query.target if temporal_query is not None else None,
                     frame_ocr_text.get(frame.path),
                     scene_by_frame.get(frame.index),
                 )
@@ -215,12 +218,25 @@ class BaselineCandidateGenerator:
         temporal_anchor_score: float | None,
         temporal_target_score: float | None,
         temporal_direction: str | None,
+        temporal_anchor_query: str | None,
+        temporal_target_query: str | None,
         ocr_text: str | None,
         scene: SceneSegment | None,
     ) -> Candidate:
         text = f"visual frame sampled at {frame.timestamp_seconds:.2f} seconds"
         if ocr_text:
             text = f"on-screen text near {frame.timestamp_seconds:.2f} seconds: {ocr_text}"
+        temporal_text = ocr_text or text
+        if temporal_anchor_query is not None:
+            temporal_anchor_score = max(
+                float(temporal_anchor_score or 0.0),
+                text_similarity(temporal_anchor_query, temporal_text),
+            )
+        if temporal_target_query is not None:
+            temporal_target_score = max(
+                float(temporal_target_score or 0.0),
+                text_similarity(temporal_target_query, temporal_text),
+            )
         return Candidate(
             id=f"{video_id}:visual:{frame.index}",
             timestamp_seconds=frame.timestamp_seconds,

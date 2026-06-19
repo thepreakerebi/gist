@@ -869,7 +869,7 @@ class GistCompressor:
         selections: list[Selection],
         candidates: list[ScoredCandidate],
         max_items: int,
-        max_distance_seconds: float = 120.0,
+        max_distance_seconds: float = 300.0,
     ) -> list[Selection]:
         temporal_candidates = [
             candidate

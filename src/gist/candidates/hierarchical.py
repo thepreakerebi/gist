@@ -213,7 +213,7 @@ def _temporal_group_ids(
     candidates: list[Candidate],
     groups: list[SegmentCandidateGroup],
     query: str,
-    max_distance_seconds: float = 120.0,
+    max_distance_seconds: float = 300.0,
 ) -> set[str]:
     temporal_query = parse_temporal_query(query)
     scored = [

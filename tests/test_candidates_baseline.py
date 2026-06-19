@@ -31,8 +31,11 @@ class FakeAudioScorer:
 
 
 class FakeFrameOcr:
+    def __init__(self, text: str = "Conductor ships code with AI") -> None:
+        self.text = text
+
     def extract_text(self, frames: list[ExtractedFrame]) -> dict[Path, str]:
-        return {frame.path: "Conductor ships code with AI" for frame in frames}
+        return {frame.path: self.text for frame in frames}
 
 
 class FakeSceneAwareVisualScorer(FakeVisualScorer):
@@ -121,6 +124,28 @@ def test_baseline_candidate_generator_attaches_temporal_visual_scores() -> None:
     assert candidate.temporal_anchor_score == 0.8
     assert candidate.temporal_target_score == 0.7
     assert candidate.temporal_direction == "after"
+
+
+def test_temporal_visual_scores_use_exact_ocr_anchor_text() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=2.0, has_audio=False),
+        frames=[
+            ExtractedFrame(index=0, timestamp_seconds=0.0, path=Path("frame.jpg")),
+        ],
+        audio_windows=[],
+    )
+
+    candidates = BaselineCandidateGenerator(
+        visual_scorer=FakeTemporalVisualScorer(),
+        frame_ocr=FakeFrameOcr("WorldWide Telescope"),
+    ).generate(
+        manifest,
+        query="What slide appears after the WorldWide Telescope slide?",
+    )
+
+    assert candidates.visual[0].temporal_anchor_score > 0.6
 
 
 def test_baseline_candidate_generator_uses_frame_ocr_as_visual_text() -> None:

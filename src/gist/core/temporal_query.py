@@ -41,7 +41,7 @@ def rank_temporal_pairs(
     candidates: list[TemporalCandidateT],
     direction: str,
     target_query: str,
-    max_distance_seconds: float = 120.0,
+    max_distance_seconds: float = 300.0,
 ) -> list[tuple[float, TemporalCandidateT, TemporalCandidateT]]:
     scored = [
         candidate
@@ -62,12 +62,25 @@ def rank_temporal_pairs(
             and abs(candidate.timestamp_seconds - anchor.timestamp_seconds)
             <= max_distance_seconds
         ]
-        for target in sorted(
+        ordered_targets = sorted(
             directional,
             key=lambda candidate: abs(
                 candidate.timestamp_seconds - anchor.timestamp_seconds
             ),
-        )[:1]:
+        )
+        transitioned_targets = [
+            candidate
+            for candidate in ordered_targets
+            if anchor.segment_id
+            and candidate.segment_id
+            and anchor.segment_id != candidate.segment_id
+        ]
+        target_options = (
+            _best_candidate_per_segment(transitioned_targets, target_query)
+            if transitioned_targets
+            else ordered_targets[:1]
+        )
+        for target in target_options:
             distance = abs(target.timestamp_seconds - anchor.timestamp_seconds)
             proximity = max(1.0 - (distance / max_distance_seconds), 0.0)
             transition_bonus = (
@@ -80,7 +93,7 @@ def rank_temporal_pairs(
             score = (
                 float(anchor.temporal_anchor_score or 0.0)
                 + float(target.temporal_target_score or 0.0)
-                + (0.05 * proximity)
+                + (0.25 * proximity)
                 + transition_bonus
                 + _target_text_bonus(target_query, target.text)
             )
@@ -96,6 +109,32 @@ def rank_temporal_pairs(
     )
 
 
+def _best_candidate_per_segment(
+    candidates: list[TemporalCandidateT],
+    target_query: str,
+    max_segments: int = 8,
+) -> list[TemporalCandidateT]:
+    grouped: dict[str, list[TemporalCandidateT]] = {}
+    for candidate in candidates:
+        segment_id = candidate.segment_id
+        if segment_id is None:
+            continue
+        grouped.setdefault(segment_id, []).append(candidate)
+
+    ordered_segments = list(grouped)[:max_segments]
+    return [
+        max(
+            grouped[segment_id],
+            key=lambda candidate: (
+                _target_text_bonus(target_query, candidate.text),
+                float(candidate.temporal_target_score or 0.0),
+                -candidate.timestamp_seconds,
+            ),
+        )
+        for segment_id in ordered_segments
+    ]
+
+
 def _is_directional(
     candidate_timestamp: float,
     anchor_timestamp: float,
@@ -108,7 +147,7 @@ def _is_directional(
 
 def _target_text_bonus(target_query: str, evidence_text: str) -> float:
     target_terms = set(re.findall(r"[a-z0-9]+", target_query.lower()))
-    if not target_terms & {"name", "text", "title", "word", "words"}:
+    if not target_terms & {"name", "slide", "text", "title", "word", "words"}:
         return 0.0
     if ":" not in evidence_text:
         return 0.0

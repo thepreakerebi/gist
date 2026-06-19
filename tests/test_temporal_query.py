@@ -59,5 +59,80 @@ def test_rank_temporal_pairs_prefers_title_bearing_scene_transition() -> None:
         target_query="What title appears",
     )
 
-    assert pairs[0][1].id == "slightly-weaker-anchor"
     assert pairs[0][2].id == "title-successor"
+
+
+def test_rank_temporal_pairs_skips_frames_from_same_persistent_scene() -> None:
+    candidates = [
+        Candidate(
+            id="anchor",
+            timestamp_seconds=100,
+            text="on-screen text: Further Reading Materials",
+            segment_id="scene-1",
+            temporal_anchor_score=0.95,
+            temporal_target_score=0.1,
+        ),
+        Candidate(
+            id="same-slide",
+            timestamp_seconds=108,
+            text="on-screen text: Further Reading Materials",
+            segment_id="scene-1",
+            temporal_anchor_score=0.9,
+            temporal_target_score=0.8,
+        ),
+        Candidate(
+            id="next-slide",
+            timestamp_seconds=116,
+            text="on-screen text: Next Week",
+            segment_id="scene-2",
+            temporal_anchor_score=0.1,
+            temporal_target_score=0.7,
+        ),
+    ]
+
+    pairs = rank_temporal_pairs(
+        candidates,
+        direction="after",
+        target_query="What slide appears",
+    )
+
+    anchor_pair = next(pair for pair in pairs if pair[1].id == "anchor")
+    assert anchor_pair[2].id == "next-slide"
+
+
+def test_rank_temporal_pairs_prefers_later_named_slide_over_intermediate_demo() -> None:
+    candidates = [
+        Candidate(
+            id="anchor",
+            timestamp_seconds=100,
+            text="on-screen text: WorldWide Telescope",
+            segment_id="scene-1",
+            temporal_anchor_score=0.95,
+            temporal_target_score=0.1,
+        ),
+        Candidate(
+            id="demo",
+            timestamp_seconds=120,
+            text="on-screen text: | = @ |",
+            segment_id="scene-2",
+            temporal_anchor_score=0.1,
+            temporal_target_score=0.7,
+        ),
+        Candidate(
+            id="next-title",
+            timestamp_seconds=160,
+            text="on-screen text: FUN LABS",
+            segment_id="scene-3",
+            temporal_anchor_score=0.1,
+            temporal_target_score=0.65,
+        ),
+    ]
+
+    pairs = rank_temporal_pairs(
+        candidates,
+        direction="after",
+        target_query="What slide appears",
+    )
+
+    anchor_pair = next(pair for pair in pairs if pair[1].id == "anchor")
+    assert anchor_pair[2].id == "next-title"

@@ -6,7 +6,7 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.schemas import Candidate
 from gist.media.models import IngestedVideo
 
-CANDIDATE_CACHE_VERSION = "v14"
+CANDIDATE_CACHE_VERSION = "v18"
 
 
 @dataclass(slots=True)

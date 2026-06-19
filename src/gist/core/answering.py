@@ -209,6 +209,7 @@ def _is_text_query(query: str) -> bool:
             " title ",
             " logo ",
             " label ",
+            " slide ",
         ]
     )
 
