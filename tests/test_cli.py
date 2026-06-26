@@ -1,10 +1,24 @@
 import json
+from argparse import Namespace
 from pathlib import Path
 
 import gist.cli as cli
-from gist.cli import _attach_spatial_masks, _clear_previous_clips
+from gist.audio.whisper import TranscriptQuality
+from gist.cli import (
+    _attach_spatial_masks,
+    _clear_previous_clips,
+    _should_retry_transcripts,
+)
+from gist.core.modes import AudioScoringMode
 from gist.core.presets import CompressionPreset
-from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
+from gist.core.query_intent import QueryIntent
+from gist.core.schemas import (
+    CompressionMetrics,
+    CompressionResponse,
+    Modality,
+    QualityWarning,
+    SelectedCandidate,
+)
 from gist.core.token_estimation import TokenEstimatorProfile
 from gist.media.models import IngestedVideo, VideoMetadata
 
@@ -167,6 +181,97 @@ def test_main_cli_accepts_builtin_extraction_schema_name(tmp_path: Path, monkeyp
     assert "pricing objection" in extraction_csv_output.read_text()
 
 
+def test_should_retry_transcripts_requires_noisy_whisper_warning() -> None:
+    args = Namespace(
+        auto_transcript_retry=True,
+        whisper_model_size=None,
+        whisper_device=None,
+        whisper_compute_type=None,
+        whisper_beam_size=None,
+    )
+    compression = _compression_with_warning("noisy_transcript_evidence")
+
+    assert _should_retry_transcripts(
+        args=args,
+        compression=compression,
+        current_quality=TranscriptQuality.FAST,
+        retry_quality=TranscriptQuality.ACCURATE,
+    )
+    assert not _should_retry_transcripts(
+        args=args,
+        compression=compression.model_copy(update={"quality_warnings": []}),
+        current_quality=TranscriptQuality.FAST,
+        retry_quality=TranscriptQuality.ACCURATE,
+    )
+
+
+def test_should_retry_transcripts_skips_manual_whisper_overrides() -> None:
+    args = Namespace(
+        auto_transcript_retry=True,
+        whisper_model_size="medium",
+        whisper_device=None,
+        whisper_compute_type=None,
+        whisper_beam_size=None,
+    )
+
+    assert not _should_retry_transcripts(
+        args=args,
+        compression=_compression_with_warning("noisy_transcript_evidence"),
+        current_quality=TranscriptQuality.FAST,
+        retry_quality=TranscriptQuality.ACCURATE,
+    )
+
+
+def test_main_cli_auto_retries_noisy_transcripts(tmp_path: Path, monkeypatch) -> None:
+    calls: list[TranscriptQuality] = []
+
+    class FakePipeline:
+        def __init__(self, output_root: Path) -> None:
+            self.output_root = output_root
+
+        def run(self, **kwargs):
+            quality = kwargs["transcript_quality"]
+            calls.append(quality)
+            warning_code = (
+                "noisy_transcript_evidence"
+                if quality == TranscriptQuality.FAST
+                else None
+            )
+            ingestion = IngestedVideo(
+                video_id="video",
+                source_path=tmp_path / "video.mp4",
+                metadata=VideoMetadata(duration_seconds=3600, has_audio=True),
+                frames=[],
+                audio_windows=[],
+            )
+            return ingestion, _compression_with_warning(warning_code)
+
+    monkeypatch.setattr(cli, "LocalCompressionPipeline", FakePipeline)
+
+    exit_code = cli.main(
+        [
+            str(tmp_path / "video.mp4"),
+            "--query",
+            "What are the main topics covered throughout this lecture?",
+            "--output-root",
+            str(tmp_path / "runs"),
+            "--audio-scorer",
+            "whisper",
+            "--transcript-quality",
+            "fast",
+            "--auto-transcript-retry",
+            "--transcript-retry-quality",
+            "accurate",
+            "--no-clips",
+            "--no-answer-prune",
+            "--quiet",
+        ]
+    )
+
+    assert exit_code == 0
+    assert calls == [TranscriptQuality.FAST, TranscriptQuality.ACCURATE]
+
+
 def test_main_cli_rejects_schema_path_and_schema_name(tmp_path: Path) -> None:
     try:
         cli.main(
@@ -184,3 +289,57 @@ def test_main_cli_rejects_schema_path_and_schema_name(tmp_path: Path) -> None:
         assert "Use only one of --extraction-schema" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
+
+
+def _compression_with_warning(warning_code: str | None) -> CompressionResponse:
+    evidence_text = (
+        "So this is a bit of a vlog in the place and we have a lot of courses."
+        if warning_code == "noisy_transcript_evidence"
+        else "sensors and control"
+    )
+    warnings = (
+        [
+            QualityWarning(
+                code=warning_code,
+                message="warning",
+            )
+        ]
+        if warning_code
+        else []
+    )
+    return CompressionResponse(
+        video_id="video",
+        query="What are the main topics covered throughout this lecture?",
+        answer="The video covers: sensors and control.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.GLOBAL_SUMMARY,
+        audio_scorer_used=AudioScoringMode.WHISPER,
+        selected=[
+            SelectedCandidate(
+                id="a-1",
+                modality=Modality.AUDIO,
+                timestamp_seconds=30,
+                text=evidence_text,
+                selection_rank=1,
+                relevance_score=1,
+                normalized_score=1,
+                mmr_score=1,
+                source_score_type="test",
+                reason="test",
+                support_label="strong",
+                grounding_label="direct",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=1,
+            selected_candidates=1,
+            visual_selected=0,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_token_reduction_percent=99,
+        ),
+        quality_warnings=warnings,
+    )

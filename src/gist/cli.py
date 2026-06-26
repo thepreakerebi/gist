@@ -79,6 +79,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--whisper-device")
     parser.add_argument("--whisper-compute-type")
     parser.add_argument("--whisper-beam-size", type=int)
+    parser.add_argument(
+        "--auto-transcript-retry",
+        action="store_true",
+        help=(
+            "If transcript-backed evidence is flagged as noisy, rerun candidate "
+            "generation once with a stronger transcript-quality preset."
+        ),
+    )
+    parser.add_argument(
+        "--transcript-retry-quality",
+        choices=list(TranscriptQuality),
+        default=TranscriptQuality.ACCURATE,
+        help="Transcript quality preset used by --auto-transcript-retry.",
+    )
     parser.add_argument("--adaptive-budget", action="store_true")
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument(
@@ -151,79 +165,37 @@ def main(argv: list[str] | None = None) -> int:
 
     progress(f"starting run: video={args.video_path}, query={args.query!r}")
     pipeline = LocalCompressionPipeline(output_root=args.output_root)
-    ingestion, compression = pipeline.run(
-        video_path=args.video_path,
-        query=args.query,
-        preset=CompressionPreset(args.preset),
-        sample_count=args.sample_count,
-        audio_window_seconds=args.audio_window_seconds,
-        processing_mode=ProcessingMode(args.processing_mode),
-        visual_scorer=VisualScoringMode(args.visual_scorer),
-        audio_scorer=AudioScoringMode(args.audio_scorer),
-        transcript_quality=TranscriptQuality(args.transcript_quality),
-        whisper_model_size=args.whisper_model_size,
-        whisper_device=args.whisper_device,
-        whisper_compute_type=args.whisper_compute_type,
-        whisper_beam_size=args.whisper_beam_size,
-        adaptive_budget=args.adaptive_budget,
-        decompose_query=args.decompose_query,
-        task_aware_selection=True,
-        visual_ocr=not args.no_visual_ocr,
+    transcript_quality = TranscriptQuality(args.transcript_quality)
+    ingestion, compression = _run_pipeline_pass(
+        args=args,
+        pipeline=pipeline,
+        transcript_quality=transcript_quality,
         progress=progress,
     )
-    if not args.no_clips:
-        progress("rendering evidence clips")
-        compression = _attach_evidence_clips(
-            compression=compression,
-            video_path=args.video_path,
-            output_dir=run_dir / "clips",
+    compression = _finalize_compression(
+        args=args,
+        compression=compression,
+        run_dir=run_dir,
+        progress=progress,
+    )
+    retry_quality = TranscriptQuality(args.transcript_retry_quality)
+    if _should_retry_transcripts(args, compression, transcript_quality, retry_quality):
+        progress(
+            "retrying with stronger transcript quality: "
+            f"{transcript_quality.value} -> {retry_quality.value}"
+        )
+        ingestion, compression = _run_pipeline_pass(
+            args=args,
+            pipeline=pipeline,
+            transcript_quality=retry_quality,
             progress=progress,
         )
-
-    compression = _answer_compression(args, compression, progress)
-    if not args.no_answer_prune:
-        progress("pruning evidence against answer")
-        before_prune_ids = [item.id for item in compression.selected]
-        compression = prune_evidence_to_answer(compression)
-        after_prune_ids = [item.id for item in compression.selected]
-        if after_prune_ids != before_prune_ids:
-            progress("re-answering from pruned evidence")
-            compression = _answer_compression(args, compression, progress)
-        progress("pruning uncited final evidence")
-        before_citation_ids = [item.id for item in compression.selected]
-        compression = prune_evidence_to_answer_citations(compression)
-        after_citation_ids = [item.id for item in compression.selected]
-        if after_citation_ids != before_citation_ids:
-            progress("re-answering from cited evidence")
-            compression = _answer_compression(args, compression, progress)
-            progress("pruning uncited cited evidence")
-            compression = prune_evidence_to_answer_citations(compression)
-        before_consolidate_ids = [item.id for item in compression.selected]
-        progress("consolidating redundant final evidence")
-        compression = consolidate_redundant_evidence(compression)
-        after_consolidate_ids = [item.id for item in compression.selected]
-        if after_consolidate_ids != before_consolidate_ids:
-            progress("re-answering from consolidated evidence")
-            compression = _answer_compression(args, compression, progress)
-            progress("pruning uncited consolidated evidence")
-            compression = prune_evidence_to_answer_citations(compression)
-        before_grounding_ids = [item.id for item in compression.selected]
-        progress("dropping weakly grounded final evidence")
-        compression = prune_weakly_grounded_evidence(compression)
-        after_grounding_ids = [item.id for item in compression.selected]
-        if after_grounding_ids != before_grounding_ids:
-            progress("re-answering from grounded evidence")
-            compression = _answer_compression(args, compression, progress)
-    if args.spatial_pruning:
-        progress("attaching spatial masks")
-        compression = _attach_spatial_masks(
+        compression = _finalize_compression(
+            args=args,
             compression=compression,
-            output_dir=run_dir / "spatial",
-            grid_size=args.spatial_grid_size,
-            retention_ratio=args.spatial_retention_ratio,
+            run_dir=run_dir,
+            progress=progress,
         )
-
-    compression = apply_quality_gate(compression)
 
     response_path = run_dir / "compression.json"
     progress(f"writing JSON output: {response_path}")
@@ -289,6 +261,137 @@ def main(argv: list[str] | None = None) -> int:
     if extraction_csv_path is not None:
         print(f"extraction_csv={extraction_csv_path}")
     return 0
+
+
+def _run_pipeline_pass(
+    args: argparse.Namespace,
+    pipeline: LocalCompressionPipeline,
+    transcript_quality: TranscriptQuality,
+    progress: StepLogger,
+):
+    return pipeline.run(
+        video_path=args.video_path,
+        query=args.query,
+        preset=CompressionPreset(args.preset),
+        sample_count=args.sample_count,
+        audio_window_seconds=args.audio_window_seconds,
+        processing_mode=ProcessingMode(args.processing_mode),
+        visual_scorer=VisualScoringMode(args.visual_scorer),
+        audio_scorer=AudioScoringMode(args.audio_scorer),
+        transcript_quality=transcript_quality,
+        whisper_model_size=args.whisper_model_size,
+        whisper_device=args.whisper_device,
+        whisper_compute_type=args.whisper_compute_type,
+        whisper_beam_size=args.whisper_beam_size,
+        adaptive_budget=args.adaptive_budget,
+        decompose_query=args.decompose_query,
+        task_aware_selection=True,
+        visual_ocr=not args.no_visual_ocr,
+        progress=progress,
+    )
+
+
+def _finalize_compression(
+    args: argparse.Namespace,
+    compression: CompressionResponse,
+    run_dir: Path,
+    progress: StepLogger,
+) -> CompressionResponse:
+    if not args.no_clips:
+        progress("rendering evidence clips")
+        compression = _attach_evidence_clips(
+            compression=compression,
+            video_path=args.video_path,
+            output_dir=run_dir / "clips",
+            progress=progress,
+        )
+
+    compression = _answer_compression(args, compression, progress)
+    if not args.no_answer_prune:
+        progress("pruning evidence against answer")
+        before_prune_ids = [item.id for item in compression.selected]
+        compression = prune_evidence_to_answer(compression)
+        after_prune_ids = [item.id for item in compression.selected]
+        if after_prune_ids != before_prune_ids:
+            progress("re-answering from pruned evidence")
+            compression = _answer_compression(args, compression, progress)
+        progress("pruning uncited final evidence")
+        before_citation_ids = [item.id for item in compression.selected]
+        compression = prune_evidence_to_answer_citations(compression)
+        after_citation_ids = [item.id for item in compression.selected]
+        if after_citation_ids != before_citation_ids:
+            progress("re-answering from cited evidence")
+            compression = _answer_compression(args, compression, progress)
+            progress("pruning uncited cited evidence")
+            compression = prune_evidence_to_answer_citations(compression)
+        before_consolidate_ids = [item.id for item in compression.selected]
+        progress("consolidating redundant final evidence")
+        compression = consolidate_redundant_evidence(compression)
+        after_consolidate_ids = [item.id for item in compression.selected]
+        if after_consolidate_ids != before_consolidate_ids:
+            progress("re-answering from consolidated evidence")
+            compression = _answer_compression(args, compression, progress)
+            progress("pruning uncited consolidated evidence")
+            compression = prune_evidence_to_answer_citations(compression)
+        before_grounding_ids = [item.id for item in compression.selected]
+        progress("dropping weakly grounded final evidence")
+        compression = prune_weakly_grounded_evidence(compression)
+        after_grounding_ids = [item.id for item in compression.selected]
+        if after_grounding_ids != before_grounding_ids:
+            progress("re-answering from grounded evidence")
+            compression = _answer_compression(args, compression, progress)
+    if args.spatial_pruning:
+        progress("attaching spatial masks")
+        compression = _attach_spatial_masks(
+            compression=compression,
+            output_dir=run_dir / "spatial",
+            grid_size=args.spatial_grid_size,
+            retention_ratio=args.spatial_retention_ratio,
+        )
+
+    return apply_quality_gate(compression)
+
+
+def _should_retry_transcripts(
+    args: argparse.Namespace,
+    compression: CompressionResponse,
+    current_quality: TranscriptQuality,
+    retry_quality: TranscriptQuality,
+) -> bool:
+    if not args.auto_transcript_retry:
+        return False
+    if current_quality == retry_quality:
+        return False
+    if not _is_stronger_transcript_quality(retry_quality, current_quality):
+        return False
+    if any(
+        override is not None
+        for override in [
+            args.whisper_model_size,
+            args.whisper_device,
+            args.whisper_compute_type,
+            args.whisper_beam_size,
+        ]
+    ):
+        return False
+    if compression.audio_scorer_used != AudioScoringMode.WHISPER:
+        return False
+    return any(
+        warning.code == "noisy_transcript_evidence"
+        for warning in compression.quality_warnings
+    )
+
+
+def _is_stronger_transcript_quality(
+    candidate: TranscriptQuality,
+    baseline: TranscriptQuality,
+) -> bool:
+    order = {
+        TranscriptQuality.FAST: 0,
+        TranscriptQuality.BALANCED: 1,
+        TranscriptQuality.ACCURATE: 2,
+    }
+    return order[candidate] > order[baseline]
 
 
 def _attach_evidence_clips(
