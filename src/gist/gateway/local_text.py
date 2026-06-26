@@ -1,6 +1,7 @@
 import re
 
 from gist.core.answering import answer_from_evidence
+from gist.core.query_intent import QueryIntent
 from gist.core.schemas import Modality, SelectedCandidate
 from gist.gateway.context import render_evidence_context
 from gist.gateway.schemas import GatewayRequest, GatewayResponse
@@ -10,9 +11,7 @@ class LocalTextEvidenceGateway:
     provider = "local-text-evidence"
 
     def answer(self, request: GatewayRequest) -> GatewayResponse:
-        answer = _synthesize_answer(request.query, request.compression.selected)
-        if not answer:
-            answer = answer_from_evidence(request.compression)
+        answer = _answer_with_intent(request)
         if not answer:
             answer = "I could not derive a reliable answer from the selected evidence."
         return GatewayResponse(
@@ -20,6 +19,16 @@ class LocalTextEvidenceGateway:
             context=render_evidence_context(request.compression),
             provider=self.provider,
         )
+
+
+def _answer_with_intent(request: GatewayRequest) -> str | None:
+    if request.compression.query_intent == QueryIntent.GLOBAL_SUMMARY:
+        return answer_from_evidence(request.compression)
+
+    answer = _synthesize_answer(request.query, request.compression.selected)
+    if answer:
+        return answer
+    return answer_from_evidence(request.compression)
 
 
 def _synthesize_answer(query: str, selected: list[SelectedCandidate]) -> str | None:

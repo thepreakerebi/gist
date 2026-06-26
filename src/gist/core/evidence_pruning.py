@@ -85,6 +85,12 @@ def prune_evidence_to_answer(
         ranked=ranked,
         max_items=max_items,
     )
+    retained = _ensure_global_summary_audio_coverage(
+        compression=compression,
+        retained=retained,
+        ranked=ranked,
+        max_items=max_items,
+    )
 
     selected = [
         _with_pruning_reason(index, support)
@@ -133,6 +139,12 @@ def prune_evidence_to_answer_citations(
         ranked=ranked,
         max_items=len(compression.selected),
     )
+    retained = _ensure_global_summary_audio_coverage(
+        compression=compression,
+        retained=retained,
+        ranked=ranked,
+        max_items=len(compression.selected),
+    )
 
     selected = [
         _with_citation_reason(index, support)
@@ -165,6 +177,12 @@ def prune_weakly_grounded_evidence(
     if len(retained) < min_items or len(retained) == len(supports):
         return annotate_evidence_support(compression)
     retained = _ensure_mixed_av_audio_retained(
+        compression=compression,
+        retained=retained,
+        ranked=supports,
+        max_items=len(compression.selected),
+    )
+    retained = _ensure_global_summary_audio_coverage(
         compression=compression,
         retained=retained,
         ranked=supports,
@@ -217,6 +235,10 @@ def consolidate_redundant_evidence(
     if len(selected) < min_items:
         return compression
     selected = _ensure_mixed_av_audio_selected(
+        compression=compression,
+        selected=selected,
+    )
+    selected = _ensure_global_summary_audio_selected(
         compression=compression,
         selected=selected,
     )
@@ -369,6 +391,175 @@ def _ensure_mixed_av_audio_selected(
         ),
     )
     return sorted([*selected, best_audio], key=lambda item: item.timestamp_seconds)
+
+
+def _ensure_global_summary_audio_coverage(
+    compression: CompressionResponse,
+    retained: list[EvidenceSupport],
+    ranked: list[EvidenceSupport],
+    max_items: int,
+) -> list[EvidenceSupport]:
+    if not _is_global_summary_query(compression):
+        return retained
+
+    representatives = _global_summary_audio_representatives(ranked)
+    if not representatives:
+        return retained
+
+    updated = list(retained)
+    for representative in representatives:
+        if any(support.item.id == representative.item.id for support in updated):
+            continue
+        updated.append(representative)
+        if len(updated) > max_items:
+            removable = _global_summary_removable_supports(updated, representatives)
+            if not removable:
+                updated = updated[:max_items]
+                break
+            weakest = min(
+                removable,
+                key=lambda support: (
+                    support.score,
+                    support.item.relevance_score,
+                    support.item.normalized_score,
+                ),
+            )
+            updated = [
+                support for support in updated if support.item.id != weakest.item.id
+            ]
+    return updated
+
+
+def _ensure_global_summary_audio_selected(
+    compression: CompressionResponse,
+    selected: list[SelectedCandidate],
+) -> list[SelectedCandidate]:
+    if not _is_global_summary_query(compression):
+        return selected
+
+    supports = [_support_score(compression, item) for item in compression.selected]
+    retained = [_support_score(compression, item) for item in selected]
+    balanced = _ensure_global_summary_audio_coverage(
+        compression=compression,
+        retained=retained,
+        ranked=supports,
+        max_items=len(compression.selected),
+    )
+    return sorted(
+        [_with_support_metadata(support) for support in balanced],
+        key=lambda item: item.timestamp_seconds,
+    )
+
+
+def _global_summary_audio_representatives(
+    supports: list[EvidenceSupport],
+) -> list[EvidenceSupport]:
+    audio_supports = [
+        support
+        for support in supports
+        if support.item.modality == Modality.AUDIO
+        and not _is_visual_only_text(support.item.text)
+    ]
+    if not audio_supports:
+        return []
+
+    start = min(support.item.timestamp_seconds for support in audio_supports)
+    end = max(support.item.timestamp_seconds for support in audio_supports)
+    span = max(end - start, 1.0)
+
+    def bucket_index(support: EvidenceSupport) -> int:
+        offset = (support.item.timestamp_seconds - start) / span
+        return min(int(offset * 3), 2)
+
+    representatives: list[EvidenceSupport] = []
+    for bucket in range(3):
+        bucket_supports = [
+            support for support in audio_supports if bucket_index(support) == bucket
+        ]
+        if not bucket_supports:
+            continue
+        representatives.append(
+            max(
+                bucket_supports,
+                key=lambda support: (
+                    _global_summary_audio_content_score(support),
+                    support.score,
+                    support.item.relevance_score,
+                    support.item.normalized_score,
+                ),
+            )
+        )
+    return representatives
+
+
+def _global_summary_audio_content_score(support: EvidenceSupport) -> float:
+    text = support.item.text.lower()
+    content_terms = {
+        token
+        for token in re.findall(r"[a-z][a-z0-9-]{2,}", text)
+        if token
+        not in {
+            "and",
+            "are",
+            "for",
+            "have",
+            "that",
+            "the",
+            "this",
+            "with",
+            "you",
+        }
+    }
+    technical_terms = {
+        "biology",
+        "control",
+        "locomotion",
+        "motor",
+        "robot",
+        "robotics",
+        "sensor",
+        "sensors",
+        "velocity",
+    }
+    admin_terms = {
+        "assignment",
+        "course",
+        "deadline",
+        "evaluation",
+        "lecture",
+        "objective",
+        "schedule",
+        "seminar",
+    }
+    return (
+        min(len(content_terms), 20) / 10
+        + 0.4 * len(content_terms & technical_terms)
+        - 0.5 * len(content_terms & admin_terms)
+    )
+
+
+def _global_summary_removable_supports(
+    supports: list[EvidenceSupport],
+    representatives: list[EvidenceSupport],
+) -> list[EvidenceSupport]:
+    representative_ids = {support.item.id for support in representatives}
+    removable_visuals = [
+        support
+        for support in supports
+        if support.item.id not in representative_ids
+        and support.item.modality != Modality.AUDIO
+    ]
+    if removable_visuals:
+        return removable_visuals
+    return [
+        support
+        for support in supports
+        if support.item.id not in representative_ids
+    ]
+
+
+def _is_global_summary_query(compression: CompressionResponse) -> bool:
+    return getattr(compression.query_intent, "value", None) == "global_summary"
 
 
 def _is_mixed_av_query(compression: CompressionResponse) -> bool:

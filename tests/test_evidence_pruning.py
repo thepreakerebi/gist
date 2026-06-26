@@ -807,6 +807,117 @@ def test_prune_evidence_to_answer_keeps_mixed_av_audio_evidence() -> None:
     assert pruned.metrics.visual_selected == 0
 
 
+def test_prune_evidence_to_answer_preserves_global_summary_audio_coverage() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        answer="The video covers: robotics, locomotion, sensors, and motor control.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.GLOBAL_SUMMARY,
+        selected=[
+            _visual_item(
+                "ocr-objectives",
+                300,
+                "on-screen text near 300.00 seconds: course objectives assignment schedule",
+                1.0,
+            ),
+            _item(
+                "early-audio",
+                500,
+                "The lecture introduces robotics, biological inspiration, and course framing.",
+            ),
+            _item(
+                "middle-audio",
+                2100,
+                "The speaker explains sensors, control loops, motors, and locomotion.",
+            ),
+            _visual_item(
+                "ocr-loop",
+                2900,
+                "on-screen text near 2900.00 seconds: Biology Robotics Loop",
+                0.9,
+            ),
+            _visual_item(
+                "ocr-noise",
+                3400,
+                "on-screen text near 3400.00 seconds: | =BIRU",
+                0.8,
+            ),
+            _item(
+                "late-audio",
+                3800,
+                "The end discusses robot velocity, power, and control tradeoffs.",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=100,
+            selected_candidates=6,
+            visual_selected=3,
+            audio_selected=3,
+            estimated_candidate_reduction_ratio=0.06,
+            estimated_candidate_reduction_percent=94,
+            dropped_candidates=94,
+            budget_preset_used=CompressionPreset.BALANCED,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression, max_items=3, min_items=3)
+
+    assert [item.id for item in pruned.selected] == [
+        "early-audio",
+        "middle-audio",
+        "late-audio",
+    ]
+    assert pruned.metrics.audio_selected == 3
+    assert pruned.metrics.visual_selected == 0
+
+
+def test_consolidate_redundant_evidence_preserves_global_summary_audio() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        answer="The video covers: robotics, locomotion, sensors, and motor control.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.GLOBAL_SUMMARY,
+        selected=[
+            _visual_item(
+                "ocr-loop-a",
+                2900,
+                "on-screen text near 2900.00 seconds: Biology Robotics Loop",
+                1.0,
+            ),
+            _visual_item(
+                "ocr-loop-b",
+                2910,
+                "on-screen text near 2910.00 seconds: Biology Robotics Loop",
+                0.9,
+            ),
+            _item(
+                "early-audio",
+                500,
+                "The lecture introduces robotics and biological inspiration.",
+            ),
+            _item("middle-audio", 2100, "The speaker explains sensors and motor control."),
+            _item("late-audio", 3800, "The end discusses robot velocity and power."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=100,
+            selected_candidates=5,
+            visual_selected=2,
+            audio_selected=3,
+            estimated_candidate_reduction_ratio=0.05,
+            estimated_candidate_reduction_percent=95,
+            dropped_candidates=95,
+            budget_preset_used=CompressionPreset.BALANCED,
+        ),
+    )
+
+    consolidated = consolidate_redundant_evidence(compression)
+
+    selected_ids = {item.id for item in consolidated.selected}
+    assert {"early-audio", "middle-audio", "late-audio"} <= selected_ids
+
+
 def _visual_item(
     id_: str,
     timestamp_seconds: float,

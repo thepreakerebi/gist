@@ -225,3 +225,28 @@ def test_shortlist_relevant_segments_preserves_opening_segment() -> None:
     )
 
     assert "opening" in {candidate.id for candidate in shortlisted.visual}
+
+
+def test_shortlist_relevant_segments_preserves_global_audio_coverage() -> None:
+    candidates = CandidateSet(
+        visual=[],
+        audio=[
+            Candidate(
+                id=f"demo:audio:{index}",
+                timestamp_seconds=float(index * 600),
+                text="lecture transcript",
+            )
+            for index in range(7)
+        ],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="What are the main topics covered throughout this lecture?",
+        duration_seconds=4200,
+        segment_seconds=600,
+        max_segments=1,
+    )
+
+    timestamps = {candidate.timestamp_seconds for candidate in shortlisted.audio}
+    assert {600.0, 1800.0, 3000.0} <= timestamps

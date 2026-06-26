@@ -22,8 +22,8 @@ from gist.core.scoring import (
     unique_token_count,
     z_scores,
 )
-from gist.core.token_estimation import estimate_tokens
 from gist.core.temporal_query import rank_temporal_pairs
+from gist.core.token_estimation import estimate_tokens
 
 AUDIO_VISUAL_ANCHOR_MIN_RELEVANCE = 0.15
 AUDIO_VISUAL_ANCHOR_RELATIVE_RELEVANCE = 0.6
@@ -185,6 +185,12 @@ class GistCompressor:
             )
         if query_intent == QueryIntent.MIXED_AV:
             selections = self._ensure_mixed_av_coverage(
+                selections=selections,
+                candidates=scored,
+                max_items=config.max_items,
+            )
+        if query_intent == QueryIntent.GLOBAL_SUMMARY:
+            selections = self._ensure_global_audio_coverage(
                 selections=selections,
                 candidates=scored,
                 max_items=config.max_items,
@@ -718,6 +724,94 @@ class GistCompressor:
             )
             selected_audio_count += 1
 
+        return self._rerank_selections(balanced)
+
+    def _ensure_global_audio_coverage(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        max_items: int,
+    ) -> list[Selection]:
+        audio_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.AUDIO
+        ]
+        if not audio_candidates:
+            return selections
+
+        start = min(candidate.timestamp_seconds for candidate in audio_candidates)
+        end = max(candidate.timestamp_seconds for candidate in audio_candidates)
+        span = max(end - start, 1.0)
+
+        def bucket_index(candidate: ScoredCandidate) -> int:
+            return min(int(((candidate.timestamp_seconds - start) / span) * 3), 2)
+
+        buckets: list[list[ScoredCandidate]] = [[], [], []]
+        for candidate in audio_candidates:
+            buckets[bucket_index(candidate)].append(candidate)
+
+        representatives = {
+            index: max(
+                bucket,
+                key=lambda candidate: (
+                    candidate.normalized_score,
+                    candidate.relevance_score,
+                    -candidate.timestamp_seconds,
+                ),
+            )
+            for index, bucket in enumerate(buckets)
+            if bucket
+        }
+
+        balanced = list(selections)
+        for index, candidate in representatives.items():
+            selected_audio = [
+                selection
+                for selection in balanced
+                if selection.candidate.modality == Modality.AUDIO
+            ]
+            selected_ids = {selection.candidate.id for selection in selected_audio}
+            occupied_buckets = {
+                bucket_index(selection.candidate)
+                for selection in selected_audio
+            }
+            if index in occupied_buckets or candidate.id in selected_ids:
+                continue
+            if len(balanced) >= max_items:
+                bucket_counts = {
+                    bucket: sum(
+                        bucket_index(selection.candidate) == bucket
+                        for selection in selected_audio
+                    )
+                    for bucket in range(3)
+                }
+                duplicate_audio = [
+                    selection
+                    for selection in selected_audio
+                    if bucket_counts[bucket_index(selection.candidate)] > 1
+                ]
+                if duplicate_audio:
+                    balanced.remove(
+                        min(duplicate_audio, key=lambda selection: selection.mmr_score)
+                    )
+                elif not self._drop_weakest_modality(
+                    balanced,
+                    modality=Modality.VISUAL,
+                    minimum_remaining=1,
+                ):
+                    break
+            balanced.append(
+                Selection(
+                    candidate=candidate,
+                    selection_rank=0,
+                    mmr_score=candidate.normalized_score,
+                    reason=(
+                        "Included as representative transcript evidence from a "
+                        "different part of the video for global-summary coverage."
+                    ),
+                )
+            )
         return self._rerank_selections(balanced)
 
     def _ensure_mixed_av_coverage(

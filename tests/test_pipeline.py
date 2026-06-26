@@ -118,6 +118,18 @@ def test_auto_audio_scorer_routes_long_mixed_queries_to_whisper() -> None:
     )
 
 
+def test_auto_audio_scorer_routes_long_global_summary_queries_to_whisper() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="What are the main topics covered throughout this lecture?",
+            duration_seconds=3600,
+            whisper_available=True,
+        )
+        == AudioScoringMode.WHISPER
+    )
+
+
 def test_auto_audio_scorer_keeps_short_or_non_speech_queries_on_baseline() -> None:
     assert (
         resolve_audio_scorer(

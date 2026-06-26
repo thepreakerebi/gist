@@ -19,6 +19,115 @@ WHY_ANSWER_TERMS = {
 }
 MIN_CLAIM_SUPPORT_SCORE = 0.12
 MIN_CLAIM_CONTENT_TOKENS = 4
+MAX_GLOBAL_SUMMARY_TOPICS = 3
+_GLOBAL_ADMIN_TERMS = {
+    "assignment",
+    "course",
+    "evaluation",
+    "exercise",
+    "lecture",
+    "objectives",
+    "project",
+    "schedule",
+    "seminar",
+    "tuesday",
+    "week",
+}
+_GLOBAL_TECHNICAL_TERMS = {
+    "architecture",
+    "behavior",
+    "biomechanics",
+    "bio",
+    "biology",
+    "control",
+    "data",
+    "design",
+    "efficiency",
+    "feedback",
+    "intelligence",
+    "legged",
+    "learning",
+    "locomotion",
+    "machine",
+    "machines",
+    "model",
+    "motor",
+    "power",
+    "robot",
+    "robotics",
+    "sensor",
+    "sensors",
+    "system",
+    "tradeoffs",
+    "velocity",
+}
+_GLOBAL_TOPIC_LABELS = {
+    "architecture": "architecture",
+    "behavior": "behavior",
+    "biomechanics": "biomechanics",
+    "bio": "bio-inspired robotics",
+    "biology": "biology",
+    "control": "control",
+    "data": "data",
+    "design": "design tradeoffs",
+    "efficiency": "efficiency",
+    "feedback": "feedback",
+    "intelligence": "intelligence",
+    "legged": "legged locomotion",
+    "learning": "learning",
+    "locomotion": "locomotion",
+    "machine": "machines",
+    "machines": "machines",
+    "model": "models",
+    "motor": "motor control",
+    "power": "power",
+    "robot": "robotics",
+    "robotics": "robotics",
+    "sensor": "sensors",
+    "sensors": "sensors",
+    "system": "systems",
+    "tradeoffs": "design tradeoffs",
+    "velocity": "velocity",
+}
+_GLOBAL_TOPIC_STOPWORDS = {
+    "about",
+    "all",
+    "also",
+    "basically",
+    "course",
+    "courses",
+    "covered",
+    "covers",
+    "final",
+    "have",
+    "lecture",
+    "main",
+    "many",
+    "overview",
+    "people",
+    "place",
+    "project",
+    "research",
+    "section",
+    "seminar",
+    "thing",
+    "throughout",
+    "topic",
+    "topics",
+    "video",
+    "week",
+    "weeks",
+}
+_GLOBAL_FILLER_PHRASES = (
+    "a lot of",
+    "and then",
+    "basically",
+    "kind of",
+    "so this is",
+    "the interesting thing",
+    "this role",
+    "we have",
+)
 _VISUAL_STOPWORDS = {
     "a",
     "an",
@@ -45,6 +154,10 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
     if not compression.selected:
         return None
 
+    global_summary = _global_summary_answer(compression)
+    if global_summary is not None:
+        return global_summary
+
     visual_answer = _visual_object_answer(compression)
     if visual_answer is not None:
         return visual_answer
@@ -69,6 +182,226 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
     if compression.query.lower().strip().startswith("why"):
         return _why_answer(sentence)
     return sentence
+
+
+def _global_summary_answer(compression: CompressionResponse) -> str | None:
+    if compression.query_intent != QueryIntent.GLOBAL_SUMMARY:
+        return None
+
+    candidates = [
+        (
+            _global_summary_score(item),
+            item.timestamp_seconds,
+            _global_summary_topic(item),
+        )
+        for item in compression.selected
+    ]
+    substantive = [
+        (score, timestamp, topic)
+        for score, timestamp, topic in candidates
+        if topic and score > 0
+    ]
+    if not substantive:
+        return None
+
+    strongest = sorted(
+        _dedupe_global_topics(substantive),
+        key=lambda entry: (entry[0], -entry[1]),
+        reverse=True,
+    )[:MAX_GLOBAL_SUMMARY_TOPICS]
+    topics = [
+        snippet.rstrip(" .")
+        for _score, _timestamp, snippet in sorted(
+            strongest,
+            key=lambda entry: entry[1],
+        )
+    ]
+    return f"The video covers: {'; '.join(topics)}."
+
+
+def _global_summary_topic(item: SelectedCandidate) -> str:
+    snippet = _global_summary_snippet(item)
+    if not snippet:
+        return ""
+
+    topic = _global_summary_topic_phrase(snippet)
+    if topic:
+        return topic
+    if _is_noisy_global_summary_text(snippet) or _global_summary_text_score(snippet) <= 1.2:
+        return ""
+    return snippet.rstrip(" .")
+
+
+def _dedupe_global_topics(
+    topics: list[tuple[float, float, str]],
+) -> list[tuple[float, float, str]]:
+    deduped: list[tuple[float, float, str]] = []
+    seen_terms: list[set[str]] = []
+    for score, timestamp, topic in sorted(
+        topics,
+        key=lambda entry: (entry[0], -entry[1]),
+        reverse=True,
+    ):
+        terms = _claim_terms(topic)
+        if any(_topic_overlap(terms, seen) >= 0.65 for seen in seen_terms):
+            continue
+        deduped.append((score, timestamp, topic))
+        seen_terms.append(terms)
+    return deduped
+
+
+def _topic_overlap(left: set[str], right: set[str]) -> float:
+    if not left or not right:
+        return 0.0
+    return len(left & right) / min(len(left), len(right))
+
+
+def _global_summary_snippet(item: SelectedCandidate) -> str:
+    text = item.text.strip()
+    if text.lower().startswith("on-screen text near"):
+        text = text.split(":", maxsplit=1)[-1].strip()
+        words = text.split()
+        return _clean_global_summary_snippet(" ".join(words[:8]))
+
+    sentences = [
+        sentence.strip(" ,")
+        for sentence in re.split(r"(?<=[.!?])\s+", text)
+        if sentence.strip(" ,")
+    ]
+    if not sentences:
+        return _clean_global_summary_snippet(text)
+    return _clean_global_summary_snippet(
+        max(sentences, key=_global_summary_sentence_rank)
+    )
+
+
+def _global_summary_sentence_rank(sentence: str) -> tuple[int, float]:
+    return (
+        int(bool(_global_summary_topic_phrase(sentence))),
+        _global_summary_text_score(sentence),
+    )
+
+
+def _global_summary_score(item: SelectedCandidate) -> float:
+    snippet = _global_summary_snippet(item)
+    if not snippet:
+        return float("-inf")
+    score = _global_summary_text_score(snippet)
+    if item.modality.value == "audio":
+        score += 0.2
+    return score
+
+
+def _global_summary_text_score(text: str) -> float:
+    normalized = text.lower()
+    tokens = _claim_terms(normalized)
+    score = min(len(tokens), 16) / 8
+    score += 0.45 * len(tokens & _GLOBAL_TECHNICAL_TERMS)
+    score -= 0.7 * len(tokens & _GLOBAL_ADMIN_TERMS)
+    score -= 0.35 * sum(phrase in normalized for phrase in _GLOBAL_FILLER_PHRASES)
+    raw_tokens = re.findall(r"[a-z0-9]+", normalized)
+    if raw_tokens:
+        single_character_ratio = sum(len(token) == 1 for token in raw_tokens) / len(
+            raw_tokens
+        )
+        score -= 3 * single_character_ratio
+    if normalized.startswith("visual frame sampled at"):
+        score -= 2
+    if len(tokens) < 3:
+        score -= 2
+    return score
+
+
+def _global_summary_topic_phrase(text: str) -> str:
+    terms = [
+        token
+        for token in re.findall(r"[a-z0-9]+", text.lower())
+        if token not in _VISUAL_STOPWORDS
+        and token not in _GLOBAL_TOPIC_STOPWORDS
+        and len(token) > 2
+    ]
+    technical_terms = [
+        term
+        for term in terms
+        if term in _GLOBAL_TECHNICAL_TERMS and term not in _GLOBAL_ADMIN_TERMS
+    ]
+    if technical_terms:
+        labels = _compact_topic_labels(
+            _ordered_unique(_GLOBAL_TOPIC_LABELS[term] for term in technical_terms)
+        )
+        return _join_topic_labels(labels[:4])
+
+    if (
+        len(terms) >= 3
+        and _global_summary_text_score(text) > 1.2
+        and not _is_noisy_global_summary_text(text)
+    ):
+        return " ".join(terms[:7])
+    return ""
+
+
+def _is_noisy_global_summary_text(text: str) -> bool:
+    normalized = text.lower()
+    tokens = _claim_terms(normalized)
+    if tokens & _GLOBAL_ADMIN_TERMS:
+        return True
+    filler_count = sum(phrase in normalized for phrase in _GLOBAL_FILLER_PHRASES)
+    return filler_count >= 2 or any(
+        phrase in normalized
+        for phrase in [
+            "interesting thing",
+            "this role",
+            "in the place",
+            "in their library manner",
+        ]
+    )
+
+
+def _ordered_unique(values) -> list[str]:
+    seen = set()
+    result = []
+    for value in values:
+        if value in seen:
+            continue
+        result.append(value)
+        seen.add(value)
+    return result
+
+
+def _compact_topic_labels(labels: list[str]) -> list[str]:
+    compacted: list[str] = []
+    for label in labels:
+        label_terms = set(label.split())
+        if any(label_terms < set(existing.split()) for existing in labels):
+            continue
+        compacted.append(label)
+    return compacted
+
+
+def _join_topic_labels(labels: list[str]) -> str:
+    if not labels:
+        return ""
+    if len(labels) == 1:
+        return labels[0]
+    if len(labels) == 2:
+        return f"{labels[0]} and {labels[1]}"
+    return f"{', '.join(labels[:-1])}, and {labels[-1]}"
+
+
+def _clean_global_summary_snippet(text: str) -> str:
+    cleaned = re.sub(
+        r"^(but\s+)?(what|the thing)\s+is\s+interesting\s+is\s+that\s+",
+        "",
+        text.strip(),
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(
+        r"^(but\s+)?the\s+interesting\s+thing\s+is\s+that\s+",
+        "",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    return " ".join(cleaned.split()).strip(" ,;:.")
 
 
 def _visual_object_answer(compression: CompressionResponse) -> str | None:

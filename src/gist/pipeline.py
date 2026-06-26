@@ -262,7 +262,12 @@ def resolve_audio_scorer(
     if whisper_available is None:
         whisper_available = find_spec("faster_whisper") is not None
     if (
-        query_intent in {QueryIntent.SPEECH_SEMANTIC, QueryIntent.MIXED_AV}
+        query_intent
+        in {
+            QueryIntent.SPEECH_SEMANTIC,
+            QueryIntent.MIXED_AV,
+            QueryIntent.GLOBAL_SUMMARY,
+        }
         and duration_seconds >= 600
         and whisper_available
     ):
@@ -350,6 +355,7 @@ def _maybe_fuse_longform_moments(
         candidates=candidates,
         query=query,
         preserve_visual_context_audio=query_intent == QueryIntent.MIXED_AV,
+        preserve_global_audio=query_intent == QueryIntent.GLOBAL_SUMMARY,
     )
 
 

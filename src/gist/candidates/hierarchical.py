@@ -1,11 +1,11 @@
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 
 from gist.candidates.baseline import CandidateSet
+from gist.core.query_intent import QueryIntent, route_query_intent
 from gist.core.schemas import Candidate
 from gist.core.scoring import lexical_relevance
 from gist.core.temporal_query import parse_temporal_query, rank_temporal_pairs
-
 
 DEFAULT_SEGMENT_SECONDS = 120.0
 DEFAULT_MAX_SEGMENTS = 12
@@ -60,6 +60,13 @@ def shortlist_relevant_segments(
     opening_group_id = _opening_group_id(candidates.visual, groups, query)
     if opening_group_id is not None:
         selected_ids.add(opening_group_id)
+    selected_ids.update(
+        _global_audio_group_ids(
+            groups,
+            query,
+            audio_ids={candidate.id for candidate in candidates.audio},
+        )
+    )
     visual = [
         _candidate_with_group(candidate, groups)
         for candidate in candidates.visual
@@ -265,3 +272,37 @@ def _opening_group_id(
         key=lambda candidate: (candidate.timestamp_seconds, candidate.id),
     )
     return _group_id_for_candidate(opening, groups) or None
+
+
+def _global_audio_group_ids(
+    groups: list[SegmentCandidateGroup],
+    query: str,
+    audio_ids: set[str],
+) -> set[str]:
+    query_intent, _reason = route_query_intent(query)
+    if query_intent != QueryIntent.GLOBAL_SUMMARY:
+        return set()
+
+    audio_groups = [
+        group
+        for group in groups
+        if any(candidate.id in audio_ids for candidate in group.candidates)
+    ]
+    if not audio_groups:
+        return set()
+
+    start = min(group.start_seconds for group in audio_groups)
+    end = max(group.end_seconds for group in audio_groups)
+    targets = (
+        start + ((end - start) * fraction)
+        for fraction in (1 / 6, 1 / 2, 5 / 6)
+    )
+    return {
+        min(
+            audio_groups,
+            key=lambda group: abs(
+                ((group.start_seconds + group.end_seconds) / 2) - target
+            ),
+        ).id
+        for target in targets
+    }

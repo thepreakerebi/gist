@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 from gist.core.compressor import GistCompressor
+from gist.core.query_intent import QueryIntent
 from gist.core.schemas import Candidate, CompressionRequest, Modality
 from gist.gateway.context import render_evidence_context
 from gist.gateway.echo import EchoGateway
@@ -106,6 +107,56 @@ def test_local_text_gateway_synthesizes_how_answers_from_transcript_sentences() 
     assert "personal AI" in response.answer
     assert "Machine time" in response.answer
     assert "quality checks" in response.answer
+
+
+def test_local_text_gateway_uses_structured_global_summary_answer() -> None:
+    compression = GistCompressor().compress(
+        CompressionRequest(
+            video_id="demo",
+            query="What are the main topics covered throughout this lecture?",
+            query_intent=QueryIntent.GLOBAL_SUMMARY,
+            duration_seconds=3600,
+            audio_candidates=[
+                Candidate(
+                    id="a1",
+                    timestamp_seconds=120,
+                    text=(
+                        "This lecture introduces legged locomotion, biomechanics, "
+                        "and how animals inspire robot design."
+                    ),
+                ),
+                Candidate(
+                    id="a2",
+                    timestamp_seconds=1600,
+                    text=(
+                        "The middle section explains sensors, control loops, "
+                        "and feedback for stable robot movement."
+                    ),
+                ),
+                Candidate(
+                    id="a3",
+                    timestamp_seconds=3100,
+                    text=(
+                        "The final topic compares power efficiency, velocity, "
+                        "and design tradeoffs in bio-inspired machines."
+                    ),
+                ),
+            ],
+        )
+    )
+
+    response = LocalTextEvidenceGateway().answer(
+        GatewayRequest(
+            query="What are the main topics covered throughout this lecture?",
+            compression=compression,
+        )
+    )
+
+    assert response.answer.startswith("The video covers:")
+    assert "legged locomotion" in response.answer
+    assert "control" in response.answer
+    assert "power" in response.answer
+    assert "efficiency" in response.answer
 
 
 def test_local_text_gateway_synthesizes_presenter_speech_answers() -> None:

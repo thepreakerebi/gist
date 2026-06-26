@@ -144,3 +144,27 @@ def test_fuse_transcript_moments_preserves_audio_near_relevant_mixed_visual() ->
     )
 
     assert [candidate.id for candidate in fused.audio] == ["audio-near+visual-hit"]
+
+
+def test_fuse_transcript_moments_preserves_global_timeline_audio() -> None:
+    candidates = CandidateSet(
+        visual=[],
+        audio=[
+            Candidate(
+                id=f"audio-{index}",
+                timestamp_seconds=float(index * 100),
+                text=f"topic {index}",
+            )
+            for index in range(7)
+        ],
+    )
+
+    fused = fuse_transcript_moments(
+        candidates,
+        query="What are the main topics covered throughout this lecture?",
+        preserve_global_audio=True,
+    )
+
+    assert {"audio-0", "audio-3", "audio-6"} <= {
+        candidate.id for candidate in fused.audio
+    }

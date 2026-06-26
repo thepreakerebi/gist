@@ -60,6 +60,72 @@ def test_answer_from_evidence_extracts_why_answer_signal() -> None:
     )
 
 
+def test_answer_from_evidence_summarizes_global_topics_across_timeline() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        query_intent=QueryIntent.GLOBAL_SUMMARY,
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="admin",
+                modality=Modality.AUDIO,
+                timestamp_seconds=100,
+                text="The course has weekly exercises and a final project.",
+                selection_rank=1,
+                relevance_score=0.5,
+                normalized_score=1,
+                mmr_score=0.5,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="control",
+                modality=Modality.AUDIO,
+                timestamp_seconds=1700,
+                text="The robot uses sensors and a simple control arm.",
+                selection_rank=2,
+                relevance_score=0.2,
+                normalized_score=0.5,
+                mmr_score=0.4,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="loop",
+                modality=Modality.VISUAL,
+                timestamp_seconds=3000,
+                text=(
+                    "on-screen text near 3000 seconds: "
+                    "Biology-Robotics Loop on Legged Locomotion Studies"
+                ),
+                selection_rank=3,
+                relevance_score=0.3,
+                normalized_score=0.7,
+                mmr_score=0.4,
+                source_score_type="model_saliency",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=3,
+            selected_candidates=3,
+            visual_selected=1,
+            audio_selected=2,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == (
+        "The video covers: robotics, sensors, and control; "
+        "biology, robotics, and legged locomotion."
+    )
+
+
 def test_answer_from_evidence_prefers_post_anchor_evidence_for_after_queries() -> None:
     compression = CompressionResponse(
         video_id="demo",

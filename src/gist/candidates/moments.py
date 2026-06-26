@@ -15,6 +15,7 @@ def fuse_transcript_moments(
     min_audio_relevance: float = DEFAULT_MIN_AUDIO_RELEVANCE,
     max_audio_moments: int = DEFAULT_MAX_AUDIO_MOMENTS,
     preserve_visual_context_audio: bool = False,
+    preserve_global_audio: bool = False,
 ) -> CandidateSet:
     """Build transcript-centered evidence moments with nearby visual grounding.
 
@@ -57,6 +58,13 @@ def fuse_transcript_moments(
             query=query,
             visual_radius_seconds=max(visual_radius_seconds, 30.0),
         )
+    if preserve_global_audio:
+        _add_global_audio_coverage(
+            scored_audio=scored_audio,
+            used_visual_ids=used_visual_ids,
+            candidates=candidates,
+            visual_radius_seconds=visual_radius_seconds,
+        )
 
     fused_audio = [
         candidate
@@ -75,6 +83,31 @@ def fuse_transcript_moments(
         and lexical_relevance(query, visual) >= min_audio_relevance
     ]
     return CandidateSet(visual=orphan_visuals, audio=fused_audio)
+
+
+def _add_global_audio_coverage(
+    scored_audio: list[tuple[float, Candidate]],
+    used_visual_ids: set[str],
+    candidates: CandidateSet,
+    visual_radius_seconds: float,
+) -> None:
+    if not candidates.audio:
+        return
+    existing_ids = {
+        candidate.id.split("+", maxsplit=1)[0]
+        for _score, candidate in scored_audio
+    }
+    ordered = sorted(candidates.audio, key=lambda candidate: candidate.timestamp_seconds)
+    indexes = {0, len(ordered) // 2, len(ordered) - 1}
+    for index in sorted(indexes):
+        audio = ordered[index]
+        if audio.id in existing_ids:
+            continue
+        visual = _nearest_visual(audio, candidates.visual, visual_radius_seconds)
+        if visual is not None:
+            used_visual_ids.add(visual.id)
+            audio = _audio_with_visual_grounding(audio, visual)
+        scored_audio.append((1.0, audio))
 
 
 def _add_visual_context_audio(

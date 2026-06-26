@@ -436,6 +436,103 @@ def test_negative_query_prefers_audio_coverage() -> None:
     assert response.metrics.audio_selected >= 3
 
 
+def test_global_summary_keeps_transcripts_across_video() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        duration_seconds=3600,
+        preset=CompressionPreset.AGGRESSIVE,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(
+                id=f"v-{index}",
+                timestamp_seconds=float(index * 500),
+                text="lecture slide",
+                saliency_score=0.9,
+            )
+            for index in range(6)
+        ],
+        audio_candidates=[
+            Candidate(
+                id="audio-start",
+                timestamp_seconds=100,
+                text="course objectives and control principles",
+            ),
+            Candidate(
+                id="audio-middle",
+                timestamp_seconds=1700,
+                text="behavior based robotics and mechanical intelligence",
+            ),
+            Candidate(
+                id="audio-end",
+                timestamp_seconds=3300,
+                text="biology robotics loop and locomotion studies",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.query_intent == QueryIntent.GLOBAL_SUMMARY
+    assert {
+        "audio-start",
+        "audio-middle",
+        "audio-end",
+    } <= {item.id for item in response.selected}
+
+
+def test_global_summary_replaces_duplicate_opening_audio_with_late_coverage() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        duration_seconds=3600,
+        preset=CompressionPreset.AGGRESSIVE,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(
+                id=f"v-{index}",
+                timestamp_seconds=float(index * 600),
+                text="relevant lecture slide",
+                saliency_score=0.9,
+            )
+            for index in range(6)
+        ],
+        audio_candidates=[
+            Candidate(
+                id="audio-opening-one",
+                timestamp_seconds=100,
+                text="main topics and course overview",
+            ),
+            Candidate(
+                id="audio-opening-two",
+                timestamp_seconds=200,
+                text="topics covered in the lecture",
+            ),
+            Candidate(
+                id="audio-middle",
+                timestamp_seconds=1700,
+                text="behavior based robotics and mechanical intelligence",
+            ),
+            Candidate(
+                id="audio-end",
+                timestamp_seconds=3300,
+                text="biology robotics loop and locomotion studies",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+    selected_audio = {
+        item.id
+        for item in response.selected
+        if item.modality == Modality.AUDIO
+    }
+
+    assert "audio-middle" in selected_audio
+    assert "audio-end" in selected_audio
+    assert len(selected_audio & {"audio-opening-one", "audio-opening-two"}) == 1
+
+
 def test_decomposed_query_reports_query_aspects_and_reasons() -> None:
     request = CompressionRequest(
         video_id="demo",
