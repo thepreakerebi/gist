@@ -2,8 +2,8 @@ import argparse
 import json
 from pathlib import Path
 
+from gist.audio.whisper import TranscriptQuality
 from gist.core.answering import answer_from_evidence, verify_answer_claims
-from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.evidence_pruning import (
     annotate_evidence_support,
     consolidate_redundant_evidence,
@@ -11,6 +11,7 @@ from gist.core.evidence_pruning import (
     prune_evidence_to_answer_citations,
     prune_weakly_grounded_evidence,
 )
+from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.progress import StepLogger
 from gist.core.quality_gate import apply_quality_gate
@@ -64,6 +65,20 @@ def main(argv: list[str] | None = None) -> int:
         choices=list(AudioScoringMode),
         default=AudioScoringMode.AUTO,
     )
+    parser.add_argument(
+        "--transcript-quality",
+        choices=list(TranscriptQuality),
+        default=TranscriptQuality.BALANCED,
+        help=(
+            "Whisper preset for transcript-backed evidence. "
+            "Use fast for cheap local runs, balanced by default, accurate for better "
+            "long-video summaries."
+        ),
+    )
+    parser.add_argument("--whisper-model-size")
+    parser.add_argument("--whisper-device")
+    parser.add_argument("--whisper-compute-type")
+    parser.add_argument("--whisper-beam-size", type=int)
     parser.add_argument("--adaptive-budget", action="store_true")
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument(
@@ -145,6 +160,11 @@ def main(argv: list[str] | None = None) -> int:
         processing_mode=ProcessingMode(args.processing_mode),
         visual_scorer=VisualScoringMode(args.visual_scorer),
         audio_scorer=AudioScoringMode(args.audio_scorer),
+        transcript_quality=TranscriptQuality(args.transcript_quality),
+        whisper_model_size=args.whisper_model_size,
+        whisper_device=args.whisper_device,
+        whisper_compute_type=args.whisper_compute_type,
+        whisper_beam_size=args.whisper_beam_size,
         adaptive_budget=args.adaptive_budget,
         decompose_query=args.decompose_query,
         task_aware_selection=True,

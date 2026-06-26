@@ -1,10 +1,13 @@
 import inspect
-import os
 from importlib.util import find_spec
 from pathlib import Path
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
-from gist.audio.whisper import FasterWhisperTranscriber
+from gist.audio.whisper import (
+    FasterWhisperTranscriber,
+    TranscriptQuality,
+    resolve_whisper_settings,
+)
 from gist.candidates.baseline import BaselineCandidateGenerator, CandidateSet
 from gist.candidates.hierarchical import shortlist_relevant_segments
 from gist.candidates.moments import fuse_transcript_moments
@@ -59,6 +62,11 @@ class LocalCompressionPipeline:
         token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC,
         task_aware_selection: bool = False,
         visual_ocr: bool = True,
+        transcript_quality: TranscriptQuality = TranscriptQuality.BALANCED,
+        whisper_model_size: str | None = None,
+        whisper_device: str | None = None,
+        whisper_compute_type: str | None = None,
+        whisper_beam_size: int | None = None,
         progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CompressionResponse]:
         if progress is not None:
@@ -72,6 +80,11 @@ class LocalCompressionPipeline:
             visual_scorer=visual_scorer,
             audio_scorer=audio_scorer,
             visual_ocr=visual_ocr,
+            transcript_quality=transcript_quality,
+            whisper_model_size=whisper_model_size,
+            whisper_device=whisper_device,
+            whisper_compute_type=whisper_compute_type,
+            whisper_beam_size=whisper_beam_size,
             progress=progress,
         )
         resolved_audio_scorer = resolve_audio_scorer(
@@ -122,6 +135,11 @@ class LocalCompressionPipeline:
         visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
         audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
         visual_ocr: bool = True,
+        transcript_quality: TranscriptQuality = TranscriptQuality.BALANCED,
+        whisper_model_size: str | None = None,
+        whisper_device: str | None = None,
+        whisper_compute_type: str | None = None,
+        whisper_beam_size: int | None = None,
         progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CandidateSet, int]:
         ingestion_key = ingestion_cache_key(
@@ -156,12 +174,30 @@ class LocalCompressionPipeline:
         if progress is not None and resolved_audio_scorer != audio_scorer:
             progress(f"audio scorer auto-routed to {resolved_audio_scorer.value}")
 
+        transcript_fingerprint = None
+        if resolved_audio_scorer == AudioScoringMode.WHISPER:
+            whisper_settings = resolve_whisper_settings(
+                quality=transcript_quality,
+                model_size=whisper_model_size,
+                device=whisper_device,
+                compute_type=whisper_compute_type,
+                beam_size=whisper_beam_size,
+            )
+            transcript_fingerprint = whisper_settings.cache_fingerprint
+        if progress is not None and transcript_fingerprint is not None:
+            progress(f"transcript settings: {transcript_fingerprint}")
+
         audio_context_window_count = _audio_context_window_count(ingested)
         candidate_generator = self._candidate_generator_for(
             visual_scorer=visual_scorer,
             audio_scorer=resolved_audio_scorer,
             audio_context_window_count=audio_context_window_count,
             visual_ocr=visual_ocr,
+            transcript_quality=transcript_quality,
+            whisper_model_size=whisper_model_size,
+            whisper_device=whisper_device,
+            whisper_compute_type=whisper_compute_type,
+            whisper_beam_size=whisper_beam_size,
         )
         candidates_key = candidate_cache_key(
             ingestion=ingested,
@@ -170,6 +206,7 @@ class LocalCompressionPipeline:
             audio_scorer=resolved_audio_scorer,
             audio_context_window_count=audio_context_window_count,
             visual_ocr=visual_ocr,
+            transcript_settings=transcript_fingerprint,
         )
         raw_candidate_count = len(ingested.frames) + len(ingested.audio_windows)
         candidates = self.cache.get_candidates(candidates_key)
@@ -202,6 +239,11 @@ class LocalCompressionPipeline:
         audio_scorer: AudioScoringMode,
         audio_context_window_count: int = 1,
         visual_ocr: bool = True,
+        transcript_quality: TranscriptQuality = TranscriptQuality.BALANCED,
+        whisper_model_size: str | None = None,
+        whisper_device: str | None = None,
+        whisper_compute_type: str | None = None,
+        whisper_beam_size: int | None = None,
     ) -> BaselineCandidateGenerator:
         visual_adapter = None
         audio_transcriber = None
@@ -216,10 +258,18 @@ class LocalCompressionPipeline:
             raise ValueError(f"unsupported visual scorer: {visual_scorer}")
 
         if audio_scorer == AudioScoringMode.WHISPER:
+            whisper_settings = resolve_whisper_settings(
+                quality=transcript_quality,
+                model_size=whisper_model_size,
+                device=whisper_device,
+                compute_type=whisper_compute_type,
+                beam_size=whisper_beam_size,
+            )
             audio_transcriber = FasterWhisperTranscriber(
-                model_size=os.getenv("GIST_WHISPER_MODEL_SIZE", "base"),
-                device=os.getenv("GIST_WHISPER_DEVICE", "cpu"),
-                compute_type=os.getenv("GIST_WHISPER_COMPUTE_TYPE", "int8"),
+                model_size=whisper_settings.model_size,
+                device=whisper_settings.device,
+                compute_type=whisper_settings.compute_type,
+                beam_size=whisper_settings.beam_size,
                 cache_dir=self.output_root / "cache" / "transcripts",
             )
         elif audio_scorer == AudioScoringMode.CLAP:

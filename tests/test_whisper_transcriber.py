@@ -4,12 +4,43 @@ import pytest
 
 import gist.audio.whisper as whisper
 from gist.audio.errors import AudioTranscriptionError
-from gist.audio.whisper import FasterWhisperTranscriber
+from gist.audio.whisper import (
+    FasterWhisperTranscriber,
+    TranscriptQuality,
+    resolve_whisper_settings,
+)
 from gist.media.models import AudioWindow
 
 
 def test_whisper_transcriber_returns_empty_mapping_without_windows() -> None:
     assert FasterWhisperTranscriber().transcribe_windows([]) == {}
+
+
+def test_resolve_whisper_settings_uses_quality_presets() -> None:
+    fast = resolve_whisper_settings(TranscriptQuality.FAST)
+    balanced = resolve_whisper_settings(TranscriptQuality.BALANCED)
+    accurate = resolve_whisper_settings(TranscriptQuality.ACCURATE)
+
+    assert fast.model_size == "tiny"
+    assert fast.beam_size == 1
+    assert balanced.model_size == "base"
+    assert balanced.beam_size == 3
+    assert accurate.model_size == "small"
+    assert accurate.beam_size == 5
+
+
+def test_resolve_whisper_settings_allows_explicit_overrides() -> None:
+    settings = resolve_whisper_settings(
+        TranscriptQuality.FAST,
+        model_size="medium",
+        device="cuda",
+        compute_type="float16",
+        beam_size=7,
+    )
+
+    assert settings.cache_fingerprint == (
+        "model=medium|device=cuda|compute=float16|beam=7"
+    )
 
 
 def test_whisper_transcriber_reports_missing_optional_dependencies(
@@ -52,12 +83,17 @@ def test_whisper_transcriber_reuses_cached_window_transcripts(
         text = "hello"
 
     class FakeModel:
-        def transcribe(self, *_args: object, **_kwargs: object) -> tuple[list[FakeSegment], None]:
+        def transcribe(
+            self,
+            *_args: object,
+            **kwargs: object,
+        ) -> tuple[list[FakeSegment], None]:
             calls["count"] += 1
+            assert kwargs["beam_size"] == 3
             return [FakeSegment()], None
 
     monkeypatch.setattr(whisper, "_TRANSCRIPT_CACHE", {})
-    transcriber = FasterWhisperTranscriber()
+    transcriber = FasterWhisperTranscriber(beam_size=3)
     transcriber._model = FakeModel()
     window = AudioWindow(index=0, start_seconds=0.0, duration_seconds=1.0, path=audio_path)
 

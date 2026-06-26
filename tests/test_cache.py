@@ -1,6 +1,6 @@
-from gist.core.cache import CandidateCache
 from gist.candidates.baseline import CandidateSet
 from gist.core.cache import (
+    CandidateCache,
     DiskCache,
     candidate_cache_key,
     ingestion_cache_key,
@@ -94,4 +94,17 @@ def test_cache_keys_change_when_parameters_change(tmp_path) -> None:
         VisualScoringMode.BASELINE,
         AudioScoringMode.BASELINE,
         visual_ocr=True,
+    )
+    assert candidate_cache_key(
+        ingestion,
+        "pricing",
+        VisualScoringMode.BASELINE,
+        AudioScoringMode.WHISPER,
+        transcript_settings="model=tiny|device=cpu|compute=int8|beam=1",
+    ) != candidate_cache_key(
+        ingestion,
+        "pricing",
+        VisualScoringMode.BASELINE,
+        AudioScoringMode.WHISPER,
+        transcript_settings="model=small|device=cpu|compute=int8|beam=5",
     )

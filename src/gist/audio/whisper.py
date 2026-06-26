@@ -1,12 +1,65 @@
 import hashlib
 import json
+import os
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 from gist.audio.errors import AudioTranscriptionError
 from gist.media.models import AudioWindow
 
-_TRANSCRIPT_CACHE: dict[tuple[str, str, str, str, int, int], str] = {}
+_TRANSCRIPT_CACHE: dict[tuple[str, str, str, str, str, int, int], str] = {}
+
+
+class TranscriptQuality(StrEnum):
+    FAST = "fast"
+    BALANCED = "balanced"
+    ACCURATE = "accurate"
+
+
+class WhisperSettings:
+    def __init__(
+        self,
+        model_size: str,
+        device: str,
+        compute_type: str,
+        beam_size: int,
+    ) -> None:
+        self.model_size = model_size
+        self.device = device
+        self.compute_type = compute_type
+        self.beam_size = beam_size
+
+    @property
+    def cache_fingerprint(self) -> str:
+        return (
+            f"model={self.model_size}|device={self.device}|"
+            f"compute={self.compute_type}|beam={self.beam_size}"
+        )
+
+
+_QUALITY_DEFAULTS = {
+    TranscriptQuality.FAST: ("tiny", "cpu", "int8", 1),
+    TranscriptQuality.BALANCED: ("base", "cpu", "int8", 3),
+    TranscriptQuality.ACCURATE: ("small", "cpu", "int8", 5),
+}
+
+
+def resolve_whisper_settings(
+    quality: TranscriptQuality = TranscriptQuality.BALANCED,
+    model_size: str | None = None,
+    device: str | None = None,
+    compute_type: str | None = None,
+    beam_size: int | None = None,
+) -> WhisperSettings:
+    default_model, default_device, default_compute, default_beam = _QUALITY_DEFAULTS[quality]
+    return WhisperSettings(
+        model_size=model_size or os.getenv("GIST_WHISPER_MODEL_SIZE", default_model),
+        device=device or os.getenv("GIST_WHISPER_DEVICE", default_device),
+        compute_type=compute_type or os.getenv("GIST_WHISPER_COMPUTE_TYPE", default_compute),
+        beam_size=beam_size
+        or int(os.getenv("GIST_WHISPER_BEAM_SIZE", str(default_beam))),
+    )
 
 
 class FasterWhisperTranscriber:
@@ -15,11 +68,13 @@ class FasterWhisperTranscriber:
         model_size: str = "base",
         device: str = "cpu",
         compute_type: str = "int8",
+        beam_size: int = 1,
         cache_dir: Path | None = None,
     ) -> None:
         self.model_size = model_size
         self.device = device
         self.compute_type = compute_type
+        self.beam_size = beam_size
         self.cache_dir = cache_dir
         self._model: Any | None = None
 
@@ -42,7 +97,7 @@ class FasterWhisperTranscriber:
                 segments, _info = self._model.transcribe(
                     str(window.path),
                     vad_filter=True,
-                    beam_size=1,
+                    beam_size=self.beam_size,
                 )
                 transcript = " ".join(segment.text.strip() for segment in segments).strip()
                 _TRANSCRIPT_CACHE[cache_key] = transcript
@@ -69,24 +124,31 @@ class FasterWhisperTranscriber:
             compute_type=self.compute_type,
         )
 
-    def _cache_key(self, path: Path) -> tuple[str, str, str, str, int, int]:
+    def _cache_key(self, path: Path) -> tuple[str, str, str, str, str, int, int]:
         stat = path.stat()
         return (
             self.model_size,
             self.device,
             self.compute_type,
+            str(self.beam_size),
             str(path.resolve()),
             int(stat.st_mtime_ns),
             int(stat.st_size),
         )
 
-    def _cache_path(self, cache_key: tuple[str, str, str, str, int, int]) -> Path | None:
+    def _cache_path(
+        self,
+        cache_key: tuple[str, str, str, str, str, int, int],
+    ) -> Path | None:
         if self.cache_dir is None:
             return None
         digest = hashlib.sha256(json.dumps(cache_key).encode("utf-8")).hexdigest()[:32]
         return self.cache_dir / f"{digest}.json"
 
-    def _read_disk_cache(self, cache_key: tuple[str, str, str, str, int, int]) -> str | None:
+    def _read_disk_cache(
+        self,
+        cache_key: tuple[str, str, str, str, str, int, int],
+    ) -> str | None:
         path = self._cache_path(cache_key)
         if path is None or not path.exists():
             return None
@@ -104,7 +166,7 @@ class FasterWhisperTranscriber:
 
     def _write_disk_cache(
         self,
-        cache_key: tuple[str, str, str, str, int, int],
+        cache_key: tuple[str, str, str, str, str, int, int],
         transcript: str,
     ) -> None:
         path = self._cache_path(cache_key)

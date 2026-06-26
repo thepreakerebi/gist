@@ -64,6 +64,39 @@ def test_quality_gate_flags_weak_speech_report() -> None:
     assert any(warning.severity == "error" for warning in warnings)
 
 
+def test_quality_gate_flags_noisy_global_summary_transcripts() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        answer="The video covers: sensors and control; power.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.GLOBAL_SUMMARY,
+        selected=[
+            _selected_audio(
+                text=(
+                    "So this is a bit of a vlog in the place but this is all "
+                    "of you all the courses and we have a lot of."
+                ),
+                support_label="strong",
+                grounding_label="direct",
+            ),
+            _selected_audio(
+                text=(
+                    "The interesting thing is that this role is not having "
+                    "any sensors and a simple control arm."
+                ),
+                support_label="strong",
+                grounding_label="direct",
+            ),
+        ],
+        metrics=_metrics(token_reduction=99.0),
+    )
+
+    warnings = quality_warnings(compression)
+
+    assert "noisy_transcript_evidence" in {warning.code for warning in warnings}
+
+
 def _selected_audio(
     text: str,
     support_label: str,

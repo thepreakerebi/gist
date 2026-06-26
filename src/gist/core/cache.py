@@ -79,6 +79,7 @@ def candidate_cache_key(
     audio_scorer: AudioScoringMode,
     audio_context_window_count: int | None = None,
     visual_ocr: bool = False,
+    transcript_settings: str | None = None,
 ) -> str:
     context_count = (
         audio_context_window_count
@@ -92,7 +93,7 @@ def candidate_cache_key(
     fingerprint = (
         f"{CANDIDATE_CACHE_VERSION}|{ingestion.video_id}|query={query.strip()}|"
         f"visual={visual_scorer}|audio={audio_scorer}|audio_context={context_count}|"
-        f"visual_ocr={visual_ocr}"
+        f"visual_ocr={visual_ocr}|transcript={transcript_settings or 'none'}"
     )
     return _sha256_short(fingerprint)
 

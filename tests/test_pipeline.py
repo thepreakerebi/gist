@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from gist.audio.whisper import TranscriptQuality
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate
@@ -172,6 +173,40 @@ def test_explicit_audio_scorer_bypasses_auto_routing() -> None:
         )
         == AudioScoringMode.CLAP
     )
+
+
+def test_pipeline_builds_whisper_transcriber_from_quality_settings(tmp_path: Path) -> None:
+    pipeline = LocalCompressionPipeline(output_root=tmp_path)
+
+    generator = pipeline._candidate_generator_for(
+        visual_scorer=VisualScoringMode.BASELINE,
+        audio_scorer=AudioScoringMode.WHISPER,
+        transcript_quality=TranscriptQuality.ACCURATE,
+    )
+
+    assert generator.audio_transcriber is not None
+    assert generator.audio_transcriber.model_size == "small"
+    assert generator.audio_transcriber.beam_size == 5
+
+
+def test_pipeline_whisper_overrides_take_precedence(tmp_path: Path) -> None:
+    pipeline = LocalCompressionPipeline(output_root=tmp_path)
+
+    generator = pipeline._candidate_generator_for(
+        visual_scorer=VisualScoringMode.BASELINE,
+        audio_scorer=AudioScoringMode.WHISPER,
+        transcript_quality=TranscriptQuality.FAST,
+        whisper_model_size="medium",
+        whisper_device="cuda",
+        whisper_compute_type="float16",
+        whisper_beam_size=7,
+    )
+
+    assert generator.audio_transcriber is not None
+    assert generator.audio_transcriber.model_size == "medium"
+    assert generator.audio_transcriber.device == "cuda"
+    assert generator.audio_transcriber.compute_type == "float16"
+    assert generator.audio_transcriber.beam_size == 7
 
 
 def test_local_pipeline_reuses_disk_cache_on_repeated_runs(tmp_path: Path) -> None:
