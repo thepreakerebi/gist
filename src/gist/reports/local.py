@@ -1,10 +1,9 @@
 from html import escape
 from pathlib import Path
 
-from gist.core.schemas import Modality
-from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.core.answering import WHY_ANSWER_TERMS
 from gist.core.scoring import text_similarity
+from gist.core.schemas import CompressionResponse, Modality, SelectedCandidate
 from gist.media.models import IngestedVideo
 
 
@@ -41,6 +40,7 @@ def render_local_compression_report(
         <tr><th>Raw input candidates</th><td>{compression.metrics.raw_input_candidates}</td></tr>
         <tr><th>Fused candidate moments</th><td>{compression.metrics.fused_input_candidates or compression.metrics.input_candidates}</td></tr>
         """
+    transcript_rows = _render_transcript_metadata_rows(compression)
     quality = _render_quality_gate(compression)
 
     return f"""<!doctype html>
@@ -111,6 +111,7 @@ def render_local_compression_report(
         {raw_rows}
         <tr><th>Compressor input candidates</th><td>{compression.metrics.input_candidates}</td></tr>
         <tr><th>Audio scorer used</th><td>{escape(str(compression.audio_scorer_used or "unknown"))}</td></tr>
+        {transcript_rows}
         <tr><th>Dropped candidates</th><td>{compression.metrics.dropped_candidates}</td></tr>
         <tr><th>Spatial visual tokens</th><td>{compression.metrics.estimated_retained_spatial_visual_tokens} / {compression.metrics.estimated_spatial_visual_tokens} retained</td></tr>
         <tr><th>Budget</th><td>{escape(compression.metrics.budget_mode)} / {escape(compression.metrics.budget_preset_used.value)}</td></tr>
@@ -131,6 +132,32 @@ def _render_answer(answer: str | None) -> str:
     if not answer:
         return ""
     return f"<p><strong>Answer:</strong> {escape(answer)}</p>"
+
+
+def _render_transcript_metadata_rows(compression: CompressionResponse) -> str:
+    metadata = compression.transcript_metadata
+    if metadata is None:
+        return ""
+    settings = [
+        f"quality={metadata.quality or 'unknown'}",
+        f"model={metadata.model_size or 'unknown'}",
+        f"device={metadata.device or 'unknown'}",
+        f"compute={metadata.compute_type or 'unknown'}",
+        f"beam={metadata.beam_size if metadata.beam_size is not None else 'unknown'}",
+    ]
+    retry = (
+        f"enabled={metadata.auto_retry_enabled}; "
+        f"attempted={metadata.retry_attempted}"
+    )
+    if metadata.retry_attempted:
+        retry += (
+            f"; from={metadata.retry_from_quality or 'unknown'}"
+            f"; to={metadata.retry_to_quality or 'unknown'}"
+        )
+    return f"""
+        <tr><th>Transcript settings</th><td>{escape("; ".join(settings))}</td></tr>
+        <tr><th>Transcript retry</th><td>{escape(retry)}</td></tr>
+    """
 
 
 def _render_quality_gate(compression: CompressionResponse) -> str:

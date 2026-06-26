@@ -37,6 +37,17 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
         query="refund policy",
         answer="Refunds are available for eligible plans.",
         audio_scorer_used=AudioScoringMode.WHISPER,
+        transcript_metadata={
+            "quality": "accurate",
+            "model_size": "small",
+            "device": "cpu",
+            "compute_type": "int8",
+            "beam_size": 5,
+            "auto_retry_enabled": True,
+            "retry_attempted": True,
+            "retry_from_quality": "fast",
+            "retry_to_quality": "accurate",
+        },
         preset=CompressionPreset.BALANCED,
         selected=[
             SelectedCandidate(
@@ -94,6 +105,11 @@ def test_render_local_compression_report_includes_plan_and_video_clip(tmp_path: 
     assert "Refunds are available for eligible plans." in html
     assert "long processing selected" in html
     assert "whisper" in html
+    assert "quality=accurate" in html
+    assert "model=small" in html
+    assert "attempted=True" in html
+    assert "from=fast" in html
+    assert "to=accurate" in html
     assert "strong support" in html
     assert "Why selected:" in html
     assert "rendered clip comes from transcript evidence" in html

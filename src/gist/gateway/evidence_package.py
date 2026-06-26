@@ -4,7 +4,6 @@ from typing import Any
 from gist.core.schemas import CompressionResponse, SelectedCandidate
 from gist.media.models import IngestedVideo
 
-
 EVIDENCE_PACKAGE_VERSION = "gist.evidence-package.v1"
 
 
@@ -29,6 +28,11 @@ def build_evidence_package(
         "query_intent": str(compression.query_intent) if compression.query_intent else None,
         "routing_reason": compression.routing_reason,
         "compression": compression.metrics.model_dump(mode="json"),
+        "transcript_metadata": (
+            compression.transcript_metadata.model_dump(mode="json")
+            if compression.transcript_metadata is not None
+            else None
+        ),
         "quality_warnings": [
             warning.model_dump(mode="json") for warning in compression.quality_warnings
         ],

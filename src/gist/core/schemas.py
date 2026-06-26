@@ -126,6 +126,18 @@ class QualityWarning(BaseModel):
     severity: str = "warning"
 
 
+class TranscriptMetadata(BaseModel):
+    quality: str | None = None
+    model_size: str | None = None
+    device: str | None = None
+    compute_type: str | None = None
+    beam_size: int | None = None
+    auto_retry_enabled: bool = False
+    retry_attempted: bool = False
+    retry_from_quality: str | None = None
+    retry_to_quality: str | None = None
+
+
 class CompressionResponse(BaseModel):
     video_id: str
     query: str
@@ -135,6 +147,7 @@ class CompressionResponse(BaseModel):
     query_intent: QueryIntent | None = None
     routing_reason: str | None = None
     audio_scorer_used: AudioScoringMode | None = None
+    transcript_metadata: TranscriptMetadata | None = None
     query_aspects: list[QueryAspect] = Field(default_factory=list)
     selected: list[SelectedCandidate]
     metrics: CompressionMetrics

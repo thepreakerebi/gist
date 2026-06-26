@@ -8,6 +8,7 @@ from gist.cli import (
     _attach_spatial_masks,
     _clear_previous_clips,
     _should_retry_transcripts,
+    _with_retry_metadata,
 )
 from gist.core.modes import AudioScoringMode
 from gist.core.presets import CompressionPreset
@@ -18,6 +19,7 @@ from gist.core.schemas import (
     Modality,
     QualityWarning,
     SelectedCandidate,
+    TranscriptMetadata,
 )
 from gist.core.token_estimation import TokenEstimatorProfile
 from gist.media.models import IngestedVideo, VideoMetadata
@@ -222,6 +224,35 @@ def test_should_retry_transcripts_skips_manual_whisper_overrides() -> None:
     )
 
 
+def test_with_retry_metadata_records_retry_attempt() -> None:
+    compression = _compression_with_warning(None)
+    compression = compression.model_copy(
+        update={
+            "transcript_metadata": TranscriptMetadata(
+                quality="accurate",
+                model_size="small",
+                device="cpu",
+                compute_type="int8",
+                beam_size=5,
+            )
+        }
+    )
+
+    updated = _with_retry_metadata(
+        compression=compression,
+        auto_retry_enabled=True,
+        retry_attempted=True,
+        retry_from_quality=TranscriptQuality.FAST,
+        retry_to_quality=TranscriptQuality.ACCURATE,
+    )
+
+    assert updated.transcript_metadata is not None
+    assert updated.transcript_metadata.auto_retry_enabled is True
+    assert updated.transcript_metadata.retry_attempted is True
+    assert updated.transcript_metadata.retry_from_quality == "fast"
+    assert updated.transcript_metadata.retry_to_quality == "accurate"
+
+
 def test_main_cli_auto_retries_noisy_transcripts(tmp_path: Path, monkeypatch) -> None:
     calls: list[TranscriptQuality] = []
 
@@ -270,6 +301,19 @@ def test_main_cli_auto_retries_noisy_transcripts(tmp_path: Path, monkeypatch) ->
 
     assert exit_code == 0
     assert calls == [TranscriptQuality.FAST, TranscriptQuality.ACCURATE]
+    payload = json.loads(
+        (
+            tmp_path
+            / "runs"
+            / "video"
+            / "what-are-the-main-topics-covered-throughout-this-lecture"
+            / "compression.json"
+        ).read_text()
+    )
+    transcript_metadata = payload["compression"]["transcript_metadata"]
+    assert transcript_metadata["retry_attempted"] is True
+    assert transcript_metadata["retry_from_quality"] == "fast"
+    assert transcript_metadata["retry_to_quality"] == "accurate"
 
 
 def test_main_cli_rejects_schema_path_and_schema_name(tmp_path: Path) -> None:
@@ -314,6 +358,13 @@ def _compression_with_warning(warning_code: str | None) -> CompressionResponse:
         preset=CompressionPreset.BALANCED,
         query_intent=QueryIntent.GLOBAL_SUMMARY,
         audio_scorer_used=AudioScoringMode.WHISPER,
+        transcript_metadata={
+            "quality": "fast",
+            "model_size": "tiny",
+            "device": "cpu",
+            "compute_type": "int8",
+            "beam_size": 1,
+        },
         selected=[
             SelectedCandidate(
                 id="a-1",

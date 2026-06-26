@@ -189,6 +189,49 @@ def test_pipeline_builds_whisper_transcriber_from_quality_settings(tmp_path: Pat
     assert generator.audio_transcriber.beam_size == 5
 
 
+def test_pipeline_records_whisper_transcript_metadata(tmp_path: Path) -> None:
+    class WhisperIngestor(FakeIngestor):
+        def ingest(
+            self,
+            video_path: Path,
+            sample_count: int | None,
+            audio_window_seconds: float | None,
+            processing_mode: ProcessingMode = ProcessingMode.SHORT,
+        ) -> IngestedVideo:
+            ingested = super().ingest(
+                video_path=video_path,
+                sample_count=sample_count,
+                audio_window_seconds=audio_window_seconds,
+                processing_mode=processing_mode,
+            )
+            return ingested.model_copy(
+                update={
+                    "metadata": VideoMetadata(duration_seconds=3600, has_audio=True),
+                    "audio_windows": [],
+                }
+            )
+
+    pipeline = LocalCompressionPipeline(
+        output_root=tmp_path,
+        ingestor=WhisperIngestor(),
+        candidate_generator=CountingCandidateGenerator(),
+    )
+
+    _ingestion, compression = pipeline.run(
+        video_path=tmp_path / "video.mp4",
+        query="What does the speaker say about pricing?",
+        audio_scorer=AudioScoringMode.WHISPER,
+        transcript_quality=TranscriptQuality.ACCURATE,
+        sample_count=2,
+        audio_window_seconds=1.0,
+    )
+
+    assert compression.transcript_metadata is not None
+    assert compression.transcript_metadata.quality == "accurate"
+    assert compression.transcript_metadata.model_size == "small"
+    assert compression.transcript_metadata.beam_size == 5
+
+
 def test_pipeline_whisper_overrides_take_precedence(tmp_path: Path) -> None:
     pipeline = LocalCompressionPipeline(output_root=tmp_path)
 

@@ -22,7 +22,7 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.progress import ProgressCallback
 from gist.core.query_intent import QueryIntent, route_query_intent
-from gist.core.schemas import CompressionRequest, CompressionResponse
+from gist.core.schemas import CompressionRequest, CompressionResponse, TranscriptMetadata
 from gist.core.token_estimation import TokenEstimatorProfile, estimate_tokens
 from gist.media.ingestion import MediaIngestor
 from gist.media.longform import ProcessingMode, plan_ingestion
@@ -92,6 +92,14 @@ class LocalCompressionPipeline:
             query=query,
             duration_seconds=ingested.metadata.duration_seconds,
         )
+        transcript_metadata = _transcript_metadata(
+            audio_scorer=resolved_audio_scorer,
+            transcript_quality=transcript_quality,
+            whisper_model_size=whisper_model_size,
+            whisper_device=whisper_device,
+            whisper_compute_type=whisper_compute_type,
+            whisper_beam_size=whisper_beam_size,
+        )
 
         if progress is not None:
             progress("compressing candidate set")
@@ -119,6 +127,7 @@ class LocalCompressionPipeline:
             update={
                 "answer": answer_from_evidence(compression),
                 "audio_scorer_used": resolved_audio_scorer,
+                "transcript_metadata": transcript_metadata,
             }
         )
         if progress is not None:
@@ -323,6 +332,32 @@ def resolve_audio_scorer(
     ):
         return AudioScoringMode.WHISPER
     return AudioScoringMode.BASELINE
+
+
+def _transcript_metadata(
+    audio_scorer: AudioScoringMode,
+    transcript_quality: TranscriptQuality,
+    whisper_model_size: str | None,
+    whisper_device: str | None,
+    whisper_compute_type: str | None,
+    whisper_beam_size: int | None,
+) -> TranscriptMetadata | None:
+    if audio_scorer != AudioScoringMode.WHISPER:
+        return None
+    settings = resolve_whisper_settings(
+        quality=transcript_quality,
+        model_size=whisper_model_size,
+        device=whisper_device,
+        compute_type=whisper_compute_type,
+        beam_size=whisper_beam_size,
+    )
+    return TranscriptMetadata(
+        quality=transcript_quality.value,
+        model_size=settings.model_size,
+        device=settings.device,
+        compute_type=settings.compute_type,
+        beam_size=settings.beam_size,
+    )
 
 
 def _audio_context_window_count(ingested: IngestedVideo) -> int:

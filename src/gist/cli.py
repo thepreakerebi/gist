@@ -178,6 +178,11 @@ def main(argv: list[str] | None = None) -> int:
         run_dir=run_dir,
         progress=progress,
     )
+    compression = _with_retry_metadata(
+        compression=compression,
+        auto_retry_enabled=args.auto_transcript_retry,
+        retry_attempted=False,
+    )
     retry_quality = TranscriptQuality(args.transcript_retry_quality)
     if _should_retry_transcripts(args, compression, transcript_quality, retry_quality):
         progress(
@@ -195,6 +200,13 @@ def main(argv: list[str] | None = None) -> int:
             compression=compression,
             run_dir=run_dir,
             progress=progress,
+        )
+        compression = _with_retry_metadata(
+            compression=compression,
+            auto_retry_enabled=args.auto_transcript_retry,
+            retry_attempted=True,
+            retry_from_quality=transcript_quality,
+            retry_to_quality=retry_quality,
         )
 
     response_path = run_dir / "compression.json"
@@ -379,6 +391,34 @@ def _should_retry_transcripts(
     return any(
         warning.code == "noisy_transcript_evidence"
         for warning in compression.quality_warnings
+    )
+
+
+def _with_retry_metadata(
+    compression: CompressionResponse,
+    auto_retry_enabled: bool,
+    retry_attempted: bool,
+    retry_from_quality: TranscriptQuality | None = None,
+    retry_to_quality: TranscriptQuality | None = None,
+) -> CompressionResponse:
+    metadata = compression.transcript_metadata
+    if metadata is None:
+        return compression
+    return compression.model_copy(
+        update={
+            "transcript_metadata": metadata.model_copy(
+                update={
+                    "auto_retry_enabled": auto_retry_enabled,
+                    "retry_attempted": retry_attempted,
+                    "retry_from_quality": (
+                        retry_from_quality.value if retry_from_quality is not None else None
+                    ),
+                    "retry_to_quality": (
+                        retry_to_quality.value if retry_to_quality is not None else None
+                    ),
+                }
+            )
+        }
     )
 
 
