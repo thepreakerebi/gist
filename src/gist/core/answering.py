@@ -188,6 +188,10 @@ def _global_summary_answer(compression: CompressionResponse) -> str | None:
     if compression.query_intent != QueryIntent.GLOBAL_SUMMARY:
         return None
 
+    agenda_answer = _global_summary_agenda_answer(compression.selected)
+    if agenda_answer is not None:
+        return agenda_answer
+
     candidates = [
         (
             _global_summary_score(item),
@@ -217,6 +221,78 @@ def _global_summary_answer(compression: CompressionResponse) -> str | None:
         )
     ]
     return f"The video covers: {'; '.join(topics)}."
+
+
+def _global_summary_agenda_answer(selected: list[SelectedCandidate]) -> str | None:
+    agenda_topics: list[tuple[float, float, str]] = []
+    for item in selected:
+        if not item.text.lower().startswith("on-screen text near"):
+            continue
+        text = item.text.split(":", maxsplit=1)[-1].strip()
+        if not _looks_like_agenda_slide(text):
+            continue
+        for index, topic in enumerate(_agenda_topics(text)):
+            score = _global_summary_text_score(topic) + (1 / (index + 1))
+            agenda_topics.append((score, item.timestamp_seconds + index * 0.01, topic))
+    if not agenda_topics:
+        return None
+
+    topics = [
+        topic.rstrip(" .")
+        for _score, _timestamp, topic in sorted(agenda_topics, key=lambda entry: entry[1])
+    ][:MAX_GLOBAL_SUMMARY_TOPICS]
+    if not topics:
+        return None
+    return f"The video covers: {'; '.join(topics)}."
+
+
+def _looks_like_agenda_slide(text: str) -> bool:
+    normalized = text.lower()
+    return (
+        "today" in normalized
+        and (
+            "lecture" in normalized
+            or "agenda" in normalized
+            or "overview" in normalized
+            or "*" in text
+        )
+    )
+
+
+def _agenda_topics(text: str) -> list[str]:
+    normalized = re.sub(r"\s+", " ", text).strip()
+    normalized = re.sub(r"^today\s*:?\s*", "", normalized, flags=re.IGNORECASE)
+    pieces = [
+        piece.strip(" -•*:;,.")
+        for piece in re.split(r"\s+\*\s+|[•·]\s+|\s+-\s+", normalized)
+        if piece.strip(" -•*:;,.")
+    ]
+    topics: list[str] = []
+    for piece in pieces:
+        cleaned = _clean_global_summary_snippet(piece)
+        cleaned = re.sub(r"^lecture\s+\d+\s*", "", cleaned, flags=re.IGNORECASE)
+        cleaned = _repair_agenda_ocr(cleaned)
+        cleaned = cleaned.strip(" -:;,.")
+        if not cleaned:
+            continue
+        if _is_noisy_global_summary_text(cleaned) and not _has_technical_terms(cleaned):
+            continue
+        if _global_summary_text_score(cleaned) <= 0 and not _has_technical_terms(cleaned):
+            continue
+        topics.append(cleaned)
+    return _ordered_unique(topics)
+
+
+def _has_technical_terms(text: str) -> bool:
+    return bool(_claim_terms(text) & _GLOBAL_TECHNICAL_TERMS)
+
+
+def _repair_agenda_ocr(text: str) -> str:
+    repaired = re.sub(r"\bCont\s+eptual\b", "Conceptual", text)
+    repaired = re.sub(r"\bcont\s+eptual\b", "conceptual", repaired)
+    repaired = re.sub(r"\bConcept\s+ual\b", "Conceptual", repaired)
+    repaired = re.sub(r"\bconcept\s+ual\b", "conceptual", repaired)
+    return " ".join(repaired.split())
 
 
 def _global_summary_topic(item: SelectedCandidate) -> str:

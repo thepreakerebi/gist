@@ -32,7 +32,7 @@ gist-long-video-suite \
   --output reports/long-video-suite/baseline-quality.json \
   --markdown-output reports/long-video-suite/baseline-quality.md \
   --html-output reports/long-video-suite/baseline-quality.html \
-  --min-cases 11 \
+  --min-cases 12 \
   --min-distinct-videos 5 \
   --min-distinct-domains 4 \
   --min-cases-per-category 1 \
@@ -46,11 +46,11 @@ gist-long-video-suite \
 
 Current baseline as of June 28, 2026:
 
-- `11` real long-video cases across `5` videos and `4` domains.
+- `12` real long-video cases across `5` videos and `4` domains.
 - `100.00%` quality pass rate.
-- `99.87%` average token reduction.
-- `9.09%` noisy transcript warning rate.
-- `9.09%` transcript metadata coverage because most older artifacts predate transcript metadata.
+- `99.86%` average token reduction.
+- `8.33%` noisy transcript warning rate.
+- `16.67%` transcript metadata coverage because most older artifacts predate transcript metadata.
 - No known failing baseline cases. The remaining long-video warning is noisy transcript evidence on `bio-motor-control-lecture-01-global-summary`.
 
 Audit existing long-video artifacts for safe dataset additions:
@@ -60,7 +60,7 @@ gist-long-video-suite \
   --dataset data/eval/long-video-quality.jsonl \
   --audit-root .gist/runs \
   --audit-output reports/long-video-suite/artifact-audit.json \
-  --min-cases 11 \
+  --min-cases 12 \
   --min-distinct-videos 5 \
   --min-distinct-domains 4 \
   --min-cases-per-category 1 \
@@ -71,7 +71,7 @@ gist-long-video-suite \
   --max-avg-selected-evidence 4
 ```
 
-The current audit found `19` local artifacts: `11` already curated, `0` safe uncurated long-video candidates, and `8` rejected because they are short, low-reduction, or answer-noisy. Dataset expansion now requires new real long-video runs rather than recycling existing artifacts.
+The current audit found `20` local artifacts: `12` already curated, `0` safe uncurated long-video candidates, and `8` rejected because they are short, low-reduction, or answer-noisy. Dataset expansion now requires new real long-video runs rather than recycling existing artifacts.
 
 Run the future target gates separately:
 

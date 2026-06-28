@@ -126,6 +126,64 @@ def test_answer_from_evidence_summarizes_global_topics_across_timeline() -> None
     )
 
 
+def test_answer_from_evidence_prefers_global_agenda_slide_over_noisy_audio() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        query_intent=QueryIntent.GLOBAL_SUMMARY,
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="noisy-audio",
+                modality=Modality.AUDIO,
+                timestamp_seconds=2500,
+                text=(
+                    "I will pick that equal to the length of the gamma that determine "
+                    "that the term is low-band wall."
+                ),
+                selection_rank=1,
+                relevance_score=0.4,
+                normalized_score=0.6,
+                mmr_score=0.3,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="agenda",
+                modality=Modality.VISUAL,
+                timestamp_seconds=222,
+                text=(
+                    "on-screen text near 222.73 seconds: Today: Lecture 2 "
+                    "Legged Locomotion and Cont eptual Models * Legged Locomotion "
+                    "in Nature * Characterization of Locomotion * Model for Running"
+                ),
+                selection_rank=2,
+                relevance_score=0.8,
+                normalized_score=0.9,
+                mmr_score=0.7,
+                source_score_type="ocr",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=1,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == (
+        "The video covers: Legged Locomotion and Conceptual Models; "
+        "Legged Locomotion in Nature; Characterization of Locomotion."
+    )
+
+
 def test_answer_from_evidence_prefers_post_anchor_evidence_for_after_queries() -> None:
     compression = CompressionResponse(
         video_id="demo",
