@@ -51,6 +51,7 @@ _VISUAL_TERMS = {
     "logo",
     "projection",
     "show",
+    "showing",
     "shows",
     "see",
     "seen",
@@ -172,13 +173,13 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
         )
     if has_global and not (has_speech or has_visual or has_sound):
         return QueryIntent.GLOBAL_SUMMARY, "global summary terms favor broad segment coverage"
+    if has_speech and has_visual:
+        return QueryIntent.MIXED_AV, "speech and visual terms require cross-modal evidence"
     if has_temporal and (has_speech or has_visual or has_sound):
         return (
             QueryIntent.TEMPORAL_BEFORE_AFTER,
             "temporal markers require continuity around relevant moments",
         )
-    if has_speech and has_visual:
-        return QueryIntent.MIXED_AV, "speech and visual terms require cross-modal evidence"
     if has_conceptual_speech and not (has_visual or has_sound):
         return (
             QueryIntent.SPEECH_SEMANTIC,

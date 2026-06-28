@@ -121,6 +121,16 @@ def test_audit_long_video_artifacts_classifies_candidates(tmp_path: Path) -> Non
     payload = json.loads(noisy_ocr.read_text())
     payload["compression"]["answer"] = "on-screen text near 3341.69 seconds: oe ORTOP Pa r"
     noisy_ocr.write_text(json.dumps(payload) + "\n")
+    unreliable = _write_artifact(
+        tmp_path / "unreliable" / "compression.json",
+        "unreliable-video",
+        3900,
+    )
+    payload = json.loads(unreliable.read_text())
+    payload["compression"]["answer"] = (
+        "I could not derive a reliable answer from the selected evidence."
+    )
+    unreliable.write_text(json.dumps(payload) + "\n")
     cases = [
         QualityCase(
             id="curated",
@@ -145,7 +155,7 @@ def test_audit_long_video_artifacts_classifies_candidates(tmp_path: Path) -> Non
     )
 
     by_name = {item.path.parent.name: item for item in audit.items}
-    assert audit.artifacts == 5
+    assert audit.artifacts == 6
     assert audit.curated_artifacts == 1
     assert audit.candidate_artifacts == 1
     assert by_name["candidate"].candidate
@@ -154,6 +164,7 @@ def test_audit_long_video_artifacts_classifies_candidates(tmp_path: Path) -> Non
     assert any("duration" in reason for reason in by_name["short"].reasons)
     assert any("token reduction" in reason for reason in by_name["low-token"].reasons)
     assert "answer appears OCR-noisy" in by_name["noisy-ocr"].reasons
+    assert "unreliable generated answer" in by_name["unreliable"].reasons
 
 
 def test_long_video_suite_cli_writes_readiness_reports(tmp_path: Path, capsys) -> None:

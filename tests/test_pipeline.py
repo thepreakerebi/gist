@@ -131,6 +131,30 @@ def test_auto_audio_scorer_routes_long_global_summary_queries_to_whisper() -> No
     )
 
 
+def test_auto_audio_scorer_routes_long_temporal_speech_queries_to_whisper() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="What does the man say after the woman asks why he is freaked out?",
+            duration_seconds=3600,
+            whisper_available=True,
+        )
+        == AudioScoringMode.WHISPER
+    )
+
+
+def test_auto_audio_scorer_keeps_long_temporal_visual_queries_on_baseline() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="What slide appears after the opening course title slide?",
+            duration_seconds=3600,
+            whisper_available=True,
+        )
+        == AudioScoringMode.BASELINE
+    )
+
+
 def test_auto_audio_scorer_keeps_short_or_non_speech_queries_on_baseline() -> None:
     assert (
         resolve_audio_scorer(

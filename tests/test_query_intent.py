@@ -17,6 +17,15 @@ def test_routes_temporal_slide_query_without_treating_it_as_speech() -> None:
     assert "temporal" in reason
 
 
+def test_routes_speech_while_showing_query_to_mixed_av() -> None:
+    intent, reason = route_query_intent(
+        "What does the woman say about robotics and space while showing her robot hand?"
+    )
+
+    assert intent == QueryIntent.MIXED_AV
+    assert "cross-modal" in reason
+
+
 def test_routes_visual_query() -> None:
     intent, reason = route_query_intent("show the person holding the tool")
 

@@ -341,6 +341,8 @@ def _answer_audit_reasons(answer: str) -> list[str]:
     normalized = " ".join(answer.strip().split())
     if not normalized:
         return ["missing answer"]
+    if "could not derive a reliable answer" in normalized.lower():
+        return ["unreliable generated answer"]
     if _looks_like_noisy_ocr_answer(normalized):
         return ["answer appears OCR-noisy"]
     return []

@@ -1,4 +1,5 @@
 import inspect
+import re
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -320,18 +321,38 @@ def resolve_audio_scorer(
     query_intent, _reason = route_query_intent(query)
     if whisper_available is None:
         whisper_available = find_spec("faster_whisper") is not None
-    if (
-        query_intent
-        in {
-            QueryIntent.SPEECH_SEMANTIC,
-            QueryIntent.MIXED_AV,
-            QueryIntent.GLOBAL_SUMMARY,
-        }
-        and duration_seconds >= 600
-        and whisper_available
-    ):
+    whisper_intents = {
+        QueryIntent.SPEECH_SEMANTIC,
+        QueryIntent.MIXED_AV,
+        QueryIntent.GLOBAL_SUMMARY,
+    }
+    if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER and _has_speech_signal(query):
+        whisper_intents.add(QueryIntent.TEMPORAL_BEFORE_AFTER)
+    if query_intent in whisper_intents and duration_seconds >= 600 and whisper_available:
         return AudioScoringMode.WHISPER
     return AudioScoringMode.BASELINE
+
+
+def _has_speech_signal(query: str) -> bool:
+    tokens = set(re.findall(r"[a-z0-9]+", query.lower()))
+    return bool(
+        tokens
+        & {
+            "ask",
+            "asks",
+            "asked",
+            "mention",
+            "mentions",
+            "said",
+            "say",
+            "says",
+            "speak",
+            "speaker",
+            "tell",
+            "tells",
+            "told",
+        }
+    )
 
 
 def _transcript_metadata(
