@@ -12,11 +12,9 @@ from gist.eval.quality import (
     QualityCase,
     QualityReport,
     load_quality_cases,
-    render_quality_html,
     render_quality_markdown,
     run_quality_cases,
 )
-
 
 REQUIRED_QUERY_CATEGORIES = (
     QueryIntent.SPEECH_SEMANTIC,
@@ -34,6 +32,11 @@ class LongVideoSuiteGates(BaseModel):
     min_cases_per_category: Annotated[int, Field(ge=1)] = 3
     minimum_duration_seconds: Annotated[float, Field(gt=0)] = 3600.0
     min_quality_pass_rate: Annotated[float, Field(ge=0, le=1)] = 0.8
+    min_avg_token_reduction_percent: Annotated[float, Field(ge=0, le=100)] = 90.0
+    max_noisy_transcript_warning_rate: Annotated[float, Field(ge=0, le=1)] = 0.25
+    min_transcript_metadata_rate: Annotated[float, Field(ge=0, le=1)] = 0.8
+    min_answered_rate: Annotated[float, Field(ge=0, le=1)] = 0.9
+    max_avg_selected_evidence: Annotated[float, Field(gt=0)] = 8.0
 
 
 class LongVideoSuiteGateResult(BaseModel):
@@ -42,6 +45,17 @@ class LongVideoSuiteGateResult(BaseModel):
     actual: float
     required: float
     message: str
+
+
+class LongVideoHealthSummary(BaseModel):
+    artifacts: int = 0
+    avg_token_reduction_percent: float = 0.0
+    noisy_transcript_warning_rate: float = 0.0
+    transcript_metadata_rate: float = 0.0
+    answered_rate: float = 0.0
+    avg_selected_evidence: float = 0.0
+    quality_warning_counts: dict[str, int] = Field(default_factory=dict)
+    transcript_quality_counts: dict[str, int] = Field(default_factory=dict)
 
 
 class LongVideoSuiteReport(BaseModel):
@@ -55,6 +69,7 @@ class LongVideoSuiteReport(BaseModel):
     video_counts: dict[str, int]
     missing_artifacts: list[Path] = Field(default_factory=list)
     metadata_failures: list[str] = Field(default_factory=list)
+    health: LongVideoHealthSummary = Field(default_factory=LongVideoHealthSummary)
     quality: QualityReport | None = None
 
     def write_json(self, path: Path) -> None:
@@ -72,6 +87,7 @@ def evaluate_long_video_suite(
     video_counts: Counter[str] = Counter()
     missing_artifacts: list[Path] = []
     metadata_failures: list[str] = []
+    artifact_payloads: list[dict] = []
     long_case_count = 0
 
     for case in cases:
@@ -93,6 +109,8 @@ def evaluate_long_video_suite(
                     f"{case.id}: compression_path is required for curated suite readiness"
                 )
             continue
+        payload = _load_artifact(artifact)
+        artifact_payloads.append(payload)
         duration_seconds, video_id = _artifact_identity(artifact)
         video_counts[video_id] += 1
         if duration_seconds >= gates.minimum_duration_seconds:
@@ -132,6 +150,34 @@ def evaluate_long_video_suite(
             )
         )
 
+    health = _health_summary(artifact_payloads)
+    if health.artifacts:
+        gate_results.extend(
+            [
+                _at_least(
+                    "avg_token_reduction_percent",
+                    health.avg_token_reduction_percent,
+                    gates.min_avg_token_reduction_percent,
+                ),
+                _at_most(
+                    "noisy_transcript_warning_rate",
+                    health.noisy_transcript_warning_rate,
+                    gates.max_noisy_transcript_warning_rate,
+                ),
+                _at_least(
+                    "transcript_metadata_rate",
+                    health.transcript_metadata_rate,
+                    gates.min_transcript_metadata_rate,
+                ),
+                _at_least("answered_rate", health.answered_rate, gates.min_answered_rate),
+                _at_most(
+                    "avg_selected_evidence",
+                    health.avg_selected_evidence,
+                    gates.max_avg_selected_evidence,
+                ),
+            ]
+        )
+
     return LongVideoSuiteReport(
         passed=all(result.passed for result in gate_results),
         gates=gates,
@@ -143,6 +189,7 @@ def evaluate_long_video_suite(
         video_counts=dict(sorted(video_counts.items())),
         missing_artifacts=missing_artifacts,
         metadata_failures=metadata_failures,
+        health=health,
         quality=quality,
     )
 
@@ -168,6 +215,14 @@ def render_long_video_suite_markdown(report: LongVideoSuiteReport) -> str:
         *report.metadata_failures,
     ]
     failure_lines = "\n".join(f"- {failure}" for failure in failures) or "- None"
+    warning_rows = "\n".join(
+        f"| {code} | {count} |"
+        for code, count in report.health.quality_warning_counts.items()
+    ) or "| none | 0 |"
+    transcript_rows = "\n".join(
+        f"| {quality} | {count} |"
+        for quality, count in report.health.transcript_quality_counts.items()
+    ) or "| none | 0 |"
     return f"""# Gist Long-Video Suite Readiness
 
 - Passed: {"yes" if report.passed else "no"}
@@ -187,6 +242,27 @@ def render_long_video_suite_markdown(report: LongVideoSuiteReport) -> str:
 | Category | Cases | Required |
 |---|---:|---:|
 {category_rows}
+
+## Run Health
+
+- Artifacts: {report.health.artifacts}
+- Avg token reduction: {report.health.avg_token_reduction_percent:.2f}%
+- Noisy transcript warning rate: {report.health.noisy_transcript_warning_rate:.2%}
+- Transcript metadata rate: {report.health.transcript_metadata_rate:.2%}
+- Answered rate: {report.health.answered_rate:.2%}
+- Avg selected evidence: {report.health.avg_selected_evidence:.2f}
+
+### Quality Warnings
+
+| Warning | Count |
+|---|---:|
+{warning_rows}
+
+### Transcript Quality
+
+| Quality | Count |
+|---|---:|
+{transcript_rows}
 
 ## Dataset Problems
 
@@ -221,6 +297,14 @@ def render_long_video_suite_html(report: LongVideoSuiteReport) -> str:
         "".join(f"<li>{escape(problem)}</li>" for problem in problems)
         or "<li>None</li>"
     )
+    warning_rows = "".join(
+        f"<tr><td>{escape(code)}</td><td>{count}</td></tr>"
+        for code, count in report.health.quality_warning_counts.items()
+    ) or "<tr><td>none</td><td>0</td></tr>"
+    transcript_rows = "".join(
+        f"<tr><td>{escape(quality)}</td><td>{count}</td></tr>"
+        for quality, count in report.health.transcript_quality_counts.items()
+    ) or "<tr><td>none</td><td>0</td></tr>"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -246,6 +330,28 @@ def render_long_video_suite_html(report: LongVideoSuiteReport) -> str:
     <tr><th>Category</th><th>Cases</th><th>Required</th></tr>
     {category_rows}
   </table>
+  <h2>Run Health</h2>
+  <table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Artifacts</td><td>{report.health.artifacts}</td></tr>
+    <tr><td>Avg token reduction</td><td>{report.health.avg_token_reduction_percent:.2f}%</td></tr>
+    <tr><td>Noisy transcript warning rate</td><td>
+      {report.health.noisy_transcript_warning_rate:.2%}
+    </td></tr>
+    <tr><td>Transcript metadata rate</td><td>{report.health.transcript_metadata_rate:.2%}</td></tr>
+    <tr><td>Answered rate</td><td>{report.health.answered_rate:.2%}</td></tr>
+    <tr><td>Avg selected evidence</td><td>{report.health.avg_selected_evidence:.2f}</td></tr>
+  </table>
+  <h2>Quality Warnings</h2>
+  <table>
+    <tr><th>Warning</th><th>Count</th></tr>
+    {warning_rows}
+  </table>
+  <h2>Transcript Quality</h2>
+  <table>
+    <tr><th>Quality</th><th>Count</th></tr>
+    {transcript_rows}
+  </table>
   <h2>Dataset Problems</h2>
   <ul>{problem_items}</ul>
 </body>
@@ -269,6 +375,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-cases-per-category", type=int, default=3)
     parser.add_argument("--minimum-duration-seconds", type=float, default=3600.0)
     parser.add_argument("--min-quality-pass-rate", type=float, default=0.8)
+    parser.add_argument("--min-avg-token-reduction-percent", type=float, default=90.0)
+    parser.add_argument("--max-noisy-transcript-warning-rate", type=float, default=0.25)
+    parser.add_argument("--min-transcript-metadata-rate", type=float, default=0.8)
+    parser.add_argument("--min-answered-rate", type=float, default=0.9)
+    parser.add_argument("--max-avg-selected-evidence", type=float, default=8.0)
     args = parser.parse_args(argv)
 
     cases = load_quality_cases(args.dataset)
@@ -286,6 +397,11 @@ def main(argv: list[str] | None = None) -> int:
             min_cases_per_category=args.min_cases_per_category,
             minimum_duration_seconds=args.minimum_duration_seconds,
             min_quality_pass_rate=args.min_quality_pass_rate,
+            min_avg_token_reduction_percent=args.min_avg_token_reduction_percent,
+            max_noisy_transcript_warning_rate=args.max_noisy_transcript_warning_rate,
+            min_transcript_metadata_rate=args.min_transcript_metadata_rate,
+            min_answered_rate=args.min_answered_rate,
+            max_avg_selected_evidence=args.max_avg_selected_evidence,
         ),
         quality=quality,
     )
@@ -314,7 +430,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _artifact_identity(path: Path) -> tuple[float, str]:
-    payload = json.loads(path.read_text())
+    payload = _load_artifact(path)
     compression = payload.get("compression", payload)
     ingestion = payload.get("ingestion")
     if ingestion is None:
@@ -323,6 +439,65 @@ def _artifact_identity(path: Path) -> tuple[float, str]:
         float(ingestion["metadata"]["duration_seconds"]),
         str(compression["video_id"]),
     )
+
+
+def _load_artifact(path: Path) -> dict:
+    return json.loads(path.read_text())
+
+
+def _health_summary(payloads: list[dict]) -> LongVideoHealthSummary:
+    if not payloads:
+        return LongVideoHealthSummary()
+
+    warning_counts: Counter[str] = Counter()
+    transcript_quality_counts: Counter[str] = Counter()
+    token_reductions: list[float] = []
+    selected_counts: list[int] = []
+    noisy_count = 0
+    metadata_count = 0
+    answered_count = 0
+
+    for payload in payloads:
+        compression = payload.get("compression", payload)
+        metrics = compression.get("metrics", {})
+        token_reductions.append(float(metrics.get("estimated_token_reduction_percent", 0.0)))
+        selected = compression.get("selected") or []
+        selected_counts.append(int(metrics.get("selected_candidates", len(selected))))
+        answer = str(compression.get("answer") or "").strip()
+        if len(answer.split()) >= 3:
+            answered_count += 1
+
+        warnings = compression.get("quality_warnings") or []
+        warning_codes = [
+            str(warning.get("code"))
+            for warning in warnings
+            if isinstance(warning, dict) and warning.get("code")
+        ]
+        warning_counts.update(warning_codes)
+        if "noisy_transcript_evidence" in warning_codes:
+            noisy_count += 1
+
+        transcript_metadata = compression.get("transcript_metadata")
+        if isinstance(transcript_metadata, dict) and transcript_metadata:
+            metadata_count += 1
+            quality = str(transcript_metadata.get("quality") or "unknown")
+            transcript_quality_counts[quality] += 1
+
+    total = len(payloads)
+    return LongVideoHealthSummary(
+        artifacts=total,
+        avg_token_reduction_percent=_average(token_reductions),
+        noisy_transcript_warning_rate=noisy_count / total,
+        transcript_metadata_rate=metadata_count / total,
+        answered_rate=answered_count / total,
+        avg_selected_evidence=_average(selected_counts),
+        quality_warning_counts=dict(sorted(warning_counts.items())),
+        transcript_quality_counts=dict(sorted(transcript_quality_counts.items())),
+    )
+
+
+def _average(values: list[float] | list[int]) -> float:
+    return sum(values) / len(values) if values else 0.0
 
 
 def _at_least(

@@ -28,7 +28,11 @@ def test_long_video_suite_passes_complete_coverage(tmp_path: Path) -> None:
     assert report.case_count == 5
     assert report.long_video_case_count == 5
     assert len(report.video_counts) == 5
+    assert report.health.avg_token_reduction_percent == 95
+    assert report.health.transcript_metadata_rate == 1
+    assert report.health.answered_rate == 1
     assert "Passed: yes" in render_long_video_suite_markdown(report)
+    assert "Run Health" in render_long_video_suite_markdown(report)
     assert "<strong>Status:</strong> pass" in render_long_video_suite_html(report)
 
 
@@ -49,6 +53,47 @@ def test_long_video_suite_reports_coverage_and_metadata_gaps(tmp_path: Path) -> 
     assert not report.passed
     assert any("query_category" in failure for failure in report.metadata_failures)
     assert any("duration" in failure for failure in report.metadata_failures)
+
+
+def test_long_video_suite_reports_run_health_failures(tmp_path: Path) -> None:
+    artifact = _write_artifact(tmp_path / "noisy.json", "video", 3700)
+    payload = json.loads(artifact.read_text())
+    payload["compression"]["answer"] = ""
+    payload["compression"]["metrics"]["estimated_token_reduction_percent"] = 40
+    payload["compression"]["quality_warnings"] = [
+        {"code": "noisy_transcript_evidence", "message": "noisy"}
+    ]
+    payload["compression"]["transcript_metadata"] = None
+    artifact.write_text(json.dumps(payload) + "\n")
+    case = QualityCase(
+        id="noisy",
+        query_category=QueryIntent.GLOBAL_SUMMARY,
+        domain="education",
+        compression_path=artifact,
+        expected_answer_terms=["answer"],
+        expected_evidence_terms=["evidence"],
+    )
+
+    report = evaluate_long_video_suite(
+        [case],
+        LongVideoSuiteGates(
+            min_cases=1,
+            min_distinct_videos=1,
+            min_distinct_domains=1,
+            min_cases_per_category=1,
+            min_avg_token_reduction_percent=90,
+            max_noisy_transcript_warning_rate=0,
+            min_transcript_metadata_rate=1,
+            min_answered_rate=1,
+        ),
+    )
+
+    assert not report.passed
+    failed_gates = {result.name for result in report.gate_results if not result.passed}
+    assert "avg_token_reduction_percent" in failed_gates
+    assert "noisy_transcript_warning_rate" in failed_gates
+    assert "transcript_metadata_rate" in failed_gates
+    assert "answered_rate" in failed_gates
 
 
 def test_long_video_suite_cli_writes_readiness_reports(tmp_path: Path, capsys) -> None:
@@ -76,6 +121,8 @@ def test_long_video_suite_cli_writes_readiness_reports(tmp_path: Path, capsys) -
             "--min-distinct-domains",
             "3",
             "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
             "1",
         ]
     )
@@ -122,6 +169,33 @@ def _write_artifact(path: Path, video_id: str, duration_seconds: float) -> Path:
                 "compression": {
                     "video_id": video_id,
                     "query": "query",
+                    "answer": "This answer covers the expected evidence.",
+                    "selected": [
+                        {
+                            "id": "a-1",
+                            "modality": "audio",
+                            "timestamp_seconds": 10,
+                            "text": "evidence answer",
+                            "selection_rank": 1,
+                            "relevance_score": 1,
+                            "normalized_score": 1,
+                            "mmr_score": 1,
+                            "source_score_type": "test",
+                            "reason": "test",
+                        }
+                    ],
+                    "metrics": {
+                        "selected_candidates": 1,
+                        "estimated_token_reduction_percent": 95,
+                    },
+                    "quality_warnings": [],
+                    "transcript_metadata": {
+                        "quality": "fast",
+                        "model_size": "tiny",
+                        "device": "cpu",
+                        "compute_type": "int8",
+                        "beam_size": 1,
+                    },
                 },
             }
         )
