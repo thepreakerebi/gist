@@ -22,6 +22,49 @@ gist-quality-eval \
   --html-output reports/local-quality/quality.html
 ```
 
+Run the current long-video baseline suite:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --run-quality \
+  --output-root .gist/long-video-suite/baseline \
+  --output reports/long-video-suite/baseline-quality.json \
+  --markdown-output reports/long-video-suite/baseline-quality.md \
+  --html-output reports/long-video-suite/baseline-quality.html \
+  --min-cases 11 \
+  --min-distinct-videos 5 \
+  --min-distinct-domains 4 \
+  --min-cases-per-category 1 \
+  --min-avg-token-reduction-percent 95 \
+  --max-noisy-transcript-warning-rate 0.15 \
+  --min-transcript-metadata-rate 0.05 \
+  --min-answered-rate 0.9 \
+  --max-avg-selected-evidence 4 \
+  --min-quality-pass-rate 0.7
+```
+
+Current baseline as of June 28, 2026:
+
+- `11` real long-video cases across `5` videos and `4` domains.
+- `90.91%` quality pass rate.
+- `99.87%` average token reduction.
+- `9.09%` noisy transcript warning rate.
+- `9.09%` transcript metadata coverage because most older artifacts predate transcript metadata.
+- One known failing case: `bio-motor-control-lecture-01-global-summary`, due to weak grounding on noisy transcript evidence.
+
+Run the future target gates separately:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --output reports/long-video-suite/target-readiness.json \
+  --markdown-output reports/long-video-suite/target-readiness.md \
+  --html-output reports/long-video-suite/target-readiness.html
+```
+
+The target gates are expected to fail until the curated suite reaches `30+` long-video cases with at least `3` per major query category and regenerated transcript metadata on most artifacts.
+
 Draft a new quality case from an existing run:
 
 ```bash
