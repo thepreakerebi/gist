@@ -614,7 +614,10 @@ def _grounding_label(
     direct_score = max(audio_score, ocr_score, visual_score)
     if direct_score >= DIRECT_GROUNDING_SCORE:
         return "direct"
-    if cross_modal_score >= CONTEXTUAL_GROUNDING_SCORE:
+    if (
+        direct_score >= CONTEXTUAL_GROUNDING_SCORE
+        or cross_modal_score >= CONTEXTUAL_GROUNDING_SCORE
+    ):
         return "contextual"
     return "weak"
 
@@ -645,6 +648,18 @@ def _grounding_reason(
             "contextual cross-modal support "
             f"(anchor={item.audio_anchor_score:.3f}, cross_modal={cross_modal_score:.3f})"
         )
+    if audio_score >= CONTEXTUAL_GROUNDING_SCORE:
+        return (
+            "contextual transcript support "
+            f"(answer={answer_score:.3f}, query={query_score:.3f})"
+        )
+    if ocr_score >= CONTEXTUAL_GROUNDING_SCORE:
+        return (
+            "contextual OCR/text support "
+            f"(answer={answer_score:.3f}, query={query_score:.3f})"
+        )
+    if visual_score >= CONTEXTUAL_GROUNDING_SCORE:
+        return f"contextual visual support (visual={visual_score:.3f})"
     return (
         "weak grounding: no transcript, OCR, visual, or cross-modal score reached "
         f"{CONTEXTUAL_GROUNDING_SCORE:.3f}"

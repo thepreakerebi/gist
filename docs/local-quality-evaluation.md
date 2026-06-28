@@ -47,11 +47,11 @@ gist-long-video-suite \
 Current baseline as of June 28, 2026:
 
 - `11` real long-video cases across `5` videos and `4` domains.
-- `90.91%` quality pass rate.
+- `100.00%` quality pass rate.
 - `99.87%` average token reduction.
 - `9.09%` noisy transcript warning rate.
 - `9.09%` transcript metadata coverage because most older artifacts predate transcript metadata.
-- One known failing case: `bio-motor-control-lecture-01-global-summary`, due to weak grounding on noisy transcript evidence.
+- No known failing baseline cases. The remaining long-video warning is noisy transcript evidence on `bio-motor-control-lecture-01-global-summary`.
 
 Run the future target gates separately:
 

@@ -277,6 +277,54 @@ def test_annotate_evidence_support_adds_support_metadata() -> None:
     assert "weak grounding" in (annotated.selected[1].grounding_reason or "")
 
 
+def test_annotate_evidence_support_marks_low_audio_overlap_as_contextual() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What are the main topics covered throughout this lecture?",
+        answer="The video covers: sensors and control; power.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.GLOBAL_SUMMARY,
+        selected=[
+            _item(
+                "sensors-control",
+                2175,
+                (
+                    "But what is interesting is that this role in the ones in their "
+                    "library manner, which was trained in a variety of labs, sometimes "
+                    "it's hot fire or something about lower. The interesting thing is "
+                    "that this role is not having any sensors and a simple, and a "
+                    "control arm. What is doing this basically swinging, let us back "
+                    "and forth, and then we'll see you in the next episode."
+                ),
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=1,
+            visual_selected=0,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=0.05,
+            estimated_candidate_reduction_percent=95,
+            dropped_candidates=19,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=32,
+            estimated_saved_tokens=608,
+            estimated_token_reduction_ratio=0.05,
+            estimated_token_reduction_percent=95,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    annotated = annotate_evidence_support(compression)
+    item = annotated.selected[0]
+
+    assert item.audio_support_score is not None
+    assert 0.03 <= item.audio_support_score < 0.05
+    assert item.grounding_label == "contextual"
+    assert "contextual transcript support" in (item.grounding_reason or "")
+
+
 def test_annotate_evidence_support_scores_visual_ocr_and_cross_modal() -> None:
     compression = CompressionResponse(
         video_id="demo",
