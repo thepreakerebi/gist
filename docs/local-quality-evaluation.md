@@ -53,6 +53,26 @@ Current baseline as of June 28, 2026:
 - `9.09%` transcript metadata coverage because most older artifacts predate transcript metadata.
 - No known failing baseline cases. The remaining long-video warning is noisy transcript evidence on `bio-motor-control-lecture-01-global-summary`.
 
+Audit existing long-video artifacts for safe dataset additions:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --audit-root .gist/runs \
+  --audit-output reports/long-video-suite/artifact-audit.json \
+  --min-cases 11 \
+  --min-distinct-videos 5 \
+  --min-distinct-domains 4 \
+  --min-cases-per-category 1 \
+  --min-avg-token-reduction-percent 95 \
+  --max-noisy-transcript-warning-rate 0.15 \
+  --min-transcript-metadata-rate 0.05 \
+  --min-answered-rate 0.9 \
+  --max-avg-selected-evidence 4
+```
+
+The current audit found `19` local artifacts: `11` already curated, `0` safe uncurated long-video candidates, and `8` rejected because they are short, low-reduction, or answer-noisy. Dataset expansion now requires new real long-video runs rather than recycling existing artifacts.
+
 Run the future target gates separately:
 
 ```bash

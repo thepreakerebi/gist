@@ -4,6 +4,7 @@ from pathlib import Path
 from gist.core.query_intent import QueryIntent
 from gist.eval.long_video_suite import (
     LongVideoSuiteGates,
+    audit_long_video_artifacts,
     evaluate_long_video_suite,
     main,
     render_long_video_suite_html,
@@ -96,6 +97,65 @@ def test_long_video_suite_reports_run_health_failures(tmp_path: Path) -> None:
     assert "answered_rate" in failed_gates
 
 
+def test_audit_long_video_artifacts_classifies_candidates(tmp_path: Path) -> None:
+    curated = _write_artifact(tmp_path / "curated" / "compression.json", "curated", 3700)
+    _write_artifact(
+        tmp_path / "candidate" / "compression.json",
+        "candidate-video",
+        4200,
+    )
+    _write_artifact(tmp_path / "short" / "compression.json", "short-video", 120)
+    low_token = _write_artifact(
+        tmp_path / "low-token" / "compression.json",
+        "low-token-video",
+        3900,
+    )
+    payload = json.loads(low_token.read_text())
+    payload["compression"]["metrics"]["estimated_token_reduction_percent"] = 80
+    low_token.write_text(json.dumps(payload) + "\n")
+    noisy_ocr = _write_artifact(
+        tmp_path / "noisy-ocr" / "compression.json",
+        "noisy-ocr-video",
+        3900,
+    )
+    payload = json.loads(noisy_ocr.read_text())
+    payload["compression"]["answer"] = "on-screen text near 3341.69 seconds: oe ORTOP Pa r"
+    noisy_ocr.write_text(json.dumps(payload) + "\n")
+    cases = [
+        QualityCase(
+            id="curated",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=curated,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+        )
+    ]
+
+    audit = audit_long_video_artifacts(
+        root=tmp_path,
+        cases=cases,
+        gates=LongVideoSuiteGates(
+            min_cases=1,
+            min_distinct_videos=1,
+            min_distinct_domains=1,
+            min_cases_per_category=1,
+            min_avg_token_reduction_percent=90,
+        ),
+    )
+
+    by_name = {item.path.parent.name: item for item in audit.items}
+    assert audit.artifacts == 5
+    assert audit.curated_artifacts == 1
+    assert audit.candidate_artifacts == 1
+    assert by_name["candidate"].candidate
+    assert by_name["curated"].curated
+    assert "already curated" in by_name["curated"].reasons
+    assert any("duration" in reason for reason in by_name["short"].reasons)
+    assert any("token reduction" in reason for reason in by_name["low-token"].reasons)
+    assert "answer appears OCR-noisy" in by_name["noisy-ocr"].reasons
+
+
 def test_long_video_suite_cli_writes_readiness_reports(tmp_path: Path, capsys) -> None:
     cases = _cases(tmp_path)
     dataset = tmp_path / "suite.jsonl"
@@ -134,6 +194,44 @@ def test_long_video_suite_cli_writes_readiness_reports(tmp_path: Path, capsys) -
     assert (report_dir / "suite.html").exists()
 
 
+def test_long_video_suite_cli_writes_artifact_audit(tmp_path: Path, capsys) -> None:
+    cases = _cases(tmp_path)
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        "\n".join(case.model_dump_json(exclude_none=True) for case in cases) + "\n"
+    )
+    _write_artifact(tmp_path / "runs" / "new-case" / "compression.json", "new-video", 3900)
+    audit_path = tmp_path / "reports" / "audit.json"
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--audit-root",
+            str(tmp_path / "runs"),
+            "--audit-output",
+            str(audit_path),
+            "--min-cases",
+            "5",
+            "--min-distinct-videos",
+            "5",
+            "--min-distinct-domains",
+            "3",
+            "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
+            "1",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "audit_candidates=1" in output
+    assert audit_path.exists()
+    audit = json.loads(audit_path.read_text())
+    assert audit["candidate_artifacts"] == 1
+
+
 def _cases(tmp_path: Path) -> list[QualityCase]:
     categories = [
         QueryIntent.SPEECH_SEMANTIC,
@@ -160,6 +258,7 @@ def _cases(tmp_path: Path) -> list[QualityCase]:
 
 
 def _write_artifact(path: Path, video_id: str, duration_seconds: float) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
             {

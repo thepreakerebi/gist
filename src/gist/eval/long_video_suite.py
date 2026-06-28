@@ -1,5 +1,6 @@
 import argparse
 import json
+import re
 from collections import Counter
 from html import escape
 from pathlib import Path
@@ -58,6 +59,36 @@ class LongVideoHealthSummary(BaseModel):
     transcript_quality_counts: dict[str, int] = Field(default_factory=dict)
 
 
+class LongVideoArtifactAuditItem(BaseModel):
+    path: Path
+    curated: bool
+    candidate: bool
+    reasons: list[str] = Field(default_factory=list)
+    duration_seconds: float | None = None
+    video_id: str | None = None
+    query: str | None = None
+    query_intent: str | None = None
+    answer: str | None = None
+    selected_evidence: int = 0
+    visual_evidence: int = 0
+    audio_evidence: int = 0
+    token_reduction_percent: float | None = None
+    quality_warnings: list[str] = Field(default_factory=list)
+
+
+class LongVideoArtifactAuditReport(BaseModel):
+    root: Path
+    artifacts: int
+    curated_artifacts: int
+    candidate_artifacts: int
+    rejected_artifacts: int
+    items: list[LongVideoArtifactAuditItem]
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2) + "\n")
+
+
 class LongVideoSuiteReport(BaseModel):
     passed: bool
     gates: LongVideoSuiteGates
@@ -75,6 +106,30 @@ class LongVideoSuiteReport(BaseModel):
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(self.model_dump_json(indent=2) + "\n")
+
+
+def audit_long_video_artifacts(
+    root: Path,
+    cases: list[QualityCase],
+    gates: LongVideoSuiteGates,
+) -> LongVideoArtifactAuditReport:
+    curated_paths = {
+        case.compression_path.resolve()
+        for case in cases
+        if case.compression_path is not None and case.compression_path.exists()
+    }
+    items = [
+        _audit_artifact(path=path, curated_paths=curated_paths, gates=gates)
+        for path in sorted(root.rglob("compression.json"))
+    ]
+    return LongVideoArtifactAuditReport(
+        root=root,
+        artifacts=len(items),
+        curated_artifacts=sum(item.curated for item in items),
+        candidate_artifacts=sum(item.candidate for item in items),
+        rejected_artifacts=sum(not item.curated and not item.candidate for item in items),
+        items=items,
+    )
 
 
 def evaluate_long_video_suite(
@@ -192,6 +247,119 @@ def evaluate_long_video_suite(
         health=health,
         quality=quality,
     )
+
+
+def _audit_artifact(
+    path: Path,
+    curated_paths: set[Path],
+    gates: LongVideoSuiteGates,
+) -> LongVideoArtifactAuditItem:
+    reasons: list[str] = []
+    curated = path.resolve() in curated_paths
+    try:
+        payload = _load_artifact(path)
+    except (OSError, json.JSONDecodeError) as exc:
+        return LongVideoArtifactAuditItem(
+            path=path,
+            curated=curated,
+            candidate=False,
+            reasons=[f"artifact could not be read: {exc}"],
+        )
+
+    compression = payload.get("compression", payload)
+    ingestion = payload.get("ingestion")
+    duration_seconds: float | None = None
+    if ingestion is None:
+        reasons.append("missing ingestion metadata")
+    else:
+        try:
+            duration_seconds = float(ingestion["metadata"]["duration_seconds"])
+        except (KeyError, TypeError, ValueError):
+            reasons.append("missing duration metadata")
+
+    metrics = compression.get("metrics") or {}
+    selected = compression.get("selected") or []
+    token_reduction = _optional_float(metrics.get("estimated_token_reduction_percent"))
+    if curated:
+        reasons.append("already curated")
+    if duration_seconds is None or duration_seconds < gates.minimum_duration_seconds:
+        actual = 0.0 if duration_seconds is None else duration_seconds
+        reasons.append(
+            f"duration {actual:.2f}s below {gates.minimum_duration_seconds:.2f}s"
+        )
+    if not str(compression.get("answer") or "").strip():
+        reasons.append("missing answer")
+    else:
+        reasons.extend(_answer_audit_reasons(str(compression.get("answer"))))
+    if not selected:
+        reasons.append("no selected evidence")
+    if token_reduction is None:
+        reasons.append("missing token reduction metric")
+    elif token_reduction < gates.min_avg_token_reduction_percent:
+        reasons.append(
+            f"token reduction {token_reduction:.2f}% below "
+            f"{gates.min_avg_token_reduction_percent:.2f}%"
+        )
+
+    return LongVideoArtifactAuditItem(
+        path=path,
+        curated=curated,
+        candidate=not curated and not reasons,
+        reasons=reasons,
+        duration_seconds=duration_seconds,
+        video_id=_optional_string(compression.get("video_id")),
+        query=_optional_string(compression.get("query")),
+        query_intent=_optional_string(compression.get("query_intent")),
+        answer=_optional_string(compression.get("answer")),
+        selected_evidence=len(selected),
+        visual_evidence=int(metrics.get("visual_selected") or 0),
+        audio_evidence=int(metrics.get("audio_selected") or 0),
+        token_reduction_percent=token_reduction,
+        quality_warnings=[
+            str(warning.get("code"))
+            for warning in compression.get("quality_warnings", [])
+            if warning.get("code")
+        ],
+    )
+
+
+def _optional_float(value: object) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _optional_string(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _answer_audit_reasons(answer: str) -> list[str]:
+    normalized = " ".join(answer.strip().split())
+    if not normalized:
+        return ["missing answer"]
+    if _looks_like_noisy_ocr_answer(normalized):
+        return ["answer appears OCR-noisy"]
+    return []
+
+
+def _looks_like_noisy_ocr_answer(answer: str) -> bool:
+    marker = "on-screen text near"
+    if marker not in answer.lower():
+        return False
+    _, _, ocr_text = answer.partition(":")
+    content_terms = [
+        term.lower()
+        for term in re.findall(r"[a-zA-Z][a-zA-Z0-9-]{2,}", ocr_text)
+        if term.lower() not in {"near", "seconds", "screen", "text"}
+    ]
+    if len(content_terms) < 2:
+        return True
+    short_terms = sum(len(term) <= 3 for term in content_terms)
+    return short_terms / len(content_terms) > 0.6
 
 
 def render_long_video_suite_markdown(report: LongVideoSuiteReport) -> str:
@@ -367,6 +535,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
+    parser.add_argument("--audit-root", type=Path)
+    parser.add_argument("--audit-output", type=Path)
     parser.add_argument("--output-root", type=Path, default=Path(".gist/long-video-suite"))
     parser.add_argument("--run-quality", action="store_true")
     parser.add_argument("--min-cases", type=int, default=30)
@@ -413,6 +583,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.html_output is not None:
         args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(render_long_video_suite_html(report))
+    if args.audit_root is not None or args.audit_output is not None:
+        audit = audit_long_video_artifacts(
+            root=args.audit_root or Path(".gist/runs"),
+            cases=cases,
+            gates=report.gates,
+        )
+        if args.audit_output is not None:
+            audit.write_json(args.audit_output)
+        print(f"audit_artifacts={audit.artifacts}")
+        print(f"audit_candidates={audit.candidate_artifacts}")
+        print(f"audit_rejected={audit.rejected_artifacts}")
 
     print(f"passed={'yes' if report.passed else 'no'}")
     print(f"cases={len(cases)}")
