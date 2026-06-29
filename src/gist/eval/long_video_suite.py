@@ -103,6 +103,10 @@ class LongVideoCurationReview(BaseModel):
     checklist: list[str] = Field(default_factory=list)
     recommendation: str
 
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2) + "\n")
+
 
 class LongVideoArtifactAuditItem(BaseModel):
     path: Path
@@ -381,6 +385,18 @@ def curate_long_video_query_proposal(
         review_markdown_path=review_markdown_path,
         draft=draft,
     )
+
+
+def review_long_video_quality_draft(draft_path: Path) -> LongVideoCurationReview:
+    cases = load_quality_cases(draft_path)
+    if len(cases) != 1:
+        return LongVideoCurationReview(
+            ready_for_dataset=False,
+            warnings=[f"Expected exactly one draft case, found {len(cases)}."],
+            checklist=["Keep one reviewed JSON object per draft file."],
+            recommendation="Split or fix the draft before appending it to the curated dataset.",
+        )
+    return _review_quality_case_for_dataset(cases[0])
 
 
 def _audit_artifact(
@@ -742,10 +758,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Check coverage and optionally run quality for the curated long-video suite."
     )
-    parser.add_argument("--dataset", type=Path, required=True)
+    parser.add_argument("--dataset", type=Path)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
+    parser.add_argument(
+        "--review-draft",
+        type=Path,
+        help="Validate one quality-case draft before appending it to the curated dataset.",
+    )
+    parser.add_argument("--review-output", type=Path)
+    parser.add_argument("--review-markdown-output", type=Path)
     parser.add_argument("--audit-root", type=Path)
     parser.add_argument("--audit-output", type=Path)
     parser.add_argument("--output-root", type=Path, default=Path(".gist/long-video-suite"))
@@ -792,6 +815,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-answered-rate", type=float, default=0.9)
     parser.add_argument("--max-avg-selected-evidence", type=float, default=8.0)
     args = parser.parse_args(argv)
+
+    if args.review_draft is not None:
+        review = review_long_video_quality_draft(args.review_draft)
+        if args.review_output is not None:
+            review.write_json(args.review_output)
+        if args.review_markdown_output is not None:
+            args.review_markdown_output.parent.mkdir(parents=True, exist_ok=True)
+            args.review_markdown_output.write_text(_render_curation_review_markdown(review))
+        print(f"ready_for_dataset={'yes' if review.ready_for_dataset else 'no'}")
+        print(f"warnings={len(review.warnings)}")
+        for warning in review.warnings:
+            print(f"  - {warning}")
+        return 0 if review.ready_for_dataset else 1
+
+    if args.dataset is None:
+        raise SystemExit("--dataset is required unless --review-draft is used")
 
     cases = load_quality_cases(args.dataset)
     quality = (
@@ -1139,6 +1178,64 @@ def _curation_review(
     )
     return LongVideoCurationReview(
         ready_for_dataset=False,
+        warnings=warnings,
+        checklist=checklist,
+        recommendation=recommendation,
+    )
+
+
+def _review_quality_case_for_dataset(case: QualityCase) -> LongVideoCurationReview:
+    warnings: list[str] = []
+    checklist: list[str] = []
+    if case.compression_path is None:
+        warnings.append("compression_path is required for curated long-video replay cases.")
+    elif not case.compression_path.exists():
+        warnings.append(f"compression_path does not exist: {case.compression_path}")
+    if case.query_category is None:
+        warnings.append("query_category is required.")
+    if not case.domain or not case.domain.strip():
+        warnings.append("domain is required.")
+    if not case.expected_answer_terms:
+        warnings.append("expected_answer_terms must be manually verified and non-empty.")
+    if not case.expected_evidence_terms:
+        warnings.append("expected_evidence_terms must be manually verified and non-empty.")
+    if _terms_look_noisy(case.expected_answer_terms + case.expected_evidence_terms):
+        warnings.append("Expected terms look noisy; replace OCR/transcript artifacts.")
+    if not case.relevant_ranges and not case.relevant_timestamps:
+        warnings.append("At least one relevant timestamp or range is required.")
+    if case.min_answer_term_recall < 0.75:
+        warnings.append("min_answer_term_recall should be at least 0.75.")
+    if case.min_evidence_relevance_rate < 0.8:
+        warnings.append("min_evidence_relevance_rate should be at least 0.80.")
+    if case.min_timestamp_hit_rate < 0.75:
+        warnings.append("min_timestamp_hit_rate should be at least 0.75.")
+    if case.min_grounded_evidence_rate <= 0:
+        warnings.append("min_grounded_evidence_rate must be enforced after review.")
+    if case.min_token_reduction_percent < 90:
+        warnings.append("min_token_reduction_percent should be at least 90 for long videos.")
+    if case.max_selected_evidence is None:
+        warnings.append("max_selected_evidence should be capped for curated cases.")
+    if case.query_category == QueryIntent.MIXED_AV:
+        if case.min_visual_evidence < 1:
+            warnings.append("mixed_av cases should require at least one visual evidence item.")
+        if case.min_audio_evidence < 1:
+            warnings.append("mixed_av cases should require at least one audio/transcript evidence item.")
+
+    if warnings:
+        checklist = [
+            "Open report.html and verify the answer-supporting evidence.",
+            "Edit the draft JSONL until this review command returns ready_for_dataset=yes.",
+            "Run gist-quality-eval against the edited draft before appending it.",
+        ]
+        recommendation = "Do not append this draft yet."
+    else:
+        checklist = [
+            "Append the reviewed JSONL line to data/eval/long-video-quality.jsonl.",
+            "Run gist-long-video-suite with --run-quality to confirm the curated suite still passes baseline gates.",
+        ]
+        recommendation = "Draft is structurally ready for dataset append."
+    return LongVideoCurationReview(
+        ready_for_dataset=not warnings,
         warnings=warnings,
         checklist=checklist,
         recommendation=recommendation,

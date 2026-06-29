@@ -13,6 +13,7 @@ from gist.eval.long_video_suite import (
     curate_long_video_query_proposal,
     evaluate_long_video_suite,
     main,
+    review_long_video_quality_draft,
     render_long_video_suite_html,
     render_long_video_suite_markdown,
 )
@@ -378,6 +379,94 @@ def test_long_video_suite_cli_curate_proposal_returns_success_when_gates_fail(
     assert "curation_draft=" in output
     assert "curation_review=" in output
     assert "passed=no" in output
+
+
+def test_review_long_video_quality_draft_rejects_unreviewed_draft(tmp_path: Path) -> None:
+    artifact = _write_artifact(tmp_path / "compression.json", "video", 3700)
+    draft_path = tmp_path / "quality-case.draft.jsonl"
+    draft_path.write_text(
+        QualityCase(
+            id="draft",
+            query_category=QueryIntent.MIXED_AV,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["visual", "near"],
+            expected_evidence_terms=["seconds", "text"],
+            relevant_ranges=[],
+            min_answer_term_recall=0.75,
+            min_evidence_relevance_rate=0.8,
+            min_timestamp_hit_rate=0.75,
+            min_grounded_evidence_rate=0,
+            min_token_reduction_percent=90,
+            max_selected_evidence=2,
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    review = review_long_video_quality_draft(draft_path)
+
+    assert not review.ready_for_dataset
+    assert any("Expected terms look noisy" in warning for warning in review.warnings)
+    assert any("At least one relevant timestamp" in warning for warning in review.warnings)
+    assert any("mixed_av cases should require" in warning for warning in review.warnings)
+
+
+def test_review_long_video_quality_draft_accepts_reviewed_case(tmp_path: Path) -> None:
+    artifact = _write_artifact(tmp_path / "compression.json", "video", 3700)
+    draft_path = tmp_path / "quality-case.draft.jsonl"
+    draft_path.write_text(
+        QualityCase(
+            id="reviewed",
+            query_category=QueryIntent.MIXED_AV,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["robotics", "control"],
+            expected_evidence_terms=["robotics", "control"],
+            relevant_ranges=[{"start_seconds": 120.0, "end_seconds": 150.0}],
+            min_answer_term_recall=0.75,
+            min_evidence_relevance_rate=0.8,
+            min_timestamp_hit_rate=0.75,
+            min_grounded_evidence_rate=0.5,
+            min_token_reduction_percent=90,
+            max_selected_evidence=2,
+            min_visual_evidence=1,
+            min_audio_evidence=1,
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    review = review_long_video_quality_draft(draft_path)
+
+    assert review.ready_for_dataset
+    assert not review.warnings
+
+
+def test_long_video_suite_cli_reviews_draft_without_dataset(tmp_path: Path, capsys) -> None:
+    artifact = _write_artifact(tmp_path / "compression.json", "video", 3700)
+    draft_path = tmp_path / "quality-case.draft.jsonl"
+    draft_path.write_text(
+        QualityCase(
+            id="reviewed",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["founders"],
+            expected_evidence_terms=["founders"],
+            relevant_ranges=[{"start_seconds": 120.0, "end_seconds": 150.0}],
+            min_answer_term_recall=0.75,
+            min_evidence_relevance_rate=0.8,
+            min_timestamp_hit_rate=0.75,
+            min_grounded_evidence_rate=0.5,
+            min_token_reduction_percent=90,
+            max_selected_evidence=2,
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    exit_code = main(["--review-draft", str(draft_path)])
+
+    assert exit_code == 0
+    assert "ready_for_dataset=yes" in capsys.readouterr().out
 
 
 def _cases(tmp_path: Path) -> list[QualityCase]:

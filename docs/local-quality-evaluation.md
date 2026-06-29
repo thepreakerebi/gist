@@ -103,6 +103,19 @@ review bundle is written, even if the readiness gates still fail. Review the HTM
 report and edit the drafted answer terms, evidence terms, grounding threshold, and
 timestamp ranges before appending the case to `data/eval/long-video-quality.jsonl`.
 
+Validate the edited draft before appending it:
+
+```bash
+gist-long-video-suite \
+  --review-draft .gist/curation/video-slug/query-slug/quality-case.draft.jsonl \
+  --review-markdown-output .gist/curation/video-slug/query-slug/curation-review.md
+```
+
+The review command returns `ready_for_dataset=yes` only when the draft has the
+required metadata, verified terms, timestamp ranges, grounding threshold, token
+reduction target, evidence cap, and mixed audio/visual evidence floors where
+applicable.
+
 Draft a new quality case from an existing run:
 
 ```bash
