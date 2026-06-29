@@ -41,6 +41,7 @@ def rank_temporal_pairs(
     candidates: list[TemporalCandidateT],
     direction: str,
     target_query: str,
+    anchor_query: str = "",
     max_distance_seconds: float = 300.0,
 ) -> list[tuple[float, TemporalCandidateT, TemporalCandidateT]]:
     scored = [
@@ -95,7 +96,9 @@ def rank_temporal_pairs(
                 + float(target.temporal_target_score or 0.0)
                 + (0.25 * proximity)
                 + transition_bonus
+                + _anchor_position_bonus(anchor_query, anchor, candidates)
                 + _target_text_bonus(target_query, target.text)
+                - _target_noise_penalty(target_query, target.text)
             )
             pairs.append((score, anchor, target))
     return sorted(
@@ -145,6 +148,20 @@ def _is_directional(
     return candidate_timestamp < anchor_timestamp
 
 
+def _anchor_position_bonus(
+    anchor_query: str,
+    anchor: TemporalCandidate,
+    candidates: list[TemporalCandidate],
+) -> float:
+    anchor_terms = set(re.findall(r"[a-z0-9]+", anchor_query.lower()))
+    if not anchor_terms & {"beginning", "first", "initial", "opening", "start"}:
+        return 0.0
+    latest_timestamp = max((candidate.timestamp_seconds for candidate in candidates), default=0.0)
+    if latest_timestamp <= 0:
+        return 0.0
+    return 0.8 * max(1.0 - (anchor.timestamp_seconds / latest_timestamp), 0.0)
+
+
 def _target_text_bonus(target_query: str, evidence_text: str) -> float:
     target_terms = set(re.findall(r"[a-z0-9]+", target_query.lower()))
     if not target_terms & {"name", "slide", "text", "title", "word", "words"}:
@@ -164,3 +181,29 @@ def _target_text_bonus(target_query: str, evidence_text: str) -> float:
     if any(len(token) >= 4 and token.isupper() for token in informative):
         bonus += 0.15
     return bonus
+
+
+def _target_noise_penalty(target_query: str, evidence_text: str) -> float:
+    target_terms = set(re.findall(r"[a-z0-9]+", target_query.lower()))
+    if not target_terms & {"name", "slide", "text", "title", "word", "words"}:
+        return 0.0
+    if ":" not in evidence_text:
+        return 0.0
+
+    ocr_text = evidence_text.split(":", maxsplit=1)[1]
+    tokens = re.findall(r"[A-Za-z0-9]+", ocr_text)
+    if not tokens:
+        return 0.5
+    informative = [token for token in tokens if len(token) >= 3]
+    short_ratio = sum(len(token) <= 2 for token in tokens) / len(tokens)
+    punctuation_noise = len(re.findall(r"[^A-Za-z0-9\s]", ocr_text)) / max(len(ocr_text), 1)
+    if not informative:
+        return 0.75
+    penalty = 0.0
+    if short_ratio > 0.45:
+        penalty += 0.4
+    if punctuation_noise > 0.2:
+        penalty += 0.25
+    if len(informative) == 1:
+        penalty += 0.2
+    return penalty

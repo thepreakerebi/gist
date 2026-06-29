@@ -22,7 +22,7 @@ from gist.core.scoring import (
     unique_token_count,
     z_scores,
 )
-from gist.core.temporal_query import rank_temporal_pairs
+from gist.core.temporal_query import parse_temporal_query, rank_temporal_pairs
 from gist.core.token_estimation import estimate_tokens
 
 AUDIO_VISUAL_ANCHOR_MIN_RELEVANCE = 0.15
@@ -107,6 +107,7 @@ class GistCompressor:
                 self._select_with_preset(
                     request.preset,
                     scored,
+                    request.query,
                     request.query_intent if request.task_aware_selection else None,
                 ),
                 None,
@@ -115,6 +116,7 @@ class GistCompressor:
         aggressive = self._select_with_preset(
             CompressionPreset.AGGRESSIVE,
             scored,
+            request.query,
             request.query_intent if request.task_aware_selection else None,
         )
         should_expand, reason = self._should_expand_budget(aggressive)
@@ -131,6 +133,7 @@ class GistCompressor:
             self._select_with_preset(
                 expanded_preset,
                 scored,
+                request.query,
                 request.query_intent if request.task_aware_selection else None,
             ),
             reason,
@@ -140,6 +143,7 @@ class GistCompressor:
         self,
         preset: CompressionPreset,
         scored: list[ScoredCandidate],
+        query: str,
         query_intent: QueryIntent | None,
     ) -> list[Selection]:
         config = PRESETS[preset]
@@ -151,6 +155,7 @@ class GistCompressor:
         )
         if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER:
             scored = self._preserve_temporal_pair_candidates(
+                query=query,
                 all_candidates=all_scored,
                 budgeted_candidates=scored,
             )
@@ -179,6 +184,7 @@ class GistCompressor:
             )
         if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER:
             selections = self._ensure_temporal_pair_coverage(
+                query=query,
                 selections=selections,
                 candidates=scored,
                 max_items=config.max_items,
@@ -220,6 +226,7 @@ class GistCompressor:
 
     def _preserve_temporal_pair_candidates(
         self,
+        query: str,
         all_candidates: list[ScoredCandidate],
         budgeted_candidates: list[ScoredCandidate],
     ) -> list[ScoredCandidate]:
@@ -247,10 +254,12 @@ class GistCompressor:
             ),
             temporal_candidates[0].aspect,
         )
+        temporal_query = parse_temporal_query(query)
         pairs = rank_temporal_pairs(
             temporal_candidates,
             direction=direction,
             target_query=target_query,
+            anchor_query=temporal_query.anchor if temporal_query is not None else "",
         )
         if not pairs:
             return budgeted_candidates
@@ -960,6 +969,7 @@ class GistCompressor:
 
     def _ensure_temporal_pair_coverage(
         self,
+        query: str,
         selections: list[Selection],
         candidates: list[ScoredCandidate],
         max_items: int,
@@ -989,10 +999,12 @@ class GistCompressor:
             ),
             temporal_candidates[0].aspect,
         )
+        temporal_query = parse_temporal_query(query)
         pairs = rank_temporal_pairs(
             temporal_candidates,
             direction=direction,
             target_query=target_query,
+            anchor_query=temporal_query.anchor if temporal_query is not None else "",
             max_distance_seconds=max_distance_seconds,
         )
         if not pairs:

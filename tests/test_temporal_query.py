@@ -136,3 +136,88 @@ def test_rank_temporal_pairs_prefers_later_named_slide_over_intermediate_demo() 
 
     anchor_pair = next(pair for pair in pairs if pair[1].id == "anchor")
     assert anchor_pair[2].id == "next-title"
+
+
+def test_rank_temporal_pairs_penalizes_noisy_ocr_targets() -> None:
+    candidates = [
+        Candidate(
+            id="anchor",
+            timestamp_seconds=100,
+            text="on-screen text: Bio-Inspired Motor Control",
+            segment_id="scene-1",
+            temporal_anchor_score=0.95,
+            temporal_target_score=0.1,
+        ),
+        Candidate(
+            id="noisy-target",
+            timestamp_seconds=140,
+            text="on-screen text near 140 seconds: SBIRU— aS ‘ .w",
+            segment_id="scene-2",
+            temporal_anchor_score=0.1,
+            temporal_target_score=0.95,
+        ),
+        Candidate(
+            id="clean-target",
+            timestamp_seconds=180,
+            text="on-screen text near 180 seconds: Legged Locomotion in Nature",
+            segment_id="scene-3",
+            temporal_anchor_score=0.1,
+            temporal_target_score=0.7,
+        ),
+    ]
+
+    pairs = rank_temporal_pairs(
+        candidates,
+        direction="after",
+        target_query="What slide appears",
+    )
+
+    anchor_pair = next(pair for pair in pairs if pair[1].id == "anchor")
+    assert anchor_pair[2].id == "clean-target"
+
+
+def test_rank_temporal_pairs_prefers_early_anchor_for_opening_queries() -> None:
+    candidates = [
+        Candidate(
+            id="opening-title",
+            timestamp_seconds=5,
+            text="on-screen text: Bio-Inspired Motor Control",
+            segment_id="scene-1",
+            temporal_anchor_score=0.55,
+            temporal_target_score=0.1,
+        ),
+        Candidate(
+            id="opening-target",
+            timestamp_seconds=220,
+            text="on-screen text: Legged Locomotion and Conceptual Models",
+            segment_id="scene-2",
+            temporal_anchor_score=0.1,
+            temporal_target_score=0.7,
+        ),
+        Candidate(
+            id="late-anchor",
+            timestamp_seconds=4600,
+            text="on-screen text: Course title recap",
+            segment_id="scene-3",
+            temporal_anchor_score=0.95,
+            temporal_target_score=0.1,
+        ),
+        Candidate(
+            id="late-target",
+            timestamp_seconds=4680,
+            text="on-screen text: Further Reading Materials",
+            segment_id="scene-4",
+            temporal_anchor_score=0.1,
+            temporal_target_score=0.7,
+        ),
+    ]
+
+    pairs = rank_temporal_pairs(
+        candidates,
+        direction="after",
+        target_query="What slide appears",
+        anchor_query="the opening course title slide",
+    )
+
+    assert pairs[0][1].id == "opening-title"
+    assert pairs[0][2].id == "opening-target"
