@@ -9,6 +9,7 @@ from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality,
 from gist.eval.long_video_suite import (
     LongVideoQueryProposal,
     LongVideoSuiteGates,
+    append_reviewed_long_video_quality_draft,
     audit_long_video_artifacts,
     curate_long_video_query_proposal,
     evaluate_long_video_suite,
@@ -467,6 +468,111 @@ def test_long_video_suite_cli_reviews_draft_without_dataset(tmp_path: Path, caps
 
     assert exit_code == 0
     assert "ready_for_dataset=yes" in capsys.readouterr().out
+
+
+def test_append_reviewed_long_video_quality_draft_appends_ready_case(tmp_path: Path) -> None:
+    artifact = _write_artifact(tmp_path / "compression.json", "video", 3700)
+    draft_path = tmp_path / "quality-case.draft.jsonl"
+    dataset_path = tmp_path / "long-video-quality.jsonl"
+    draft_path.write_text(
+        QualityCase(
+            id="reviewed",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["founders"],
+            expected_evidence_terms=["founders"],
+            relevant_ranges=[{"start_seconds": 120.0, "end_seconds": 150.0}],
+            min_answer_term_recall=0.75,
+            min_evidence_relevance_rate=0.8,
+            min_timestamp_hit_rate=0.75,
+            min_grounded_evidence_rate=0.5,
+            min_token_reduction_percent=90,
+            max_selected_evidence=2,
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    result = append_reviewed_long_video_quality_draft(draft_path, dataset_path)
+
+    assert result.appended
+    assert result.review.ready_for_dataset
+    assert [case.id for case in load_cases(dataset_path)] == ["reviewed"]
+
+
+def test_append_reviewed_long_video_quality_draft_rejects_duplicate_id(tmp_path: Path) -> None:
+    artifact = _write_artifact(tmp_path / "compression.json", "video", 3700)
+    draft_path = tmp_path / "quality-case.draft.jsonl"
+    dataset_path = tmp_path / "long-video-quality.jsonl"
+    case = QualityCase(
+        id="reviewed",
+        query_category=QueryIntent.SPEECH_SEMANTIC,
+        domain="education",
+        compression_path=artifact,
+        expected_answer_terms=["founders"],
+        expected_evidence_terms=["founders"],
+        relevant_ranges=[{"start_seconds": 120.0, "end_seconds": 150.0}],
+        min_answer_term_recall=0.75,
+        min_evidence_relevance_rate=0.8,
+        min_timestamp_hit_rate=0.75,
+        min_grounded_evidence_rate=0.5,
+        min_token_reduction_percent=90,
+        max_selected_evidence=2,
+    )
+    draft_path.write_text(case.model_dump_json(exclude_none=True) + "\n")
+    dataset_path.write_text(case.model_dump_json(exclude_none=True) + "\n")
+
+    result = append_reviewed_long_video_quality_draft(draft_path, dataset_path)
+
+    assert not result.appended
+    assert not result.review.ready_for_dataset
+    assert "case id already exists" in result.review.warnings[0]
+    assert len(load_cases(dataset_path)) == 1
+
+
+def test_long_video_suite_cli_appends_reviewed_draft(tmp_path: Path, capsys) -> None:
+    artifact = _write_artifact(tmp_path / "compression.json", "video", 3700)
+    draft_path = tmp_path / "quality-case.draft.jsonl"
+    dataset_path = tmp_path / "long-video-quality.jsonl"
+    draft_path.write_text(
+        QualityCase(
+            id="reviewed",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["founders"],
+            expected_evidence_terms=["founders"],
+            relevant_ranges=[{"start_seconds": 120.0, "end_seconds": 150.0}],
+            min_answer_term_recall=0.75,
+            min_evidence_relevance_rate=0.8,
+            min_timestamp_hit_rate=0.75,
+            min_grounded_evidence_rate=0.5,
+            min_token_reduction_percent=90,
+            max_selected_evidence=2,
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    exit_code = main(
+        [
+            "--review-draft",
+            str(draft_path),
+            "--append-draft-to",
+            str(dataset_path),
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "appended=yes" in output
+    assert [case.id for case in load_cases(dataset_path)] == ["reviewed"]
+
+
+def load_cases(path: Path) -> list[QualityCase]:
+    return [
+        QualityCase.model_validate(json.loads(line))
+        for line in path.read_text().splitlines()
+    ]
 
 
 def _cases(tmp_path: Path) -> list[QualityCase]:

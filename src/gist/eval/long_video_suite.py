@@ -108,6 +108,13 @@ class LongVideoCurationReview(BaseModel):
         path.write_text(self.model_dump_json(indent=2) + "\n")
 
 
+class LongVideoDraftAppendResult(BaseModel):
+    review: LongVideoCurationReview
+    appended: bool = False
+    dataset_path: Path
+    case_id: str | None = None
+
+
 class LongVideoArtifactAuditItem(BaseModel):
     path: Path
     curated: bool
@@ -397,6 +404,54 @@ def review_long_video_quality_draft(draft_path: Path) -> LongVideoCurationReview
             recommendation="Split or fix the draft before appending it to the curated dataset.",
         )
     return _review_quality_case_for_dataset(cases[0])
+
+
+def append_reviewed_long_video_quality_draft(
+    draft_path: Path,
+    dataset_path: Path,
+) -> LongVideoDraftAppendResult:
+    cases = load_quality_cases(draft_path)
+    if len(cases) != 1:
+        review = LongVideoCurationReview(
+            ready_for_dataset=False,
+            warnings=[f"Expected exactly one draft case, found {len(cases)}."],
+            checklist=["Keep one reviewed JSON object per draft file."],
+            recommendation="Split or fix the draft before appending it to the curated dataset.",
+        )
+        return LongVideoDraftAppendResult(review=review, dataset_path=dataset_path)
+
+    case = cases[0]
+    review = _review_quality_case_for_dataset(case)
+    if not review.ready_for_dataset:
+        return LongVideoDraftAppendResult(
+            review=review,
+            dataset_path=dataset_path,
+            case_id=case.id,
+        )
+
+    existing_cases = load_quality_cases(dataset_path) if dataset_path.exists() else []
+    if any(existing.id == case.id for existing in existing_cases):
+        duplicate_review = LongVideoCurationReview(
+            ready_for_dataset=False,
+            warnings=[f"case id already exists in dataset: {case.id}"],
+            checklist=["Choose a unique case id before appending this draft."],
+            recommendation="Do not append duplicate curated cases.",
+        )
+        return LongVideoDraftAppendResult(
+            review=duplicate_review,
+            dataset_path=dataset_path,
+            case_id=case.id,
+        )
+
+    dataset_path.parent.mkdir(parents=True, exist_ok=True)
+    with dataset_path.open("a") as handle:
+        handle.write(case.model_dump_json(exclude_none=True) + "\n")
+    return LongVideoDraftAppendResult(
+        review=review,
+        appended=True,
+        dataset_path=dataset_path,
+        case_id=case.id,
+    )
 
 
 def _audit_artifact(
@@ -769,6 +824,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--review-output", type=Path)
     parser.add_argument("--review-markdown-output", type=Path)
+    parser.add_argument(
+        "--append-draft-to",
+        type=Path,
+        help="Append a reviewed --review-draft case to this dataset only if it passes readiness checks.",
+    )
     parser.add_argument("--audit-root", type=Path)
     parser.add_argument("--audit-output", type=Path)
     parser.add_argument("--output-root", type=Path, default=Path(".gist/long-video-suite"))
@@ -817,16 +877,31 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.review_draft is not None:
-        review = review_long_video_quality_draft(args.review_draft)
+        append_result = None
+        if args.append_draft_to is not None:
+            append_result = append_reviewed_long_video_quality_draft(
+                draft_path=args.review_draft,
+                dataset_path=args.append_draft_to,
+            )
+            review = append_result.review
+        else:
+            review = review_long_video_quality_draft(args.review_draft)
         if args.review_output is not None:
             review.write_json(args.review_output)
         if args.review_markdown_output is not None:
             args.review_markdown_output.parent.mkdir(parents=True, exist_ok=True)
             args.review_markdown_output.write_text(_render_curation_review_markdown(review))
         print(f"ready_for_dataset={'yes' if review.ready_for_dataset else 'no'}")
+        if append_result is not None:
+            print(f"appended={'yes' if append_result.appended else 'no'}")
+            print(f"dataset={append_result.dataset_path}")
+            if append_result.case_id is not None:
+                print(f"case_id={append_result.case_id}")
         print(f"warnings={len(review.warnings)}")
         for warning in review.warnings:
             print(f"  - {warning}")
+        if append_result is not None:
+            return 0 if append_result.appended else 1
         return 0 if review.ready_for_dataset else 1
 
     if args.dataset is None:

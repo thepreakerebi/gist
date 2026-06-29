@@ -116,6 +116,17 @@ required metadata, verified terms, timestamp ranges, grounding threshold, token
 reduction target, evidence cap, and mixed audio/visual evidence floors where
 applicable.
 
+Once the edited draft passes, append it through the same gate:
+
+```bash
+gist-long-video-suite \
+  --review-draft .gist/curation/video-slug/query-slug/quality-case.draft.jsonl \
+  --append-draft-to data/eval/long-video-quality.jsonl
+```
+
+This command refuses to append drafts that fail readiness checks or reuse an
+existing case id.
+
 Draft a new quality case from an existing run:
 
 ```bash
