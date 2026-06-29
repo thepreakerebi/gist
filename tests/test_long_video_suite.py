@@ -97,9 +97,14 @@ def test_long_video_suite_expansion_plan_prioritizes_missing_categories(
         QueryIntent.GLOBAL_SUMMARY.value: 2,
         QueryIntent.MIXED_AV.value: 2,
     }
+    assert report.expansion_plan.query_proposals
+    assert report.expansion_plan.query_proposals[0].query_category == QueryIntent.SPEECH_SEMANTIC
+    assert report.expansion_plan.query_proposals[0].video_id == "speech-video"
     assert "Expansion Plan" in markdown
     assert "Add 2 verified `mixed_av` case(s)." in markdown
+    assert "Query Proposals" in markdown
     assert "Missing Query Categories" in html
+    assert "Proposed Query" in html
 
 
 def test_long_video_suite_reports_run_health_failures(tmp_path: Path) -> None:

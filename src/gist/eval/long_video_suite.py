@@ -66,6 +66,16 @@ class LongVideoExpansionPlan(BaseModel):
     needed_distinct_domains: int = 0
     needed_by_category: dict[str, int] = Field(default_factory=dict)
     priority_actions: list[str] = Field(default_factory=list)
+    query_proposals: list["LongVideoQueryProposal"] = Field(default_factory=list)
+
+
+class LongVideoQueryProposal(BaseModel):
+    video_id: str
+    domain: str
+    query_category: QueryIntent
+    query: str
+    rationale: str
+    source_artifact: Path
 
 
 class LongVideoArtifactAuditItem(BaseModel):
@@ -153,6 +163,7 @@ def evaluate_long_video_suite(
     missing_artifacts: list[Path] = []
     metadata_failures: list[str] = []
     artifact_payloads: list[dict] = []
+    proposal_sources: list[tuple[QualityCase, Path, dict]] = []
     long_case_count = 0
 
     for case in cases:
@@ -176,6 +187,7 @@ def evaluate_long_video_suite(
             continue
         payload = _load_artifact(artifact)
         artifact_payloads.append(payload)
+        proposal_sources.append((case, artifact, payload))
         duration_seconds, video_id = _artifact_identity(artifact)
         video_counts[video_id] += 1
         if duration_seconds >= gates.minimum_duration_seconds:
@@ -249,6 +261,7 @@ def evaluate_long_video_suite(
         category_counts=category_counts,
         domain_counts=domain_counts,
         video_counts=video_counts,
+        proposal_sources=proposal_sources,
         gates=gates,
     )
 
@@ -420,6 +433,11 @@ def render_long_video_suite_markdown(report: LongVideoSuiteReport) -> str:
     priority_lines = "\n".join(
         f"- {action}" for action in report.expansion_plan.priority_actions
     ) or "- No expansion actions required by the configured gates."
+    proposal_rows = "\n".join(
+        f"| {proposal.video_id} | {proposal.query_category.value} | "
+        f"{proposal.query} | {proposal.rationale} |"
+        for proposal in report.expansion_plan.query_proposals
+    ) or "| none | none | No proposal needed. | - |"
     return f"""# Gist Long-Video Suite Readiness
 
 - Passed: {"yes" if report.passed else "no"}
@@ -478,6 +496,12 @@ def render_long_video_suite_markdown(report: LongVideoSuiteReport) -> str:
 
 {priority_lines}
 
+### Query Proposals
+
+| Video | Category | Proposed Query | Rationale |
+|---|---|---|---|
+{proposal_rows}
+
 ## Dataset Problems
 
 {failure_lines}
@@ -530,6 +554,15 @@ def render_long_video_suite_html(report: LongVideoSuiteReport) -> str:
         )
         or "<li>No expansion actions required by the configured gates.</li>"
     )
+    proposal_rows = "".join(
+        "<tr>"
+        f"<td>{escape(proposal.video_id)}</td>"
+        f"<td>{escape(proposal.query_category.value)}</td>"
+        f"<td>{escape(proposal.query)}</td>"
+        f"<td>{escape(proposal.rationale)}</td>"
+        "</tr>"
+        for proposal in report.expansion_plan.query_proposals
+    ) or "<tr><td>none</td><td>none</td><td>No proposal needed.</td><td>-</td></tr>"
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -592,6 +625,11 @@ def render_long_video_suite_html(report: LongVideoSuiteReport) -> str:
   </table>
   <h3>Priority Actions</h3>
   <ul>{priority_items}</ul>
+  <h3>Query Proposals</h3>
+  <table>
+    <tr><th>Video</th><th>Category</th><th>Proposed Query</th><th>Rationale</th></tr>
+    {proposal_rows}
+  </table>
   <h2>Dataset Problems</h2>
   <ul>{problem_items}</ul>
 </body>
@@ -756,6 +794,7 @@ def _expansion_plan(
     category_counts: Counter[str],
     domain_counts: Counter[str],
     video_counts: Counter[str],
+    proposal_sources: list[tuple[QualityCase, Path, dict]],
     gates: LongVideoSuiteGates,
 ) -> LongVideoExpansionPlan:
     needed_by_category = {
@@ -771,6 +810,12 @@ def _expansion_plan(
         needed_by_category=needed_by_category,
     )
     plan.priority_actions = _priority_actions(plan)
+    plan.query_proposals = _query_proposals(
+        needed_by_category=needed_by_category,
+        proposal_sources=proposal_sources,
+        category_counts=category_counts,
+        needed_cases=plan.needed_cases,
+    )
     return plan
 
 
@@ -793,6 +838,94 @@ def _priority_actions(plan: LongVideoExpansionPlan) -> list[str]:
     for category, needed in plan.needed_by_category.items():
         actions.append(f"Add {needed} verified `{category}` case(s).")
     return actions
+
+
+def _query_proposals(
+    *,
+    needed_by_category: dict[str, int],
+    proposal_sources: list[tuple[QualityCase, Path, dict]],
+    category_counts: Counter[str],
+    needed_cases: int,
+) -> list[LongVideoQueryProposal]:
+    if not proposal_sources:
+        return []
+
+    categories = [
+        QueryIntent(category)
+        for category in needed_by_category
+    ]
+    if not categories and needed_cases:
+        categories = sorted(
+            REQUIRED_QUERY_CATEGORIES,
+            key=lambda category: category_counts[category.value],
+        )
+    if not categories:
+        return []
+
+    sources_by_video: dict[str, tuple[QualityCase, Path, dict]] = {}
+    for case, path, payload in proposal_sources:
+        video_id = _proposal_video_label(path, payload)
+        sources_by_video.setdefault(video_id, (case, path, payload))
+
+    proposals: list[LongVideoQueryProposal] = []
+    max_proposals = max(1, min(12, needed_cases or sum(needed_by_category.values()) or len(categories)))
+    for category in categories:
+        for video_id, (case, path, payload) in sorted(sources_by_video.items()):
+            if len(proposals) >= max_proposals:
+                return proposals
+            proposals.append(
+                LongVideoQueryProposal(
+                    video_id=video_id,
+                    domain=(case.domain or "unknown").strip() or "unknown",
+                    query_category=category,
+                    query=_proposal_query(category, video_id),
+                    rationale=_proposal_rationale(category, category_counts, needed_by_category),
+                    source_artifact=path,
+                )
+            )
+    return proposals
+
+
+def _proposal_query(category: QueryIntent, video_label: str) -> str:
+    video_id = video_label.replace("-", " ")
+    if category == QueryIntent.SPEECH_SEMANTIC:
+        return f"What key claim does the speaker make in {video_id}?"
+    if category == QueryIntent.VISUAL_OBJECT_ACTION:
+        return f"What important object, slide, or on-screen action appears in {video_id}?"
+    if category == QueryIntent.TEMPORAL_BEFORE_AFTER:
+        return f"What happens immediately after an important transition in {video_id}?"
+    if category == QueryIntent.GLOBAL_SUMMARY:
+        return f"What are the main topics covered throughout {video_id}?"
+    if category == QueryIntent.MIXED_AV:
+        return f"What does the speaker say while the most relevant visual evidence is shown in {video_id}?"
+    return f"What evidence in {video_id} best answers the user question?"
+
+
+def _proposal_video_label(path: Path, payload: dict) -> str:
+    parts = path.parts
+    if ".gist" in parts:
+        gist_index = parts.index(".gist")
+        if len(parts) > gist_index + 2 and parts[gist_index + 1] == "runs":
+            return parts[gist_index + 2]
+    compression = payload.get("compression", payload)
+    return str(compression.get("video_id") or path.parent.parent.name)
+
+
+def _proposal_rationale(
+    category: QueryIntent,
+    category_counts: Counter[str],
+    needed_by_category: dict[str, int],
+) -> str:
+    needed = needed_by_category.get(category.value, 0)
+    if needed:
+        return (
+            f"{category.value} has {category_counts[category.value]} curated case(s); "
+            f"{needed} more needed for the configured gate."
+        )
+    return (
+        f"{category.value} is among the least-covered categories and can help grow "
+        "the long-video suite toward the total-case gate."
+    )
 
 
 def _average(values: list[float] | list[int]) -> float:
