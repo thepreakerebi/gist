@@ -65,6 +65,19 @@ def test_media_ingestor_returns_structured_manifest(tmp_path: Path) -> None:
     assert manifest.settings.audio_window_seconds == 0.5
 
 
+def test_media_ingestor_separates_artifacts_by_sampling_plan(tmp_path: Path) -> None:
+    video_path = tmp_path / "demo.mp4"
+    ingestor = MediaIngestor(output_root=tmp_path / "ingested", processor=FakeProcessor())
+
+    sparse = ingestor.ingest(video_path, sample_count=3, audio_window_seconds=0.5)
+    dense = ingestor.ingest(video_path, sample_count=5, audio_window_seconds=0.5)
+
+    assert sparse.frames[0].path != dense.frames[0].path
+    assert sparse.frames[0].path.parent.name == "frames"
+    assert dense.frames[0].path.parent.name == "frames"
+    assert sparse.frames[0].path.parent.parent != dense.frames[0].path.parent.parent
+
+
 def test_media_ingestor_auto_long_mode_bounds_audio_windows(tmp_path: Path) -> None:
     class LongFakeProcessor(FakeProcessor):
         def probe(self, video_path: Path) -> VideoMetadata:

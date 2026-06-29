@@ -236,6 +236,7 @@ def _temporal_group_ids(
         scored,
         direction=temporal_query.direction,
         target_query=temporal_query.target,
+        anchor_query=temporal_query.anchor,
         max_distance_seconds=max_distance_seconds,
     )
     selected_ids: set[str] = set()

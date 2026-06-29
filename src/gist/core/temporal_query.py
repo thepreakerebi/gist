@@ -99,6 +99,7 @@ def rank_temporal_pairs(
                 + _anchor_position_bonus(anchor_query, anchor, candidates)
                 + _target_text_bonus(target_query, target.text)
                 - _target_noise_penalty(target_query, target.text)
+                - _repeated_anchor_penalty(anchor.text, target.text)
             )
             pairs.append((score, anchor, target))
     return sorted(
@@ -156,10 +157,15 @@ def _anchor_position_bonus(
     anchor_terms = set(re.findall(r"[a-z0-9]+", anchor_query.lower()))
     if not anchor_terms & {"beginning", "first", "initial", "opening", "start"}:
         return 0.0
-    latest_timestamp = max((candidate.timestamp_seconds for candidate in candidates), default=0.0)
-    if latest_timestamp <= 0:
+    timestamps = [candidate.timestamp_seconds for candidate in candidates]
+    if not timestamps:
         return 0.0
-    return 0.8 * max(1.0 - (anchor.timestamp_seconds / latest_timestamp), 0.0)
+    earliest_timestamp = min(timestamps)
+    latest_timestamp = max(timestamps)
+    duration = max(latest_timestamp - earliest_timestamp, 1.0)
+    opening_window_seconds = max(60.0, min(120.0, duration * 0.02))
+    distance_from_opening = max(anchor.timestamp_seconds - earliest_timestamp, 0.0)
+    return 1.1 * max(1.0 - (distance_from_opening / opening_window_seconds), 0.0)
 
 
 def _target_text_bonus(target_query: str, evidence_text: str) -> float:
@@ -207,3 +213,29 @@ def _target_noise_penalty(target_query: str, evidence_text: str) -> float:
     if len(informative) == 1:
         penalty += 0.2
     return penalty
+
+
+def _repeated_anchor_penalty(anchor_text: str, target_text: str) -> float:
+    anchor_terms = _content_terms(anchor_text)
+    target_terms = _content_terms(target_text)
+    if len(anchor_terms) < 3 or len(target_terms) < 3:
+        return 0.0
+    overlap = len(anchor_terms & target_terms) / min(len(anchor_terms), len(target_terms))
+    if overlap < 0.55:
+        return 0.0
+    return 0.85
+
+
+def _content_terms(text: str) -> set[str]:
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", text.lower())
+        if len(token) > 2
+        and token
+        not in {
+            "near",
+            "screen",
+            "seconds",
+            "text",
+        }
+    }

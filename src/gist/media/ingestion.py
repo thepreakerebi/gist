@@ -1,10 +1,10 @@
 import hashlib
 from pathlib import Path
 
+from gist.core.progress import ProgressCallback
 from gist.media.ffmpeg import FfmpegMediaProcessor
 from gist.media.longform import ProcessingMode, plan_ingestion
 from gist.media.models import IngestedVideo, IngestionSettings
-from gist.core.progress import ProgressCallback
 
 
 class MediaIngestor:
@@ -25,9 +25,6 @@ class MediaIngestor:
         progress: ProgressCallback | None = None,
     ) -> IngestedVideo:
         video_id = stable_video_id(video_path)
-        ingest_dir = self.output_root / video_id
-        frames_dir = ingest_dir / "frames"
-        audio_dir = ingest_dir / "audio"
 
         if progress is not None:
             progress(f"probing video metadata: {video_path}")
@@ -38,6 +35,13 @@ class MediaIngestor:
             sample_count=sample_count,
             audio_window_seconds=audio_window_seconds,
         )
+        artifact_dir = self.output_root / video_id / _artifact_namespace(
+            mode=plan.mode.value,
+            sample_count=plan.sample_count,
+            audio_window_seconds=plan.audio_window_seconds,
+        )
+        frames_dir = artifact_dir / "frames"
+        audio_dir = artifact_dir / "audio"
         if progress is not None:
             progress(
                 "ingestion plan: "
@@ -82,3 +86,12 @@ def stable_video_id(video_path: Path) -> str:
     absolute_path = video_path.expanduser().resolve(strict=False)
     digest = hashlib.sha256(str(absolute_path).encode("utf-8")).hexdigest()
     return digest[:16]
+
+
+def _artifact_namespace(
+    mode: str,
+    sample_count: int,
+    audio_window_seconds: float,
+) -> str:
+    audio_window_token = str(audio_window_seconds).replace(".", "_")
+    return f"mode-{mode}-frames-{sample_count}-audio-{audio_window_token}s"

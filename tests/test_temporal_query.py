@@ -221,3 +221,89 @@ def test_rank_temporal_pairs_prefers_early_anchor_for_opening_queries() -> None:
 
     assert pairs[0][1].id == "opening-title"
     assert pairs[0][2].id == "opening-target"
+
+
+def test_rank_temporal_pairs_limits_opening_bonus_to_true_opening_window() -> None:
+    candidates = [
+        Candidate(
+            id="title",
+            timestamp_seconds=0,
+            text="on-screen text near 0 seconds: Bio-Inspired Motor Control Lecture 2",
+            segment_id="scene-0",
+            temporal_anchor_score=0.25,
+            temporal_target_score=0.22,
+        ),
+        Candidate(
+            id="agenda",
+            timestamp_seconds=259,
+            text="on-screen text near 259 seconds: Today: Legged Locomotion",
+            segment_id="scene-3",
+            temporal_anchor_score=0.28,
+            temporal_target_score=0.25,
+        ),
+        Candidate(
+            id="nature",
+            timestamp_seconds=453,
+            text="on-screen text near 453 seconds: Legged Locomotion in Nature",
+            segment_id="scene-4",
+            temporal_anchor_score=0.27,
+            temporal_target_score=0.27,
+        ),
+        Candidate(
+            id="late",
+            timestamp_seconds=5054,
+            text="on-screen text near 5054 seconds: noisy late slide",
+            segment_id="scene-70",
+            temporal_anchor_score=0.27,
+            temporal_target_score=0.28,
+        ),
+    ]
+
+    pairs = rank_temporal_pairs(
+        candidates,
+        direction="after",
+        target_query="What slide appears",
+        anchor_query="the opening course title slide",
+    )
+
+    assert pairs[0][1].id == "title"
+    assert pairs[0][2].id == "agenda"
+
+
+def test_rank_temporal_pairs_skips_repeated_anchor_slide_as_target() -> None:
+    candidates = [
+        Candidate(
+            id="title",
+            timestamp_seconds=0,
+            text="on-screen text near 0 seconds: Bio-Inspired Motor Control Lecture 2",
+            segment_id="scene-0",
+            temporal_anchor_score=0.26,
+            temporal_target_score=0.22,
+        ),
+        Candidate(
+            id="title-repeat",
+            timestamp_seconds=65,
+            text="on-screen text near 65 seconds: Bio-Inspired Motor Control",
+            segment_id="scene-1",
+            temporal_anchor_score=0.28,
+            temporal_target_score=0.27,
+        ),
+        Candidate(
+            id="agenda",
+            timestamp_seconds=259,
+            text="on-screen text near 259 seconds: Today: Legged Locomotion",
+            segment_id="scene-3",
+            temporal_anchor_score=0.28,
+            temporal_target_score=0.25,
+        ),
+    ]
+
+    pairs = rank_temporal_pairs(
+        candidates,
+        direction="after",
+        target_query="What slide appears",
+        anchor_query="the opening course title slide",
+    )
+
+    assert pairs[0][1].id == "title"
+    assert pairs[0][2].id == "agenda"

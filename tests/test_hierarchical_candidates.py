@@ -227,6 +227,61 @@ def test_shortlist_relevant_segments_preserves_opening_segment() -> None:
     assert "opening" in {candidate.id for candidate in shortlisted.visual}
 
 
+def test_shortlist_relevant_segments_preserves_opening_temporal_pair() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id="opening-title",
+                timestamp_seconds=0,
+                text="on-screen text: Bio-Inspired Motor Control Lecture 2",
+                saliency_score=0.01,
+                temporal_anchor_score=0.25,
+                temporal_target_score=0.22,
+                temporal_direction="after",
+            ),
+            Candidate(
+                id="agenda",
+                timestamp_seconds=259,
+                text="on-screen text: Today: Legged Locomotion and Conceptual Models",
+                saliency_score=0.02,
+                temporal_anchor_score=0.28,
+                temporal_target_score=0.25,
+                temporal_direction="after",
+            ),
+            Candidate(
+                id="late-noise",
+                timestamp_seconds=4657,
+                text="on-screen text: = i ny",
+                saliency_score=0.99,
+                temporal_anchor_score=0.27,
+                temporal_target_score=0.29,
+                temporal_direction="after",
+            ),
+            Candidate(
+                id="late-reading",
+                timestamp_seconds=4687,
+                text="on-screen text: Further Reading Materials",
+                saliency_score=0.98,
+                temporal_anchor_score=0.28,
+                temporal_target_score=0.29,
+                temporal_direction="after",
+            ),
+        ],
+        audio=[],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="What slide appears after the opening course title slide?",
+        duration_seconds=5200,
+        segment_seconds=120,
+        max_segments=1,
+    )
+
+    selected_ids = {candidate.id for candidate in shortlisted.visual}
+    assert {"opening-title", "agenda"} <= selected_ids
+
+
 def test_shortlist_relevant_segments_preserves_global_audio_coverage() -> None:
     candidates = CandidateSet(
         visual=[],

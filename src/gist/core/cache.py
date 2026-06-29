@@ -6,7 +6,8 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.schemas import Candidate
 from gist.media.models import IngestedVideo
 
-CANDIDATE_CACHE_VERSION = "v20"
+INGESTION_CACHE_VERSION = "v2"
+CANDIDATE_CACHE_VERSION = "v22"
 
 
 @dataclass(slots=True)
@@ -66,7 +67,7 @@ def ingestion_cache_key(
 ) -> str:
     absolute_path = video_path.expanduser().resolve(strict=False)
     fingerprint = (
-        f"{absolute_path}|mode={processing_mode}|samples={sample_count}|"
+        f"{INGESTION_CACHE_VERSION}|{absolute_path}|mode={processing_mode}|samples={sample_count}|"
         f"audio_window={audio_window_seconds}"
     )
     return _sha256_short(fingerprint)
