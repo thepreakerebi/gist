@@ -44,14 +44,14 @@ gist-long-video-suite \
   --min-quality-pass-rate 0.7
 ```
 
-Current baseline as of June 28, 2026:
+Current baseline as of June 29, 2026:
 
-- `13` real long-video cases across `5` videos and `4` domains.
+- `14` real long-video cases across `5` videos and `4` domains.
 - `100.00%` quality pass rate.
-- `99.87%` average token reduction.
-- `7.69%` noisy transcript warning rate.
-- `23.08%` transcript metadata coverage because most older artifacts predate transcript metadata.
-- Category coverage: speech `3`, visual `3`, global `3`, temporal `2`, mixed AV `2`.
+- `99.74%` average token reduction.
+- `7.14%` noisy transcript warning rate.
+- `21.43%` transcript metadata coverage because most older artifacts predate transcript metadata.
+- Category coverage: speech `3`, visual `3`, temporal `3`, global `3`, mixed AV `2`.
 - No known failing baseline cases. The remaining long-video warning is noisy transcript evidence on `bio-motor-control-lecture-01-global-summary`.
 
 Audit existing long-video artifacts for safe dataset additions:
@@ -84,7 +84,7 @@ gist-long-video-suite \
   --html-output reports/long-video-suite/target-readiness.html
 ```
 
-The target gates are expected to fail until the curated suite reaches `30+` long-video cases with at least `3` per major query category and regenerated transcript metadata on most artifacts.
+The target gates are expected to fail until the curated suite reaches `30+` long-video cases with at least `3` per major query category and regenerated transcript metadata on most artifacts. The readiness report includes an `Expansion Plan` section that converts those failed gates into concrete curation targets, such as how many more long-video cases, distinct videos, domains, or query-category examples are needed before the suite is alpha-ready.
 
 Draft a new quality case from an existing run:
 

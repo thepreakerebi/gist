@@ -59,6 +59,15 @@ class LongVideoHealthSummary(BaseModel):
     transcript_quality_counts: dict[str, int] = Field(default_factory=dict)
 
 
+class LongVideoExpansionPlan(BaseModel):
+    needed_cases: int = 0
+    needed_long_video_cases: int = 0
+    needed_distinct_videos: int = 0
+    needed_distinct_domains: int = 0
+    needed_by_category: dict[str, int] = Field(default_factory=dict)
+    priority_actions: list[str] = Field(default_factory=list)
+
+
 class LongVideoArtifactAuditItem(BaseModel):
     path: Path
     curated: bool
@@ -101,6 +110,7 @@ class LongVideoSuiteReport(BaseModel):
     missing_artifacts: list[Path] = Field(default_factory=list)
     metadata_failures: list[str] = Field(default_factory=list)
     health: LongVideoHealthSummary = Field(default_factory=LongVideoHealthSummary)
+    expansion_plan: LongVideoExpansionPlan = Field(default_factory=LongVideoExpansionPlan)
     quality: QualityReport | None = None
 
     def write_json(self, path: Path) -> None:
@@ -233,6 +243,15 @@ def evaluate_long_video_suite(
             ]
         )
 
+    expansion_plan = _expansion_plan(
+        case_count=len(cases),
+        long_case_count=long_case_count,
+        category_counts=category_counts,
+        domain_counts=domain_counts,
+        video_counts=video_counts,
+        gates=gates,
+    )
+
     return LongVideoSuiteReport(
         passed=all(result.passed for result in gate_results),
         gates=gates,
@@ -245,6 +264,7 @@ def evaluate_long_video_suite(
         missing_artifacts=missing_artifacts,
         metadata_failures=metadata_failures,
         health=health,
+        expansion_plan=expansion_plan,
         quality=quality,
     )
 
@@ -393,6 +413,13 @@ def render_long_video_suite_markdown(report: LongVideoSuiteReport) -> str:
         f"| {quality} | {count} |"
         for quality, count in report.health.transcript_quality_counts.items()
     ) or "| none | 0 |"
+    missing_category_rows = "\n".join(
+        f"| {category} | {needed} |"
+        for category, needed in report.expansion_plan.needed_by_category.items()
+    ) or "| none | 0 |"
+    priority_lines = "\n".join(
+        f"- {action}" for action in report.expansion_plan.priority_actions
+    ) or "- No expansion actions required by the configured gates."
     return f"""# Gist Long-Video Suite Readiness
 
 - Passed: {"yes" if report.passed else "no"}
@@ -433,6 +460,23 @@ def render_long_video_suite_markdown(report: LongVideoSuiteReport) -> str:
 | Quality | Count |
 |---|---:|
 {transcript_rows}
+
+## Expansion Plan
+
+- Additional cases needed: {report.expansion_plan.needed_cases}
+- Additional long-video cases needed: {report.expansion_plan.needed_long_video_cases}
+- Additional distinct videos needed: {report.expansion_plan.needed_distinct_videos}
+- Additional distinct domains needed: {report.expansion_plan.needed_distinct_domains}
+
+### Missing Query Categories
+
+| Category | Additional Cases Needed |
+|---|---:|
+{missing_category_rows}
+
+### Priority Actions
+
+{priority_lines}
 
 ## Dataset Problems
 
@@ -475,6 +519,17 @@ def render_long_video_suite_html(report: LongVideoSuiteReport) -> str:
         f"<tr><td>{escape(quality)}</td><td>{count}</td></tr>"
         for quality, count in report.health.transcript_quality_counts.items()
     ) or "<tr><td>none</td><td>0</td></tr>"
+    missing_category_rows = "".join(
+        f"<tr><td>{escape(category)}</td><td>{needed}</td></tr>"
+        for category, needed in report.expansion_plan.needed_by_category.items()
+    ) or "<tr><td>none</td><td>0</td></tr>"
+    priority_items = (
+        "".join(
+            f"<li>{escape(action)}</li>"
+            for action in report.expansion_plan.priority_actions
+        )
+        or "<li>No expansion actions required by the configured gates.</li>"
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -522,6 +577,21 @@ def render_long_video_suite_html(report: LongVideoSuiteReport) -> str:
     <tr><th>Quality</th><th>Count</th></tr>
     {transcript_rows}
   </table>
+  <h2>Expansion Plan</h2>
+  <table>
+    <tr><th>Metric</th><th>Needed</th></tr>
+    <tr><td>Additional cases</td><td>{report.expansion_plan.needed_cases}</td></tr>
+    <tr><td>Additional long-video cases</td><td>{report.expansion_plan.needed_long_video_cases}</td></tr>
+    <tr><td>Additional distinct videos</td><td>{report.expansion_plan.needed_distinct_videos}</td></tr>
+    <tr><td>Additional distinct domains</td><td>{report.expansion_plan.needed_distinct_domains}</td></tr>
+  </table>
+  <h3>Missing Query Categories</h3>
+  <table>
+    <tr><th>Category</th><th>Additional Cases Needed</th></tr>
+    {missing_category_rows}
+  </table>
+  <h3>Priority Actions</h3>
+  <ul>{priority_items}</ul>
   <h2>Dataset Problems</h2>
   <ul>{problem_items}</ul>
 </body>
@@ -677,6 +747,52 @@ def _health_summary(payloads: list[dict]) -> LongVideoHealthSummary:
         quality_warning_counts=dict(sorted(warning_counts.items())),
         transcript_quality_counts=dict(sorted(transcript_quality_counts.items())),
     )
+
+
+def _expansion_plan(
+    *,
+    case_count: int,
+    long_case_count: int,
+    category_counts: Counter[str],
+    domain_counts: Counter[str],
+    video_counts: Counter[str],
+    gates: LongVideoSuiteGates,
+) -> LongVideoExpansionPlan:
+    needed_by_category = {
+        category.value: gates.min_cases_per_category - category_counts[category.value]
+        for category in REQUIRED_QUERY_CATEGORIES
+        if category_counts[category.value] < gates.min_cases_per_category
+    }
+    plan = LongVideoExpansionPlan(
+        needed_cases=max(0, gates.min_cases - case_count),
+        needed_long_video_cases=max(0, gates.min_cases - long_case_count),
+        needed_distinct_videos=max(0, gates.min_distinct_videos - len(video_counts)),
+        needed_distinct_domains=max(0, gates.min_distinct_domains - len(domain_counts)),
+        needed_by_category=needed_by_category,
+    )
+    plan.priority_actions = _priority_actions(plan)
+    return plan
+
+
+def _priority_actions(plan: LongVideoExpansionPlan) -> list[str]:
+    actions: list[str] = []
+    if plan.needed_cases:
+        actions.append(f"Curate {plan.needed_cases} more verified long-video question cases.")
+    if plan.needed_long_video_cases:
+        actions.append(
+            f"Ensure {plan.needed_long_video_cases} added cases come from videos at least 60 minutes long."
+        )
+    if plan.needed_distinct_videos:
+        actions.append(
+            f"Add cases from {plan.needed_distinct_videos} new long-video source(s)."
+        )
+    if plan.needed_distinct_domains:
+        actions.append(
+            f"Add at least {plan.needed_distinct_domains} new domain label(s) beyond the current set."
+        )
+    for category, needed in plan.needed_by_category.items():
+        actions.append(f"Add {needed} verified `{category}` case(s).")
+    return actions
 
 
 def _average(values: list[float] | list[int]) -> float:

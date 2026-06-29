@@ -54,6 +54,52 @@ def test_long_video_suite_reports_coverage_and_metadata_gaps(tmp_path: Path) -> 
     assert not report.passed
     assert any("query_category" in failure for failure in report.metadata_failures)
     assert any("duration" in failure for failure in report.metadata_failures)
+    assert report.expansion_plan.needed_cases == 1
+    assert report.expansion_plan.needed_long_video_cases == 2
+    assert report.expansion_plan.needed_by_category[QueryIntent.SPEECH_SEMANTIC.value] == 1
+
+
+def test_long_video_suite_expansion_plan_prioritizes_missing_categories(
+    tmp_path: Path,
+) -> None:
+    speech_case = QualityCase(
+        id="speech",
+        query_category=QueryIntent.SPEECH_SEMANTIC,
+        domain="education",
+        compression_path=_write_artifact(
+            tmp_path / "speech" / "compression.json",
+            "speech-video",
+            3700,
+        ),
+        expected_answer_terms=["answer"],
+        expected_evidence_terms=["evidence"],
+    )
+
+    report = evaluate_long_video_suite(
+        [speech_case],
+        LongVideoSuiteGates(
+            min_cases=6,
+            min_distinct_videos=2,
+            min_distinct_domains=2,
+            min_cases_per_category=2,
+        ),
+    )
+    markdown = render_long_video_suite_markdown(report)
+    html = render_long_video_suite_html(report)
+
+    assert report.expansion_plan.needed_cases == 5
+    assert report.expansion_plan.needed_distinct_videos == 1
+    assert report.expansion_plan.needed_distinct_domains == 1
+    assert report.expansion_plan.needed_by_category == {
+        QueryIntent.SPEECH_SEMANTIC.value: 1,
+        QueryIntent.VISUAL_OBJECT_ACTION.value: 2,
+        QueryIntent.TEMPORAL_BEFORE_AFTER.value: 2,
+        QueryIntent.GLOBAL_SUMMARY.value: 2,
+        QueryIntent.MIXED_AV.value: 2,
+    }
+    assert "Expansion Plan" in markdown
+    assert "Add 2 verified `mixed_av` case(s)." in markdown
+    assert "Missing Query Categories" in html
 
 
 def test_long_video_suite_reports_run_health_failures(tmp_path: Path) -> None:
