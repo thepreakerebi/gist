@@ -149,6 +149,66 @@ def test_prune_evidence_to_answer_drops_loose_answer_overlap_by_default() -> Non
     assert [item.id for item in pruned.selected] == ["research", "code", "analysis"]
 
 
+def test_prune_evidence_to_answer_keeps_temporal_anchor_and_target_pair() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What slide appears after the opening course title slide?",
+        answer="on-screen text near 224 seconds: Today: Legged Locomotion",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _temporal_visual_item(
+                "opening-title",
+                5,
+                "on-screen text near 5 seconds: Bio-Inspired Motor Control",
+                anchor_score=0.62,
+                target_score=0.05,
+            ),
+            _temporal_visual_item(
+                "agenda",
+                224,
+                "on-screen text near 224 seconds: Today: Legged Locomotion",
+                anchor_score=0.1,
+                target_score=0.72,
+            ),
+            _temporal_visual_item(
+                "late-title",
+                4600,
+                "on-screen text near 4600 seconds: Course Title",
+                anchor_score=0.95,
+                target_score=0.1,
+            ),
+            _temporal_visual_item(
+                "late-target",
+                4680,
+                "on-screen text near 4680 seconds: Further Reading Materials",
+                anchor_score=0.1,
+                target_score=0.91,
+            ),
+            _item("answer-overlap", 3000, "Today people discuss legged locomotion."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=5,
+            visual_selected=4,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=0.25,
+            estimated_candidate_reduction_percent=75,
+            dropped_candidates=15,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=160,
+            estimated_saved_tokens=480,
+            estimated_token_reduction_ratio=0.25,
+            estimated_token_reduction_percent=75,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression, max_items=2, min_items=1)
+
+    assert [item.id for item in pruned.selected] == ["opening-title", "agenda"]
+
+
 def test_prune_evidence_to_answer_citations_keeps_only_cited_evidence() -> None:
     compression = CompressionResponse(
         video_id="demo",
@@ -983,6 +1043,31 @@ def _visual_item(
         mmr_score=1,
         source_score_type="clip_scene",
         reason="selected",
+    )
+
+
+def _temporal_visual_item(
+    id_: str,
+    timestamp_seconds: float,
+    text: str,
+    anchor_score: float,
+    target_score: float,
+) -> SelectedCandidate:
+    return SelectedCandidate(
+        id=id_,
+        modality=Modality.VISUAL,
+        timestamp_seconds=timestamp_seconds,
+        text=text,
+        segment_id=f"scene-{id_}",
+        selection_rank=1,
+        relevance_score=max(anchor_score, target_score),
+        normalized_score=max(anchor_score, target_score),
+        mmr_score=1,
+        source_score_type="clip_scene",
+        reason="selected",
+        temporal_anchor_score=anchor_score,
+        temporal_target_score=target_score,
+        temporal_direction="after",
     )
 
 

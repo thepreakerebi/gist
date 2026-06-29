@@ -158,6 +158,10 @@ def answer_from_evidence(compression: CompressionResponse) -> str | None:
     if global_summary is not None:
         return global_summary
 
+    temporal_answer = _temporal_answer(compression)
+    if temporal_answer is not None:
+        return temporal_answer
+
     visual_answer = _visual_object_answer(compression)
     if visual_answer is not None:
         return visual_answer
@@ -221,6 +225,35 @@ def _global_summary_answer(compression: CompressionResponse) -> str | None:
         )
     ]
     return f"The video covers: {'; '.join(topics)}."
+
+
+def _temporal_answer(compression: CompressionResponse) -> str | None:
+    temporal_query = parse_temporal_query(compression.query)
+    if temporal_query is None:
+        return None
+
+    temporal_items = [
+        candidate
+        for candidate in compression.selected
+        if candidate.temporal_anchor_score is not None
+        and candidate.temporal_target_score is not None
+        and candidate.temporal_direction in {"after", "before"}
+    ]
+    if len(temporal_items) < 2:
+        return None
+
+    pairs = rank_temporal_pairs(
+        temporal_items,
+        direction=temporal_query.direction,
+        target_query=temporal_query.target,
+        anchor_query=temporal_query.anchor,
+    )
+    if not pairs:
+        return None
+
+    _, _anchor, target = pairs[0]
+    sentence = _best_sentence(compression.query, target.text)
+    return sentence or target.text.strip() or None
 
 
 def _global_summary_agenda_answer(selected: list[SelectedCandidate]) -> str | None:
@@ -856,6 +889,7 @@ def _model_temporal_target_score(
         temporal_items,
         direction=temporal_query.direction,
         target_query=temporal_query.target,
+        anchor_query=temporal_query.anchor,
     )
     if not pairs:
         return None

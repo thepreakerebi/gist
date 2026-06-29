@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
 from gist.core.scoring import text_similarity
+from gist.core.temporal_query import parse_temporal_query, rank_temporal_pairs
 from gist.core.token_estimation import TOKEN_ESTIMATE_PROFILES
 
 DEFAULT_MAX_PRUNED_EVIDENCE = 4
@@ -86,6 +87,12 @@ def prune_evidence_to_answer(
         max_items=max_items,
     )
     retained = _ensure_global_summary_audio_coverage(
+        compression=compression,
+        retained=retained,
+        ranked=ranked,
+        max_items=max_items,
+    )
+    retained = _ensure_temporal_pair_retained(
         compression=compression,
         retained=retained,
         ranked=ranked,
@@ -332,6 +339,65 @@ def _support_filtered_citations(
     if len(retained) >= target_count:
         return retained
     return cited
+
+
+def _ensure_temporal_pair_retained(
+    compression: CompressionResponse,
+    retained: list[EvidenceSupport],
+    ranked: list[EvidenceSupport],
+    max_items: int,
+) -> list[EvidenceSupport]:
+    if max_items < 2:
+        return retained
+
+    temporal_query = parse_temporal_query(compression.query)
+    if temporal_query is None:
+        return retained
+
+    temporal_items = [
+        support.item
+        for support in ranked
+        if support.item.temporal_anchor_score is not None
+        and support.item.temporal_target_score is not None
+        and support.item.temporal_direction in {"after", "before"}
+    ]
+    if len(temporal_items) < 2:
+        return retained
+
+    pairs = rank_temporal_pairs(
+        temporal_items,
+        direction=temporal_query.direction,
+        target_query=temporal_query.target,
+        anchor_query=temporal_query.anchor,
+    )
+    if not pairs:
+        return retained
+
+    _score, anchor, target = pairs[0]
+    support_by_id = {support.item.id: support for support in ranked}
+    pair_supports = [
+        support
+        for item_id in (anchor.id, target.id)
+        if (support := support_by_id.get(item_id)) is not None
+    ]
+    if len(pair_supports) < 2:
+        return retained
+
+    pair_ids = {support.item.id for support in pair_supports}
+    fill = [
+        support
+        for support in retained
+        if support.item.id not in pair_ids
+    ]
+    fill_ids = {support.item.id for support in fill}
+    if len(fill) + len(pair_supports) < max_items:
+        fill.extend(
+            support
+            for support in ranked
+            if support.item.id not in pair_ids
+            and support.item.id not in fill_ids
+        )
+    return (pair_supports + fill)[:max_items]
 
 
 def _ensure_mixed_av_audio_retained(

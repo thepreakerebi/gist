@@ -357,6 +357,95 @@ def test_answer_from_evidence_treats_slide_query_as_ocr_text() -> None:
     assert answer_from_evidence(compression) == "on-screen text near 110 seconds: Next Week"
 
 
+def test_answer_from_evidence_uses_opening_anchor_for_temporal_pair() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What slide appears after the opening course title slide?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="opening-title",
+                modality=Modality.VISUAL,
+                timestamp_seconds=5,
+                text="on-screen text near 5 seconds: Bio-Inspired Motor Control",
+                segment_id="scene-1",
+                selection_rank=1,
+                relevance_score=0.5,
+                normalized_score=0.5,
+                mmr_score=0.5,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.62,
+                temporal_target_score=0.05,
+                temporal_direction="after",
+            ),
+            SelectedCandidate(
+                id="agenda",
+                modality=Modality.VISUAL,
+                timestamp_seconds=224,
+                text="on-screen text near 224 seconds: Today: Legged Locomotion",
+                segment_id="scene-2",
+                selection_rank=2,
+                relevance_score=0.3,
+                normalized_score=0.3,
+                mmr_score=0.3,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.72,
+                temporal_direction="after",
+            ),
+            SelectedCandidate(
+                id="late-title",
+                modality=Modality.VISUAL,
+                timestamp_seconds=4600,
+                text="on-screen text near 4600 seconds: Course Title",
+                segment_id="scene-30",
+                selection_rank=3,
+                relevance_score=0.9,
+                normalized_score=0.9,
+                mmr_score=0.9,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.95,
+                temporal_target_score=0.1,
+                temporal_direction="after",
+            ),
+            SelectedCandidate(
+                id="late-target",
+                modality=Modality.VISUAL,
+                timestamp_seconds=4680,
+                text="on-screen text near 4680 seconds: Further Reading Materials",
+                segment_id="scene-31",
+                selection_rank=4,
+                relevance_score=0.9,
+                normalized_score=0.9,
+                mmr_score=0.9,
+                source_score_type="model_saliency",
+                reason="test",
+                temporal_anchor_score=0.1,
+                temporal_target_score=0.91,
+                temporal_direction="after",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=4,
+            selected_candidates=4,
+            visual_selected=4,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == (
+        "on-screen text near 224 seconds: Today: Legged Locomotion"
+    )
+
+
 def test_answer_from_evidence_prefers_earliest_ocr_for_opening_title_query() -> None:
     compression = CompressionResponse(
         video_id="demo",
