@@ -92,7 +92,16 @@ class LongVideoCurationResult(BaseModel):
     compression_path: Path
     html_report_path: Path
     draft_case_path: Path
+    review_json_path: Path
+    review_markdown_path: Path
     draft: QualityCaseDraft
+
+
+class LongVideoCurationReview(BaseModel):
+    ready_for_dataset: bool = False
+    warnings: list[str] = Field(default_factory=list)
+    checklist: list[str] = Field(default_factory=list)
+    recommendation: str
 
 
 class LongVideoArtifactAuditItem(BaseModel):
@@ -357,12 +366,19 @@ def curate_long_video_query_proposal(
     draft = QualityCaseDraft(case=draft_case, notes=draft.notes)
     draft_case_path = run_dir / "quality-case.draft.jsonl"
     draft_case_path.write_text(draft.case.model_dump_json(exclude_none=True) + "\n")
+    review = _curation_review(proposal=proposal, draft=draft, compression_payload=compression)
+    review_json_path = run_dir / "curation-review.json"
+    review_markdown_path = run_dir / "curation-review.md"
+    review_json_path.write_text(review.model_dump_json(indent=2) + "\n")
+    review_markdown_path.write_text(_render_curation_review_markdown(review))
     return LongVideoCurationResult(
         proposal=proposal,
         video_path=video_path,
         compression_path=compression_path,
         html_report_path=html_report_path,
         draft_case_path=draft_case_path,
+        review_json_path=review_json_path,
+        review_markdown_path=review_markdown_path,
         draft=draft,
     )
 
@@ -827,6 +843,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"curation_compression={curation.compression_path}")
         print(f"curation_report={curation.html_report_path}")
         print(f"curation_draft={curation.draft_case_path}")
+        print(f"curation_review={curation.review_markdown_path}")
     if args.audit_root is not None or args.audit_output is not None:
         audit = audit_long_video_artifacts(
             root=args.audit_root or Path(".gist/runs"),
@@ -1077,6 +1094,81 @@ def _artifact_source_path(payload: dict, artifact_path: Path) -> Path:
     if source_path.exists():
         return source_path.resolve(strict=False)
     return (artifact_path.parent / source_path).resolve(strict=False)
+
+
+def _curation_review(
+    *,
+    proposal: LongVideoQueryProposal,
+    draft: QualityCaseDraft,
+    compression_payload,
+) -> LongVideoCurationReview:
+    case = draft.case
+    warnings = [
+        "Human review is required before appending this draft to the curated dataset."
+    ]
+    checklist = [
+        "Open report.html and verify the answer is supported by the displayed video evidence.",
+        "Replace inferred expected_answer_terms with terms from the verified answer.",
+        "Replace inferred expected_evidence_terms with terms visible/audible in the verified evidence.",
+        "Tighten relevant_ranges to the exact answer-supporting timestamps.",
+        "Set min_grounded_evidence_rate above 0 after confirming evidence grounding.",
+    ]
+    if not case.relevant_ranges and not case.relevant_timestamps:
+        warnings.append("Draft has no timestamp ranges; add verified answer ranges.")
+    if case.min_grounded_evidence_rate == 0:
+        warnings.append("Grounding threshold is not enforced yet.")
+    if proposal.query_category == QueryIntent.MIXED_AV:
+        if case.min_visual_evidence == 0:
+            warnings.append("Mixed-AV draft does not require visual evidence yet.")
+        if case.min_audio_evidence == 0:
+            warnings.append("Mixed-AV draft does not require audio evidence yet.")
+    if compression_payload.query_intent != proposal.query_category:
+        warnings.append(
+            "Generated compression intent "
+            f"`{compression_payload.query_intent}` differs from proposal category "
+            f"`{proposal.query_category}`."
+        )
+    warning_codes = [warning.code for warning in compression_payload.quality_warnings]
+    if warning_codes:
+        warnings.append(f"Runtime quality warnings present: {', '.join(warning_codes)}.")
+    if _terms_look_noisy(case.expected_answer_terms + case.expected_evidence_terms):
+        warnings.append("Drafted terms look noisy; replace OCR/transcript artifacts manually.")
+    recommendation = (
+        "Review and edit the draft before dataset append. "
+        "Do not treat this as an accepted quality case until the checklist is complete."
+    )
+    return LongVideoCurationReview(
+        ready_for_dataset=False,
+        warnings=warnings,
+        checklist=checklist,
+        recommendation=recommendation,
+    )
+
+
+def _terms_look_noisy(terms: list[str]) -> bool:
+    if not terms:
+        return True
+    noisy_terms = {"near", "seconds", "text", "screen", "visual", "most"}
+    hits = sum(term.lower() in noisy_terms or len(term) <= 2 for term in terms)
+    return hits / len(terms) >= 0.3
+
+
+def _render_curation_review_markdown(review: LongVideoCurationReview) -> str:
+    warnings = "\n".join(f"- {warning}" for warning in review.warnings)
+    checklist = "\n".join(f"- [ ] {item}" for item in review.checklist)
+    return f"""# Gist Curation Review
+
+- Ready for dataset: {"yes" if review.ready_for_dataset else "no"}
+- Recommendation: {review.recommendation}
+
+## Warnings
+
+{warnings or "- None"}
+
+## Checklist
+
+{checklist or "- None"}
+"""
 
 
 def _safe_stem(value: str | Path) -> str:

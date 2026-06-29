@@ -329,10 +329,16 @@ def test_curate_long_video_query_proposal_writes_review_bundle(tmp_path: Path) -
     assert result.compression_path.exists()
     assert result.html_report_path.exists()
     assert result.draft_case_path.exists()
+    assert result.review_json_path.exists()
+    assert result.review_markdown_path.exists()
     draft = json.loads(result.draft_case_path.read_text())
     assert draft["query_category"] == "mixed_av"
     assert draft["domain"] == "education"
     assert draft["compression_path"] == str(result.compression_path)
+    review = json.loads(result.review_json_path.read_text())
+    assert not review["ready_for_dataset"]
+    assert any("Human review" in warning for warning in review["warnings"])
+    assert "Checklist" in result.review_markdown_path.read_text()
 
 
 def test_long_video_suite_cli_curate_proposal_returns_success_when_gates_fail(
@@ -351,6 +357,7 @@ def test_long_video_suite_cli_curate_proposal_returns_success_when_gates_fail(
             compression_path=tmp_path / "compression.json",
             html_report_path=tmp_path / "report.html",
             draft_case_path=tmp_path / "quality-case.draft.jsonl",
+            review_markdown_path=tmp_path / "curation-review.md",
         )
 
     monkeypatch.setattr(long_video_suite, "curate_long_video_query_proposal", fake_curate)
@@ -369,6 +376,7 @@ def test_long_video_suite_cli_curate_proposal_returns_success_when_gates_fail(
     output = capsys.readouterr().out
     assert exit_code == 0
     assert "curation_draft=" in output
+    assert "curation_review=" in output
     assert "passed=no" in output
 
 
