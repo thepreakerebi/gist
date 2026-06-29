@@ -1,16 +1,23 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
+import gist.eval.long_video_suite as long_video_suite
+from gist.core.presets import CompressionPreset
 from gist.core.query_intent import QueryIntent
+from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
 from gist.eval.long_video_suite import (
+    LongVideoQueryProposal,
     LongVideoSuiteGates,
     audit_long_video_artifacts,
+    curate_long_video_query_proposal,
     evaluate_long_video_suite,
     main,
     render_long_video_suite_html,
     render_long_video_suite_markdown,
 )
 from gist.eval.quality import QualityCase
+from gist.media.models import IngestedVideo, VideoMetadata
 
 
 def test_long_video_suite_passes_complete_coverage(tmp_path: Path) -> None:
@@ -294,6 +301,77 @@ def test_long_video_suite_cli_writes_artifact_audit(tmp_path: Path, capsys) -> N
     assert audit["candidate_artifacts"] == 1
 
 
+def test_curate_long_video_query_proposal_writes_review_bundle(tmp_path: Path) -> None:
+    video_path = tmp_path / "source.mp4"
+    video_path.write_text("video")
+    source_artifact = _write_artifact(
+        tmp_path / "runs" / "source-video" / "existing" / "compression.json",
+        "source-video",
+        3700,
+        source_path=video_path,
+    )
+    proposal = LongVideoQueryProposal(
+        video_id="source-video",
+        domain="education",
+        query_category=QueryIntent.MIXED_AV,
+        query="What does the speaker say while the slide is shown?",
+        rationale="missing mixed AV coverage",
+        source_artifact=source_artifact,
+    )
+
+    result = curate_long_video_query_proposal(
+        proposal=proposal,
+        output_root=tmp_path / "curation",
+        pipeline=FakePipeline(),
+    )
+
+    assert result.video_path == video_path
+    assert result.compression_path.exists()
+    assert result.html_report_path.exists()
+    assert result.draft_case_path.exists()
+    draft = json.loads(result.draft_case_path.read_text())
+    assert draft["query_category"] == "mixed_av"
+    assert draft["domain"] == "education"
+    assert draft["compression_path"] == str(result.compression_path)
+
+
+def test_long_video_suite_cli_curate_proposal_returns_success_when_gates_fail(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    cases = _cases(tmp_path)
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        "\n".join(case.model_dump_json(exclude_none=True) for case in cases) + "\n"
+    )
+
+    def fake_curate(**kwargs):
+        return SimpleNamespace(
+            compression_path=tmp_path / "compression.json",
+            html_report_path=tmp_path / "report.html",
+            draft_case_path=tmp_path / "quality-case.draft.jsonl",
+        )
+
+    monkeypatch.setattr(long_video_suite, "curate_long_video_query_proposal", fake_curate)
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--curate-proposal-index",
+            "0",
+            "--min-cases",
+            "30",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "curation_draft=" in output
+    assert "passed=no" in output
+
+
 def _cases(tmp_path: Path) -> list[QualityCase]:
     categories = [
         QueryIntent.SPEECH_SEMANTIC,
@@ -319,12 +397,64 @@ def _cases(tmp_path: Path) -> list[QualityCase]:
     ]
 
 
-def _write_artifact(path: Path, video_id: str, duration_seconds: float) -> Path:
+class FakePipeline:
+    def run(self, **kwargs):
+        video_path = kwargs["video_path"]
+        query = kwargs["query"]
+        ingestion = IngestedVideo(
+            video_id="source-video",
+            source_path=video_path,
+            metadata=VideoMetadata(duration_seconds=3700, has_audio=True),
+            frames=[],
+            audio_windows=[],
+        )
+        compression = CompressionResponse(
+            video_id="source-video",
+            query=query,
+            answer="The speaker explains the visual evidence clearly.",
+            preset=CompressionPreset.BALANCED,
+            query_intent=QueryIntent.MIXED_AV,
+            selected=[
+                SelectedCandidate(
+                    id="a-1",
+                    modality=Modality.AUDIO,
+                    timestamp_seconds=100.0,
+                    text="speaker explains visual evidence",
+                    selection_rank=1,
+                    relevance_score=1,
+                    normalized_score=1,
+                    mmr_score=1,
+                    source_score_type="test",
+                    reason="test",
+                )
+            ],
+            metrics=CompressionMetrics(
+                input_candidates=10,
+                selected_candidates=1,
+                visual_selected=0,
+                audio_selected=1,
+                estimated_candidate_reduction_ratio=0.9,
+                estimated_candidate_reduction_percent=90,
+                dropped_candidates=9,
+                budget_preset_used=CompressionPreset.BALANCED,
+                estimated_token_reduction_percent=95,
+            ),
+        )
+        return ingestion, compression
+
+
+def _write_artifact(
+    path: Path,
+    video_id: str,
+    duration_seconds: float,
+    source_path: Path | None = None,
+) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         json.dumps(
             {
                 "ingestion": {
+                    "source_path": str(source_path or "source.mp4"),
                     "metadata": {"duration_seconds": duration_seconds},
                 },
                 "compression": {

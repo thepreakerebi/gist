@@ -86,6 +86,23 @@ gist-long-video-suite \
 
 The target gates are expected to fail until the curated suite reaches `30+` long-video cases with at least `3` per major query category and regenerated transcript metadata on most artifacts. The readiness report includes an `Expansion Plan` section that converts those failed gates into concrete curation targets, such as how many more long-video cases, distinct videos, domains, or query-category examples are needed before the suite is alpha-ready. It also includes `Query Proposals` that suggest category-specific questions against existing long-video sources; treat these as starting prompts, then verify the answer terms, evidence terms, and timestamp ranges from the generated report before adding a case to the curated dataset.
 
+Run a proposed query and write a review bundle:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --curate-proposal-index 0 \
+  --curation-output-root .gist/curation \
+  --curation-visual-scorer clip_scene \
+  --curation-audio-scorer baseline
+```
+
+The curation command writes `compression.json`, `report.html`, and
+`quality-case.draft.jsonl` for the selected proposal. It returns success when the
+review bundle is written, even if the readiness gates still fail. Review the HTML
+report and edit the drafted answer terms, evidence terms, grounding threshold, and
+timestamp ranges before appending the case to `data/eval/long-video-quality.jsonl`.
+
 Draft a new quality case from an existing run:
 
 ```bash

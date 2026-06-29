@@ -8,14 +8,22 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field
 
+from gist.audio.whisper import TranscriptQuality
+from gist.core.modes import AudioScoringMode, VisualScoringMode
+from gist.core.presets import CompressionPreset
 from gist.core.query_intent import QueryIntent
 from gist.eval.quality import (
+    QualityCaseDraft,
     QualityCase,
     QualityReport,
+    draft_quality_case,
     load_quality_cases,
     render_quality_markdown,
     run_quality_cases,
 )
+from gist.media.longform import ProcessingMode
+from gist.pipeline import LocalCompressionPipeline
+from gist.reports import render_local_compression_report
 
 REQUIRED_QUERY_CATEGORIES = (
     QueryIntent.SPEECH_SEMANTIC,
@@ -76,6 +84,15 @@ class LongVideoQueryProposal(BaseModel):
     query: str
     rationale: str
     source_artifact: Path
+
+
+class LongVideoCurationResult(BaseModel):
+    proposal: LongVideoQueryProposal
+    video_path: Path
+    compression_path: Path
+    html_report_path: Path
+    draft_case_path: Path
+    draft: QualityCaseDraft
 
 
 class LongVideoArtifactAuditItem(BaseModel):
@@ -279,6 +296,74 @@ def evaluate_long_video_suite(
         health=health,
         expansion_plan=expansion_plan,
         quality=quality,
+    )
+
+
+def curate_long_video_query_proposal(
+    proposal: LongVideoQueryProposal,
+    output_root: Path,
+    sample_count: int | None = None,
+    audio_window_seconds: float | None = None,
+    visual_scorer: VisualScoringMode = VisualScoringMode.CLIP_SCENE,
+    audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+    transcript_quality: TranscriptQuality = TranscriptQuality.FAST,
+    pipeline: LocalCompressionPipeline | None = None,
+) -> LongVideoCurationResult:
+    source_payload = _load_artifact(proposal.source_artifact)
+    video_path = _artifact_source_path(source_payload, proposal.source_artifact)
+    if not video_path.exists():
+        raise FileNotFoundError(f"source video does not exist: {video_path}")
+
+    run_dir = output_root / _safe_stem(proposal.video_id) / _safe_stem(proposal.query)
+    run_dir.mkdir(parents=True, exist_ok=True)
+    active_pipeline = pipeline or LocalCompressionPipeline(output_root=output_root)
+    ingestion, compression = active_pipeline.run(
+        video_path=video_path,
+        query=proposal.query,
+        preset=CompressionPreset.BALANCED,
+        sample_count=sample_count,
+        audio_window_seconds=audio_window_seconds,
+        processing_mode=ProcessingMode.AUTO,
+        visual_scorer=visual_scorer,
+        audio_scorer=audio_scorer,
+        adaptive_budget=True,
+        decompose_query=True,
+        task_aware_selection=True,
+        visual_ocr=True,
+        transcript_quality=transcript_quality,
+    )
+
+    compression_path = run_dir / "compression.json"
+    compression_path.write_text(
+        json.dumps(
+            {
+                "ingestion": ingestion.model_dump(mode="json"),
+                "compression": compression.model_dump(mode="json"),
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    html_report_path = run_dir / "report.html"
+    html_report_path.write_text(render_local_compression_report(ingestion, compression))
+
+    draft = draft_quality_case(compression_path=compression_path)
+    draft_case = draft.case.model_copy(
+        update={
+            "query_category": proposal.query_category,
+            "domain": proposal.domain,
+        }
+    )
+    draft = QualityCaseDraft(case=draft_case, notes=draft.notes)
+    draft_case_path = run_dir / "quality-case.draft.jsonl"
+    draft_case_path.write_text(draft.case.model_dump_json(exclude_none=True) + "\n")
+    return LongVideoCurationResult(
+        proposal=proposal,
+        video_path=video_path,
+        compression_path=compression_path,
+        html_report_path=html_report_path,
+        draft_case_path=draft_case_path,
+        draft=draft,
     )
 
 
@@ -649,6 +734,36 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--audit-output", type=Path)
     parser.add_argument("--output-root", type=Path, default=Path(".gist/long-video-suite"))
     parser.add_argument("--run-quality", action="store_true")
+    parser.add_argument(
+        "--curate-proposal-index",
+        type=int,
+        help=(
+            "Run a query proposal by zero-based index from the current expansion plan "
+            "and write a review bundle with compression.json, report.html, and draft JSONL."
+        ),
+    )
+    parser.add_argument(
+        "--curation-output-root",
+        type=Path,
+        default=Path(".gist/curation"),
+    )
+    parser.add_argument("--curation-sample-count", type=int)
+    parser.add_argument("--curation-audio-window-seconds", type=float)
+    parser.add_argument(
+        "--curation-visual-scorer",
+        choices=list(VisualScoringMode),
+        default=VisualScoringMode.CLIP_SCENE,
+    )
+    parser.add_argument(
+        "--curation-audio-scorer",
+        choices=list(AudioScoringMode),
+        default=AudioScoringMode.BASELINE,
+    )
+    parser.add_argument(
+        "--curation-transcript-quality",
+        choices=list(TranscriptQuality),
+        default=TranscriptQuality.FAST,
+    )
     parser.add_argument("--min-cases", type=int, default=30)
     parser.add_argument("--min-distinct-videos", type=int, default=5)
     parser.add_argument("--min-distinct-domains", type=int, default=3)
@@ -693,6 +808,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.html_output is not None:
         args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(render_long_video_suite_html(report))
+    curation_requested = args.curate_proposal_index is not None
+    if curation_requested:
+        proposals = report.expansion_plan.query_proposals
+        if args.curate_proposal_index < 0 or args.curate_proposal_index >= len(proposals):
+            raise SystemExit(
+                f"--curate-proposal-index must be between 0 and {len(proposals) - 1}"
+            )
+        curation = curate_long_video_query_proposal(
+            proposal=proposals[args.curate_proposal_index],
+            output_root=args.curation_output_root,
+            sample_count=args.curation_sample_count,
+            audio_window_seconds=args.curation_audio_window_seconds,
+            visual_scorer=VisualScoringMode(args.curation_visual_scorer),
+            audio_scorer=AudioScoringMode(args.curation_audio_scorer),
+            transcript_quality=TranscriptQuality(args.curation_transcript_quality),
+        )
+        print(f"curation_compression={curation.compression_path}")
+        print(f"curation_report={curation.html_report_path}")
+        print(f"curation_draft={curation.draft_case_path}")
     if args.audit_root is not None or args.audit_output is not None:
         audit = audit_long_video_artifacts(
             root=args.audit_root or Path(".gist/runs"),
@@ -717,6 +851,8 @@ def main(argv: list[str] | None = None) -> int:
                 f"  - {result.name}: actual={result.actual:.2f}, "
                 f"required={result.required:.2f}"
             )
+    if curation_requested:
+        return 0
     return 0 if report.passed else 1
 
 
@@ -926,6 +1062,27 @@ def _proposal_rationale(
         f"{category.value} is among the least-covered categories and can help grow "
         "the long-video suite toward the total-case gate."
     )
+
+
+def _artifact_source_path(payload: dict, artifact_path: Path) -> Path:
+    ingestion = payload.get("ingestion")
+    if not isinstance(ingestion, dict):
+        raise ValueError(f"{artifact_path}: ingestion metadata is required")
+    source = ingestion.get("source_path")
+    if not source:
+        raise ValueError(f"{artifact_path}: ingestion.source_path is required")
+    source_path = Path(str(source)).expanduser()
+    if source_path.is_absolute():
+        return source_path
+    if source_path.exists():
+        return source_path.resolve(strict=False)
+    return (artifact_path.parent / source_path).resolve(strict=False)
+
+
+def _safe_stem(value: str | Path) -> str:
+    text = Path(value).stem if isinstance(value, Path) else str(value)
+    slug = re.sub(r"[^a-zA-Z0-9._-]+", "-", text.strip().lower()).strip("-")
+    return slug or "gist-run"
 
 
 def _average(values: list[float] | list[int]) -> float:
