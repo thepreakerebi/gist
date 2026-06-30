@@ -11,9 +11,11 @@ from gist.eval.long_video_suite import (
     LongVideoSuiteGates,
     append_reviewed_long_video_quality_draft,
     audit_long_video_artifacts,
+    build_long_video_curation_queue,
     curate_long_video_query_proposal,
     evaluate_long_video_suite,
     main,
+    render_long_video_curation_queue_markdown,
     review_long_video_quality_draft,
     render_long_video_suite_html,
     render_long_video_suite_markdown,
@@ -114,6 +116,44 @@ def test_long_video_suite_expansion_plan_prioritizes_missing_categories(
     assert "Query Proposals" in markdown
     assert "Missing Query Categories" in html
     assert "Proposed Query" in html
+
+
+def test_long_video_curation_queue_reports_next_actions(tmp_path: Path) -> None:
+    speech_case = QualityCase(
+        id="speech",
+        query_category=QueryIntent.SPEECH_SEMANTIC,
+        domain="education",
+        compression_path=_write_artifact(
+            tmp_path / "speech" / "compression.json",
+            "speech-video",
+            3700,
+        ),
+        expected_answer_terms=["answer"],
+        expected_evidence_terms=["evidence"],
+    )
+    report = evaluate_long_video_suite(
+        [speech_case],
+        LongVideoSuiteGates(
+            min_cases=6,
+            min_distinct_videos=2,
+            min_distinct_domains=2,
+            min_cases_per_category=2,
+        ),
+    )
+
+    queue = build_long_video_curation_queue(
+        report=report,
+        dataset_path=tmp_path / "suite.jsonl",
+    )
+    markdown = render_long_video_curation_queue_markdown(queue)
+
+    assert queue.needed_cases == 5
+    assert queue.needed_by_category[QueryIntent.MIXED_AV.value] == 2
+    assert queue.items
+    assert queue.items[0].proposal_index == 0
+    assert "--curate-proposal-index 0" in queue.items[0].command
+    assert "Gist Long-Video Curation Queue" in markdown
+    assert "Run proposal `0` first" in markdown
 
 
 def test_long_video_suite_reports_run_health_failures(tmp_path: Path) -> None:
@@ -301,6 +341,45 @@ def test_long_video_suite_cli_writes_artifact_audit(tmp_path: Path, capsys) -> N
     assert audit_path.exists()
     audit = json.loads(audit_path.read_text())
     assert audit["candidate_artifacts"] == 1
+
+
+def test_long_video_suite_cli_writes_curation_queue(tmp_path: Path, capsys) -> None:
+    cases = _cases(tmp_path)
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        "\n".join(case.model_dump_json(exclude_none=True) for case in cases) + "\n"
+    )
+    queue_path = tmp_path / "reports" / "queue.json"
+    queue_markdown_path = tmp_path / "reports" / "queue.md"
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--queue-output",
+            str(queue_path),
+            "--queue-markdown-output",
+            str(queue_markdown_path),
+            "--min-cases",
+            "7",
+            "--min-distinct-videos",
+            "5",
+            "--min-distinct-domains",
+            "3",
+            "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
+            "1",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "queue_items=" in output
+    queue = json.loads(queue_path.read_text())
+    assert queue["needed_cases"] == 2
+    assert queue["items"]
+    assert "Curation Queue" in queue_markdown_path.read_text()
 
 
 def test_curate_long_video_query_proposal_writes_review_bundle(tmp_path: Path) -> None:

@@ -115,6 +115,38 @@ class LongVideoDraftAppendResult(BaseModel):
     case_id: str | None = None
 
 
+class LongVideoCurationQueueItem(BaseModel):
+    proposal_index: int
+    video_id: str
+    domain: str
+    query_category: QueryIntent
+    query: str
+    rationale: str
+    source_artifact: Path
+    command: str
+
+
+class LongVideoCurationQueueReport(BaseModel):
+    passed: bool
+    case_count: int
+    target_case_count: int
+    needed_cases: int
+    long_video_case_count: int
+    needed_long_video_cases: int
+    distinct_videos: int
+    target_distinct_videos: int
+    distinct_domains: int
+    target_distinct_domains: int
+    category_counts: dict[str, int]
+    needed_by_category: dict[str, int]
+    priority_actions: list[str]
+    items: list[LongVideoCurationQueueItem]
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2) + "\n")
+
+
 class LongVideoArtifactAuditItem(BaseModel):
     path: Path
     curated: bool
@@ -404,6 +436,51 @@ def review_long_video_quality_draft(draft_path: Path) -> LongVideoCurationReview
             recommendation="Split or fix the draft before appending it to the curated dataset.",
         )
     return _review_quality_case_for_dataset(cases[0])
+
+
+def build_long_video_curation_queue(
+    report: LongVideoSuiteReport,
+    dataset_path: Path,
+    curation_output_root: Path = Path(".gist/curation"),
+    visual_scorer: VisualScoringMode = VisualScoringMode.CLIP_SCENE,
+    audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+) -> LongVideoCurationQueueReport:
+    items = [
+        LongVideoCurationQueueItem(
+            proposal_index=index,
+            video_id=proposal.video_id,
+            domain=proposal.domain,
+            query_category=proposal.query_category,
+            query=proposal.query,
+            rationale=proposal.rationale,
+            source_artifact=proposal.source_artifact,
+            command=(
+                "gist-long-video-suite "
+                f"--dataset {dataset_path} "
+                f"--curate-proposal-index {index} "
+                f"--curation-output-root {curation_output_root} "
+                f"--curation-visual-scorer {visual_scorer.value} "
+                f"--curation-audio-scorer {audio_scorer.value}"
+            ),
+        )
+        for index, proposal in enumerate(report.expansion_plan.query_proposals)
+    ]
+    return LongVideoCurationQueueReport(
+        passed=report.passed,
+        case_count=report.case_count,
+        target_case_count=report.gates.min_cases,
+        needed_cases=report.expansion_plan.needed_cases,
+        long_video_case_count=report.long_video_case_count,
+        needed_long_video_cases=report.expansion_plan.needed_long_video_cases,
+        distinct_videos=len(report.video_counts),
+        target_distinct_videos=report.gates.min_distinct_videos,
+        distinct_domains=len(report.domain_counts),
+        target_distinct_domains=report.gates.min_distinct_domains,
+        category_counts=report.category_counts,
+        needed_by_category=report.expansion_plan.needed_by_category,
+        priority_actions=report.expansion_plan.priority_actions,
+        items=items,
+    )
 
 
 def append_reviewed_long_video_quality_draft(
@@ -809,6 +886,59 @@ def render_long_video_suite_html(report: LongVideoSuiteReport) -> str:
 """
 
 
+def render_long_video_curation_queue_markdown(
+    queue: LongVideoCurationQueueReport,
+) -> str:
+    category_rows = "\n".join(
+        f"| {category.value} | {queue.category_counts.get(category.value, 0)} | "
+        f"{queue.needed_by_category.get(category.value, 0)} |"
+        for category in REQUIRED_QUERY_CATEGORIES
+    )
+    priority_lines = "\n".join(
+        f"- {action}" for action in queue.priority_actions
+    ) or "- No curation actions required by the configured gates."
+    queue_rows = "\n".join(
+        f"| {item.proposal_index} | {item.video_id} | {item.query_category.value} | "
+        f"{item.query} | `{item.command}` |"
+        for item in queue.items
+    ) or "| - | - | - | No proposal needed. | - |"
+    next_step = (
+        f"Run proposal `{queue.items[0].proposal_index}` first, then review and append its draft."
+        if queue.items
+        else "No queued curation proposal is needed for the configured gates."
+    )
+    return f"""# Gist Long-Video Curation Queue
+
+- Passed target gates: {"yes" if queue.passed else "no"}
+- Cases: {queue.case_count}/{queue.target_case_count}
+- Long-video cases: {queue.long_video_case_count}/{queue.target_case_count}
+- Distinct videos: {queue.distinct_videos}/{queue.target_distinct_videos}
+- Distinct domains: {queue.distinct_domains}/{queue.target_distinct_domains}
+- Additional cases needed: {queue.needed_cases}
+- Additional long-video cases needed: {queue.needed_long_video_cases}
+
+## Category Coverage
+
+| Category | Current Cases | Additional Needed |
+|---|---:|---:|
+{category_rows}
+
+## Priority Actions
+
+{priority_lines}
+
+## Queue
+
+| Index | Video | Category | Query | Command |
+|---:|---|---|---|---|
+{queue_rows}
+
+## Next Step
+
+{next_step}
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Check coverage and optionally run quality for the curated long-video suite."
@@ -817,6 +947,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--markdown-output", type=Path)
     parser.add_argument("--html-output", type=Path)
+    parser.add_argument("--queue-output", type=Path)
+    parser.add_argument("--queue-markdown-output", type=Path)
     parser.add_argument(
         "--review-draft",
         type=Path,
@@ -938,6 +1070,23 @@ def main(argv: list[str] | None = None) -> int:
     if args.html_output is not None:
         args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(render_long_video_suite_html(report))
+    queue = None
+    if args.queue_output is not None or args.queue_markdown_output is not None:
+        queue = build_long_video_curation_queue(
+            report=report,
+            dataset_path=args.dataset,
+            curation_output_root=args.curation_output_root,
+            visual_scorer=VisualScoringMode(args.curation_visual_scorer),
+            audio_scorer=AudioScoringMode(args.curation_audio_scorer),
+        )
+        if args.queue_output is not None:
+            queue.write_json(args.queue_output)
+        if args.queue_markdown_output is not None:
+            args.queue_markdown_output.parent.mkdir(parents=True, exist_ok=True)
+            args.queue_markdown_output.write_text(
+                render_long_video_curation_queue_markdown(queue)
+            )
+        print(f"queue_items={len(queue.items)}")
     curation_requested = args.curate_proposal_index is not None
     if curation_requested:
         proposals = report.expansion_plan.query_proposals
