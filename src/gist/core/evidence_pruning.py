@@ -63,6 +63,9 @@ def prune_evidence_to_answer(
     if _is_mixed_speech_answer_query(compression):
         max_items = min(max_items, 2)
         min_items = min(min_items, 1)
+    if _is_transcript_first_question(compression):
+        max_items = min(max_items, 1)
+        min_items = min(min_items, 1)
     if not compression.answer or len(compression.selected) <= max_items:
         return compression
 
@@ -802,6 +805,13 @@ def _should_demote_visual_support(compression: CompressionResponse) -> bool:
 
 def _is_transcript_first_query(compression: CompressionResponse) -> bool:
     return getattr(compression.query_intent, "value", None) == "speech_semantic"
+
+
+def _is_transcript_first_question(compression: CompressionResponse) -> bool:
+    if not _is_transcript_first_query(compression):
+        return False
+    query = compression.query.lower()
+    return bool(re.search(r"(?:^|[\s,;:])(what|why|how|when|where|who|which)\s+", query))
 
 
 def _is_mixed_speech_answer_query(compression: CompressionResponse) -> bool:

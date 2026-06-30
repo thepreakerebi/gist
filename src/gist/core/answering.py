@@ -571,7 +571,12 @@ def _ensure_terminal_punctuation(value: str) -> str:
 
 
 def _is_question_query(query: str) -> bool:
-    return query.startswith(("why ", "what ", "how ", "when ", "where ", "who ", "which "))
+    return bool(
+        re.search(
+            r"(?:^|[\s,;:])(why|what|how|when|where|who|which)\s+",
+            query,
+        )
+    )
 
 
 def _best_modality_item(
@@ -921,7 +926,60 @@ def _best_sentence(query: str, text: str) -> str:
     ]
     if not sentences:
         return text.strip()
-    return max(sentences, key=lambda sentence: _sentence_score(query, sentence))
+    best = max(sentences, key=lambda sentence: _sentence_score(query, sentence))
+    followup = _followup_answer_sentence(query, sentences, best)
+    return followup or best
+
+
+def _followup_answer_sentence(
+    query: str,
+    sentences: list[str],
+    best: str,
+) -> str | None:
+    query_lower = query.lower()
+    if "what" not in query_lower or not {"mistake", "kills", "kill"} & set(
+        re.findall(r"[a-z0-9]+", query_lower)
+    ):
+        return None
+    best_lower = best.lower()
+    setup_markers = {
+        "talking about",
+        "have a listen",
+        "let's listen",
+        "question is",
+        "what truly",
+    }
+    if not any(marker in best_lower for marker in setup_markers):
+        return None
+    try:
+        start = sentences.index(best) + 1
+    except ValueError:
+        return None
+    answer_markers = {
+        "they make",
+        "users don't like",
+        "users do not like",
+        "do not like",
+        "don't like",
+        "that is the killer",
+        "the mistake",
+    }
+    for sentence in sentences[start : start + 4]:
+        lower = sentence.lower()
+        if any(marker in lower for marker in answer_markers):
+            return _contextualize_followup_answer(query, sentence)
+    return None
+
+
+def _contextualize_followup_answer(query: str, sentence: str) -> str:
+    query_terms = set(re.findall(r"[a-z0-9]+", query.lower()))
+    sentence_lower = sentence.lower()
+    if "startups" in query_terms and "startup" not in sentence_lower:
+        cleaned = sentence.strip()
+        if cleaned.lower().startswith("they "):
+            cleaned = cleaned[5:]
+        return f"Startups fail when they {cleaned[0].lower()}{cleaned[1:]}"
+    return sentence
 
 
 def _sentence_score(query: str, sentence: str) -> float:

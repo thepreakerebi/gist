@@ -3,6 +3,7 @@ import json
 import re
 import shlex
 import subprocess
+import sys
 from collections import Counter
 from html import escape
 from pathlib import Path
@@ -528,7 +529,8 @@ def build_long_video_curation_queue(
 def build_long_video_metadata_refresh_queue(
     cases: list[QualityCase],
     target_transcript_quality: TranscriptQuality = TranscriptQuality.BALANCED,
-    output_root: Path = Path(".gist/runs"),
+    visual_scorer: VisualScoringMode = VisualScoringMode.BASELINE,
+    output_root: Path = Path(".gist/metadata-refresh"),
 ) -> LongVideoMetadataRefreshQueueReport:
     items: list[LongVideoMetadataRefreshQueueItem] = []
     for case in cases:
@@ -545,7 +547,7 @@ def build_long_video_metadata_refresh_queue(
         if not query:
             continue
         source_path = _artifact_source_path(payload, case.compression_path)
-        command_args = [
+        display_command_args = [
             "gist-compress",
             str(source_path),
             "--query",
@@ -557,7 +559,7 @@ def build_long_video_metadata_refresh_queue(
             "--processing-mode",
             str(case.processing_mode.value),
             "--visual-scorer",
-            str(case.visual_scorer.value),
+            str(visual_scorer.value),
             "--audio-scorer",
             str(AudioScoringMode.WHISPER.value),
             "--transcript-quality",
@@ -565,11 +567,15 @@ def build_long_video_metadata_refresh_queue(
             "--html-report",
             "--auto-transcript-retry",
         ]
+        command_args = [sys.executable, "-m", "gist.cli", *display_command_args[1:]]
         if case.adaptive_budget:
+            display_command_args.append("--adaptive-budget")
             command_args.append("--adaptive-budget")
         if case.decompose_query:
+            display_command_args.append("--decompose-query")
             command_args.append("--decompose-query")
         if not case.visual_ocr:
+            display_command_args.append("--no-visual-ocr")
             command_args.append("--no-visual-ocr")
         items.append(
             LongVideoMetadataRefreshQueueItem(
@@ -579,7 +585,7 @@ def build_long_video_metadata_refresh_queue(
                 compression_path=case.compression_path,
                 source_path=source_path,
                 current_transcript_quality=current_quality,
-                command=shlex.join(command_args),
+                command=shlex.join(display_command_args),
                 command_args=command_args,
             )
         )
@@ -1118,6 +1124,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--metadata-refresh-markdown-output", type=Path)
     parser.add_argument("--metadata-refresh-run-output", type=Path)
     parser.add_argument(
+        "--metadata-refresh-output-root",
+        type=Path,
+        default=Path(".gist/metadata-refresh"),
+        help="Output root for refreshed artifacts; defaults to a non-destructive review area.",
+    )
+    parser.add_argument(
         "--run-metadata-refresh",
         action="store_true",
         help="Execute queued transcript metadata refresh commands.",
@@ -1131,6 +1143,12 @@ def main(argv: list[str] | None = None) -> int:
         "--metadata-refresh-quality",
         choices=list(TranscriptQuality),
         default=TranscriptQuality.BALANCED,
+    )
+    parser.add_argument(
+        "--metadata-refresh-visual-scorer",
+        choices=list(VisualScoringMode),
+        default=VisualScoringMode.BASELINE,
+        help="Visual scorer used for metadata refresh reruns; baseline avoids CLIP downloads.",
     )
     parser.add_argument(
         "--review-draft",
@@ -1284,6 +1302,8 @@ def main(argv: list[str] | None = None) -> int:
         metadata_refresh = build_long_video_metadata_refresh_queue(
             cases=cases,
             target_transcript_quality=TranscriptQuality(args.metadata_refresh_quality),
+            visual_scorer=VisualScoringMode(args.metadata_refresh_visual_scorer),
+            output_root=args.metadata_refresh_output_root,
         )
         if args.metadata_refresh_output is not None:
             metadata_refresh.write_json(args.metadata_refresh_output)

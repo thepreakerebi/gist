@@ -715,6 +715,41 @@ def test_prune_evidence_to_answer_citations_allows_single_cited_evidence() -> No
     assert [item.id for item in pruned.selected] == ["answer"]
 
 
+def test_prune_evidence_to_answer_keeps_one_speech_question_answer() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="According to the video, what mistake truly kills startups?",
+        query_intent=QueryIntent.SPEECH_SEMANTIC,
+        answer="Startups fail when they make something that users don't like.",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            _item("context", 405, "startup founders think about wisdom"),
+            _item("business", 2535, "startups create value and people pay them"),
+            _item("answer", 3285, "They make something that users don't like."),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=20,
+            selected_candidates=3,
+            visual_selected=0,
+            audio_selected=3,
+            estimated_candidate_reduction_ratio=0.15,
+            estimated_candidate_reduction_percent=85,
+            dropped_candidates=17,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_baseline_tokens=640,
+            estimated_compressed_tokens=96,
+            estimated_saved_tokens=544,
+            estimated_token_reduction_ratio=0.15,
+            estimated_token_reduction_percent=85,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression)
+
+    assert [item.id for item in pruned.selected] == ["answer"]
+
+
 def test_consolidate_redundant_evidence_keeps_strongest_representative() -> None:
     compression = CompressionResponse(
         video_id="demo",

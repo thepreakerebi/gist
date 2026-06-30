@@ -429,6 +429,8 @@ def test_long_video_metadata_refresh_queue_reports_missing_metadata(tmp_path: Pa
     assert queue.refresh_needed == 1
     assert queue.items[0].case_id == "missing"
     assert "source video.mp4" in queue.items[0].command
+    assert "--output-root .gist/metadata-refresh" in queue.items[0].command
+    assert "--visual-scorer baseline" in queue.items[0].command
     assert "--audio-scorer whisper" in queue.items[0].command
     assert "--transcript-quality balanced" in queue.items[0].command
     assert "Transcript Metadata Refresh Queue" in markdown
@@ -526,7 +528,7 @@ def test_run_long_video_metadata_refresh_queue_respects_limit(tmp_path: Path) ->
     assert report.succeeded == 1
     assert report.failed == 0
     assert len(calls) == 1
-    assert calls[0][0][0] == "gist-compress"
+    assert calls[0][0][1:3] == ["-m", "gist.cli"]
     assert calls[0][1] is False
 
 

@@ -105,12 +105,17 @@ gist-long-video-suite \
   --dataset data/eval/long-video-quality.jsonl \
   --metadata-refresh-output reports/long-video-suite/metadata-refresh-queue.json \
   --metadata-refresh-markdown-output reports/long-video-suite/metadata-refresh-queue.md \
-  --metadata-refresh-quality balanced
+  --metadata-refresh-output-root .gist/metadata-refresh \
+  --metadata-refresh-quality balanced \
+  --metadata-refresh-visual-scorer baseline
 ```
 
 Use this when target readiness fails on `transcript_metadata_rate`. The generated
 commands rerun older curated cases with Whisper-backed audio scoring so refreshed
-artifacts include transcript metadata.
+artifacts include transcript metadata. The default refresh visual scorer is
+`baseline` to avoid unnecessary CLIP downloads during transcript-only refreshes.
+Refreshed artifacts are written to `.gist/metadata-refresh` by default so curated
+dataset artifacts are not overwritten before review.
 
 Run a controlled metadata refresh batch:
 
@@ -119,11 +124,13 @@ gist-long-video-suite \
   --dataset data/eval/long-video-quality.jsonl \
   --run-metadata-refresh \
   --metadata-refresh-limit 1 \
+  --metadata-refresh-output-root .gist/metadata-refresh \
   --metadata-refresh-run-output reports/long-video-suite/metadata-refresh-run.json
 ```
 
-Start with a limit of `1`, inspect the regenerated report, then increase the
-limit once the refreshed case still passes quality.
+Start with a limit of `1`, inspect the regenerated report, then only promote or
+recapture the case if the refreshed artifact still passes the curated quality
+thresholds.
 
 Run a proposed query and write a review bundle:
 

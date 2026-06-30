@@ -60,6 +60,60 @@ def test_answer_from_evidence_extracts_why_answer_signal() -> None:
     )
 
 
+def test_answer_from_evidence_prefers_startup_mistake_followup_sentence() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="According to the video, what mistake truly kills startups?",
+        preset=CompressionPreset.BALANCED,
+        selected=[
+            SelectedCandidate(
+                id="context",
+                modality=Modality.AUDIO,
+                timestamp_seconds=405,
+                text="He is wise about startups and doing the right things in order.",
+                selection_rank=1,
+                relevance_score=0.3,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+            SelectedCandidate(
+                id="answer",
+                modality=Modality.AUDIO,
+                timestamp_seconds=3285,
+                text=(
+                    "He's talking about what truly kills startups. "
+                    "They make something that users don't like. "
+                    "That is the killer of all startups."
+                ),
+                selection_rank=2,
+                relevance_score=0.5,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="lexical_overlap",
+                reason="test",
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=2,
+            selected_candidates=2,
+            visual_selected=0,
+            audio_selected=2,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert (
+        answer_from_evidence(compression)
+        == "Startups fail when they make something that users don't like."
+    )
+
+
 def test_answer_from_evidence_summarizes_global_topics_across_timeline() -> None:
     compression = CompressionResponse(
         video_id="demo",
