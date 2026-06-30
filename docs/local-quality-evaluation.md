@@ -86,6 +86,21 @@ gist-long-video-suite \
 
 The target gates are expected to fail until the curated suite reaches `30+` long-video cases with at least `3` per major query category and regenerated transcript metadata on most artifacts. The readiness report includes an `Expansion Plan` section that converts those failed gates into concrete curation targets, such as how many more long-video cases, distinct videos, domains, or query-category examples are needed before the suite is alpha-ready. It also includes `Query Proposals` that suggest category-specific questions against existing long-video sources; treat these as starting prompts, then verify the answer terms, evidence terms, and timestamp ranges from the generated report before adding a case to the curated dataset.
 
+Write the combined roundup report:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --roundup-output reports/long-video-suite/roundup.json \
+  --roundup-markdown-output reports/long-video-suite/roundup.md
+```
+
+Use this as the main handoff/status artifact. It combines target readiness,
+curation gaps, transcript metadata refresh gaps, next curation command, next
+metadata refresh command, and the promotion command template. When `Ready for
+paper freeze` is `yes`, the curated long-video suite is ready to freeze for the
+research paper experiments.
+
 Write the next-action curation queue:
 
 ```bash

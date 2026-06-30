@@ -13,12 +13,14 @@ from gist.eval.long_video_suite import (
     audit_long_video_artifacts,
     build_long_video_curation_queue,
     build_long_video_metadata_refresh_queue,
+    build_long_video_roundup_report,
     curate_long_video_query_proposal,
     evaluate_long_video_suite,
     main,
     promote_long_video_metadata_refresh,
     render_long_video_curation_queue_markdown,
     render_long_video_metadata_refresh_queue_markdown,
+    render_long_video_roundup_markdown,
     review_long_video_quality_draft,
     render_long_video_suite_html,
     render_long_video_suite_markdown,
@@ -384,6 +386,81 @@ def test_long_video_suite_cli_writes_curation_queue(tmp_path: Path, capsys) -> N
     assert queue["needed_cases"] == 2
     assert queue["items"]
     assert "Curation Queue" in queue_markdown_path.read_text()
+
+
+def test_long_video_roundup_report_summarizes_remaining_work(tmp_path: Path) -> None:
+    cases = _cases(tmp_path)
+    for case in cases[:2]:
+        payload = json.loads(case.compression_path.read_text())
+        payload["compression"]["transcript_metadata"] = None
+        case.compression_path.write_text(json.dumps(payload) + "\n")
+    report = evaluate_long_video_suite(
+        cases,
+        LongVideoSuiteGates(
+            min_cases=7,
+            min_distinct_videos=5,
+            min_distinct_domains=3,
+            min_cases_per_category=1,
+            min_transcript_metadata_rate=0.8,
+        ),
+    )
+    curation_queue = build_long_video_curation_queue(report, tmp_path / "suite.jsonl")
+    metadata_queue = build_long_video_metadata_refresh_queue(cases)
+
+    roundup = build_long_video_roundup_report(report, curation_queue, metadata_queue)
+    markdown = render_long_video_roundup_markdown(roundup)
+
+    assert not roundup.ready_for_paper
+    assert roundup.needed_cases == 2
+    assert roundup.metadata_refresh_remaining == 2
+    assert roundup.metadata_refresh_needed_for_target == 1
+    assert roundup.next_curation_command is not None
+    assert roundup.next_metadata_refresh_command is not None
+    assert roundup.target_failures
+    assert "Gist Long-Video Roundup" in markdown
+    assert "Metadata refreshes needed for target: 1" in markdown
+
+
+def test_long_video_suite_cli_writes_roundup_report(tmp_path: Path, capsys) -> None:
+    cases = _cases(tmp_path)
+    payload = json.loads(cases[0].compression_path.read_text())
+    payload["compression"]["transcript_metadata"] = None
+    cases[0].compression_path.write_text(json.dumps(payload) + "\n")
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        "\n".join(case.model_dump_json(exclude_none=True) for case in cases) + "\n"
+    )
+    roundup_path = tmp_path / "reports" / "roundup.json"
+    roundup_markdown_path = tmp_path / "reports" / "roundup.md"
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--roundup-output",
+            str(roundup_path),
+            "--roundup-markdown-output",
+            str(roundup_markdown_path),
+            "--min-cases",
+            "7",
+            "--min-distinct-videos",
+            "5",
+            "--min-distinct-domains",
+            "3",
+            "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
+            "1",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "roundup_actions=" in output
+    roundup = json.loads(roundup_path.read_text())
+    assert roundup["needed_cases"] == 2
+    assert roundup["metadata_refresh_remaining"] == 1
+    assert "Ready for paper freeze: no" in roundup_markdown_path.read_text()
 
 
 def test_long_video_metadata_refresh_queue_reports_missing_metadata(tmp_path: Path) -> None:

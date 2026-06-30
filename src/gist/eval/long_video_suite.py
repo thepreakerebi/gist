@@ -7,6 +7,7 @@ import subprocess
 import sys
 from collections import Counter
 from html import escape
+from math import ceil
 from pathlib import Path
 from typing import Annotated
 
@@ -167,6 +168,35 @@ class LongVideoMetadataRefreshQueueReport(BaseModel):
     refresh_needed: int
     target_transcript_quality: TranscriptQuality
     items: list[LongVideoMetadataRefreshQueueItem]
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2) + "\n")
+
+
+class LongVideoRoundupReport(BaseModel):
+    ready_for_paper: bool
+    passed_target_gates: bool
+    case_count: int
+    target_case_count: int
+    needed_cases: int
+    long_video_case_count: int
+    needed_long_video_cases: int
+    distinct_videos: int
+    target_distinct_videos: int
+    distinct_domains: int
+    target_distinct_domains: int
+    category_counts: dict[str, int]
+    needed_by_category: dict[str, int]
+    transcript_metadata_rate: float
+    target_transcript_metadata_rate: float
+    metadata_refresh_remaining: int
+    metadata_refresh_needed_for_target: int
+    target_failures: list[LongVideoSuiteGateResult]
+    next_actions: list[str]
+    next_curation_command: str | None = None
+    next_metadata_refresh_command: str | None = None
+    promotion_command_template: str | None = None
 
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -608,6 +638,76 @@ def build_long_video_metadata_refresh_queue(
         refresh_needed=len(items),
         target_transcript_quality=target_transcript_quality,
         items=items,
+    )
+
+
+def build_long_video_roundup_report(
+    report: LongVideoSuiteReport,
+    curation_queue: LongVideoCurationQueueReport,
+    metadata_refresh_queue: LongVideoMetadataRefreshQueueReport,
+) -> LongVideoRoundupReport:
+    current_metadata_count = int(
+        round(report.health.transcript_metadata_rate * report.case_count)
+    )
+    target_metadata_count = ceil(
+        report.gates.min_transcript_metadata_rate * report.case_count
+    )
+    metadata_refresh_needed_for_target = min(
+        metadata_refresh_queue.refresh_needed,
+        max(0, target_metadata_count - current_metadata_count),
+    )
+    target_failures = [result for result in report.gate_results if not result.passed]
+    next_actions = list(report.expansion_plan.priority_actions)
+    if metadata_refresh_needed_for_target > 0:
+        next_actions.insert(
+            0,
+            "Refresh and promote "
+            f"{metadata_refresh_needed_for_target} curated case(s) with transcript "
+            "metadata to meet the metadata coverage gate.",
+        )
+    if not target_failures:
+        next_actions = [
+            "Freeze the curated long-video dataset and start paper experiments/ablations."
+        ]
+    promotion_template = None
+    if metadata_refresh_queue.items:
+        promotion_template = (
+            "gist-long-video-suite --dataset data/eval/long-video-quality.jsonl "
+            "--promote-metadata-refresh-case <case-id> "
+            "--promote-metadata-refresh-compression "
+            ".gist/metadata-refresh/<video-slug>/<query-slug>/compression.json "
+            "--metadata-refresh-promotion-output "
+            "reports/long-video-suite/metadata-refresh-promotion.json"
+        )
+    return LongVideoRoundupReport(
+        ready_for_paper=report.passed,
+        passed_target_gates=report.passed,
+        case_count=report.case_count,
+        target_case_count=report.gates.min_cases,
+        needed_cases=report.expansion_plan.needed_cases,
+        long_video_case_count=report.long_video_case_count,
+        needed_long_video_cases=report.expansion_plan.needed_long_video_cases,
+        distinct_videos=len(report.video_counts),
+        target_distinct_videos=report.gates.min_distinct_videos,
+        distinct_domains=len(report.domain_counts),
+        target_distinct_domains=report.gates.min_distinct_domains,
+        category_counts=report.category_counts,
+        needed_by_category=report.expansion_plan.needed_by_category,
+        transcript_metadata_rate=report.health.transcript_metadata_rate,
+        target_transcript_metadata_rate=report.gates.min_transcript_metadata_rate,
+        metadata_refresh_remaining=metadata_refresh_queue.refresh_needed,
+        metadata_refresh_needed_for_target=metadata_refresh_needed_for_target,
+        target_failures=target_failures,
+        next_actions=next_actions,
+        next_curation_command=(
+            curation_queue.items[0].command if curation_queue.items else None
+        ),
+        next_metadata_refresh_command=(
+            metadata_refresh_queue.items[0].command
+            if metadata_refresh_queue.items
+            else None
+        ),
+        promotion_command_template=promotion_template,
     )
 
 
@@ -1201,6 +1301,71 @@ def render_long_video_metadata_refresh_queue_markdown(
 """
 
 
+def render_long_video_roundup_markdown(report: LongVideoRoundupReport) -> str:
+    category_rows = "\n".join(
+        f"| {category.value} | {report.category_counts.get(category.value, 0)} | "
+        f"{report.needed_by_category.get(category.value, 0)} |"
+        for category in REQUIRED_QUERY_CATEGORIES
+    )
+    failure_rows = "\n".join(
+        f"| {failure.name} | {failure.actual:.2f} | {failure.required:.2f} | "
+        f"{failure.message} |"
+        for failure in report.target_failures
+    ) or "| - | - | - | No target gate failures. |"
+    action_lines = "\n".join(
+        f"{index}. {action}" for index, action in enumerate(report.next_actions, start=1)
+    ) or "1. No next action required."
+    curation_command = (
+        f"`{report.next_curation_command}`"
+        if report.next_curation_command
+        else "No curation command required."
+    )
+    metadata_command = (
+        f"`{report.next_metadata_refresh_command}`"
+        if report.next_metadata_refresh_command
+        else "No metadata refresh command required."
+    )
+    promotion_command = (
+        f"`{report.promotion_command_template}`"
+        if report.promotion_command_template
+        else "No metadata promotion command required."
+    )
+    return f"""# Gist Long-Video Roundup
+
+- Ready for paper freeze: {"yes" if report.ready_for_paper else "no"}
+- Passed target gates: {"yes" if report.passed_target_gates else "no"}
+- Cases: {report.case_count}/{report.target_case_count}
+- Long-video cases: {report.long_video_case_count}/{report.target_case_count}
+- Distinct videos: {report.distinct_videos}/{report.target_distinct_videos}
+- Distinct domains: {report.distinct_domains}/{report.target_distinct_domains}
+- Transcript metadata rate: {report.transcript_metadata_rate:.2f}/{report.target_transcript_metadata_rate:.2f}
+- Metadata refreshes queued: {report.metadata_refresh_remaining}
+- Metadata refreshes needed for target: {report.metadata_refresh_needed_for_target}
+
+## Category Coverage
+
+| Category | Current Cases | Additional Needed |
+|---|---:|---:|
+{category_rows}
+
+## Target Failures
+
+| Gate | Actual | Required | Message |
+|---|---:|---:|---|
+{failure_rows}
+
+## Next Actions
+
+{action_lines}
+
+## Commands
+
+- Next curation: {curation_command}
+- Next metadata refresh: {metadata_command}
+- Promotion template: {promotion_command}
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Check coverage and optionally run quality for the curated long-video suite."
@@ -1211,6 +1376,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--html-output", type=Path)
     parser.add_argument("--queue-output", type=Path)
     parser.add_argument("--queue-markdown-output", type=Path)
+    parser.add_argument("--roundup-output", type=Path)
+    parser.add_argument("--roundup-markdown-output", type=Path)
     parser.add_argument("--metadata-refresh-output", type=Path)
     parser.add_argument("--metadata-refresh-markdown-output", type=Path)
     parser.add_argument("--metadata-refresh-run-output", type=Path)
@@ -1400,7 +1567,13 @@ def main(argv: list[str] | None = None) -> int:
         args.html_output.parent.mkdir(parents=True, exist_ok=True)
         args.html_output.write_text(render_long_video_suite_html(report))
     queue = None
-    if args.queue_output is not None or args.queue_markdown_output is not None:
+    queue_requested = (
+        args.queue_output is not None
+        or args.queue_markdown_output is not None
+        or args.roundup_output is not None
+        or args.roundup_markdown_output is not None
+    )
+    if queue_requested:
         queue = build_long_video_curation_queue(
             report=report,
             dataset_path=args.dataset,
@@ -1415,12 +1588,15 @@ def main(argv: list[str] | None = None) -> int:
             args.queue_markdown_output.write_text(
                 render_long_video_curation_queue_markdown(queue)
             )
-        print(f"queue_items={len(queue.items)}")
+        if args.queue_output is not None or args.queue_markdown_output is not None:
+            print(f"queue_items={len(queue.items)}")
     metadata_refresh = None
     metadata_refresh_requested = (
         args.metadata_refresh_output is not None
         or args.metadata_refresh_markdown_output is not None
         or args.run_metadata_refresh
+        or args.roundup_output is not None
+        or args.roundup_markdown_output is not None
     )
     metadata_refresh_run = None
     if metadata_refresh_requested:
@@ -1437,7 +1613,12 @@ def main(argv: list[str] | None = None) -> int:
             args.metadata_refresh_markdown_output.write_text(
                 render_long_video_metadata_refresh_queue_markdown(metadata_refresh)
             )
-        print(f"metadata_refresh_items={len(metadata_refresh.items)}")
+        if (
+            args.metadata_refresh_output is not None
+            or args.metadata_refresh_markdown_output is not None
+            or args.run_metadata_refresh
+        ):
+            print(f"metadata_refresh_items={len(metadata_refresh.items)}")
         if args.run_metadata_refresh:
             if args.metadata_refresh_limit is not None and args.metadata_refresh_limit < 1:
                 raise SystemExit("--metadata-refresh-limit must be greater than 0")
@@ -1450,6 +1631,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"metadata_refresh_attempted={metadata_refresh_run.attempted}")
             print(f"metadata_refresh_succeeded={metadata_refresh_run.succeeded}")
             print(f"metadata_refresh_failed={metadata_refresh_run.failed}")
+    if args.roundup_output is not None or args.roundup_markdown_output is not None:
+        if queue is None:
+            raise RuntimeError("roundup requires a curation queue")
+        if metadata_refresh is None:
+            raise RuntimeError("roundup requires a metadata refresh queue")
+        roundup = build_long_video_roundup_report(
+            report=report,
+            curation_queue=queue,
+            metadata_refresh_queue=metadata_refresh,
+        )
+        if args.roundup_output is not None:
+            roundup.write_json(args.roundup_output)
+        if args.roundup_markdown_output is not None:
+            args.roundup_markdown_output.parent.mkdir(parents=True, exist_ok=True)
+            args.roundup_markdown_output.write_text(
+                render_long_video_roundup_markdown(roundup)
+            )
+        print(f"roundup_actions={len(roundup.next_actions)}")
     curation_requested = args.curate_proposal_index is not None
     if curation_requested:
         proposals = report.expansion_plan.query_proposals
