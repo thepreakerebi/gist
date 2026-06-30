@@ -98,6 +98,20 @@ gist-long-video-suite \
 The queue includes current progress, missing category coverage, priority actions,
 and copy-ready `--curate-proposal-index` commands for the next proposed cases.
 
+Write the transcript metadata refresh queue:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --metadata-refresh-output reports/long-video-suite/metadata-refresh-queue.json \
+  --metadata-refresh-markdown-output reports/long-video-suite/metadata-refresh-queue.md \
+  --metadata-refresh-quality balanced
+```
+
+Use this when target readiness fails on `transcript_metadata_rate`. The generated
+commands rerun older curated cases with Whisper-backed audio scoring so refreshed
+artifacts include transcript metadata.
+
 Run a proposed query and write a review bundle:
 
 ```bash

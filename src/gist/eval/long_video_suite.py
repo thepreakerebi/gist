@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import shlex
 from collections import Counter
 from html import escape
 from pathlib import Path
@@ -141,6 +142,27 @@ class LongVideoCurationQueueReport(BaseModel):
     needed_by_category: dict[str, int]
     priority_actions: list[str]
     items: list[LongVideoCurationQueueItem]
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2) + "\n")
+
+
+class LongVideoMetadataRefreshQueueItem(BaseModel):
+    case_id: str
+    video_id: str
+    query: str
+    compression_path: Path
+    source_path: Path
+    current_transcript_quality: str | None = None
+    command: str
+
+
+class LongVideoMetadataRefreshQueueReport(BaseModel):
+    cases: int
+    refresh_needed: int
+    target_transcript_quality: TranscriptQuality
+    items: list[LongVideoMetadataRefreshQueueItem]
 
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -479,6 +501,70 @@ def build_long_video_curation_queue(
         category_counts=report.category_counts,
         needed_by_category=report.expansion_plan.needed_by_category,
         priority_actions=report.expansion_plan.priority_actions,
+        items=items,
+    )
+
+
+def build_long_video_metadata_refresh_queue(
+    cases: list[QualityCase],
+    target_transcript_quality: TranscriptQuality = TranscriptQuality.BALANCED,
+    output_root: Path = Path(".gist/runs"),
+) -> LongVideoMetadataRefreshQueueReport:
+    items: list[LongVideoMetadataRefreshQueueItem] = []
+    for case in cases:
+        if case.compression_path is None or not case.compression_path.exists():
+            continue
+        payload = _load_artifact(case.compression_path)
+        compression = payload.get("compression", payload)
+        transcript_metadata = compression.get("transcript_metadata")
+        current_quality = None
+        if isinstance(transcript_metadata, dict) and transcript_metadata:
+            current_quality = str(transcript_metadata.get("quality") or "unknown")
+            continue
+        query = str(case.query or compression.get("query") or "").strip()
+        if not query:
+            continue
+        source_path = _artifact_source_path(payload, case.compression_path)
+        command = " ".join(
+            [
+                "gist-compress",
+                shlex.quote(str(source_path)),
+                "--query",
+                shlex.quote(query),
+                "--output-root",
+                shlex.quote(str(output_root)),
+                "--preset",
+                shlex.quote(str(case.preset.value)),
+                "--processing-mode",
+                shlex.quote(str(case.processing_mode.value)),
+                "--visual-scorer",
+                shlex.quote(str(case.visual_scorer.value)),
+                "--audio-scorer",
+                shlex.quote(str(AudioScoringMode.WHISPER.value)),
+                "--transcript-quality",
+                shlex.quote(str(target_transcript_quality.value)),
+                "--html-report",
+                "--auto-transcript-retry",
+            ]
+            + (["--adaptive-budget"] if case.adaptive_budget else [])
+            + (["--decompose-query"] if case.decompose_query else [])
+            + ([] if case.visual_ocr else ["--no-visual-ocr"])
+        )
+        items.append(
+            LongVideoMetadataRefreshQueueItem(
+                case_id=case.id,
+                video_id=str(compression.get("video_id") or case.id),
+                query=query,
+                compression_path=case.compression_path,
+                source_path=source_path,
+                current_transcript_quality=current_quality,
+                command=command,
+            )
+        )
+    return LongVideoMetadataRefreshQueueReport(
+        cases=len(cases),
+        refresh_needed=len(items),
+        target_transcript_quality=target_transcript_quality,
         items=items,
     )
 
@@ -939,6 +1025,36 @@ def render_long_video_curation_queue_markdown(
 """
 
 
+def render_long_video_metadata_refresh_queue_markdown(
+    queue: LongVideoMetadataRefreshQueueReport,
+) -> str:
+    rows = "\n".join(
+        f"| {item.case_id} | {item.video_id} | {item.query} | `{item.command}` |"
+        for item in queue.items
+    ) or "| - | - | No refresh needed. | - |"
+    next_step = (
+        f"Regenerate `{queue.items[0].case_id}` first, then rerun the long-video suite."
+        if queue.items
+        else "No transcript metadata refresh is needed for the current curated cases."
+    )
+    return f"""# Gist Long-Video Transcript Metadata Refresh Queue
+
+- Cases: {queue.cases}
+- Refresh needed: {queue.refresh_needed}
+- Target transcript quality: {queue.target_transcript_quality.value}
+
+## Queue
+
+| Case | Video | Query | Command |
+|---|---|---|---|
+{rows}
+
+## Next Step
+
+{next_step}
+"""
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Check coverage and optionally run quality for the curated long-video suite."
@@ -949,6 +1065,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--html-output", type=Path)
     parser.add_argument("--queue-output", type=Path)
     parser.add_argument("--queue-markdown-output", type=Path)
+    parser.add_argument("--metadata-refresh-output", type=Path)
+    parser.add_argument("--metadata-refresh-markdown-output", type=Path)
+    parser.add_argument(
+        "--metadata-refresh-quality",
+        choices=list(TranscriptQuality),
+        default=TranscriptQuality.BALANCED,
+    )
     parser.add_argument(
         "--review-draft",
         type=Path,
@@ -1087,6 +1210,22 @@ def main(argv: list[str] | None = None) -> int:
                 render_long_video_curation_queue_markdown(queue)
             )
         print(f"queue_items={len(queue.items)}")
+    if (
+        args.metadata_refresh_output is not None
+        or args.metadata_refresh_markdown_output is not None
+    ):
+        metadata_refresh = build_long_video_metadata_refresh_queue(
+            cases=cases,
+            target_transcript_quality=TranscriptQuality(args.metadata_refresh_quality),
+        )
+        if args.metadata_refresh_output is not None:
+            metadata_refresh.write_json(args.metadata_refresh_output)
+        if args.metadata_refresh_markdown_output is not None:
+            args.metadata_refresh_markdown_output.parent.mkdir(parents=True, exist_ok=True)
+            args.metadata_refresh_markdown_output.write_text(
+                render_long_video_metadata_refresh_queue_markdown(metadata_refresh)
+            )
+        print(f"metadata_refresh_items={len(metadata_refresh.items)}")
     curation_requested = args.curate_proposal_index is not None
     if curation_requested:
         proposals = report.expansion_plan.query_proposals

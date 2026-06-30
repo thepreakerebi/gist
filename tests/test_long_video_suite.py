@@ -12,10 +12,12 @@ from gist.eval.long_video_suite import (
     append_reviewed_long_video_quality_draft,
     audit_long_video_artifacts,
     build_long_video_curation_queue,
+    build_long_video_metadata_refresh_queue,
     curate_long_video_query_proposal,
     evaluate_long_video_suite,
     main,
     render_long_video_curation_queue_markdown,
+    render_long_video_metadata_refresh_queue_markdown,
     review_long_video_quality_draft,
     render_long_video_suite_html,
     render_long_video_suite_markdown,
@@ -380,6 +382,110 @@ def test_long_video_suite_cli_writes_curation_queue(tmp_path: Path, capsys) -> N
     assert queue["needed_cases"] == 2
     assert queue["items"]
     assert "Curation Queue" in queue_markdown_path.read_text()
+
+
+def test_long_video_metadata_refresh_queue_reports_missing_metadata(tmp_path: Path) -> None:
+    video_path = tmp_path / "source video.mp4"
+    video_path.write_text("video")
+    missing_metadata = _write_artifact(
+        tmp_path / "missing" / "compression.json",
+        "video-a",
+        3700,
+        source_path=video_path,
+    )
+    payload = json.loads(missing_metadata.read_text())
+    payload["compression"]["query"] = "What does the speaker explain?"
+    payload["compression"]["transcript_metadata"] = None
+    missing_metadata.write_text(json.dumps(payload) + "\n")
+    ready_metadata = _write_artifact(
+        tmp_path / "ready" / "compression.json",
+        "video-b",
+        3700,
+        source_path=video_path,
+    )
+    cases = [
+        QualityCase(
+            id="missing",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=missing_metadata,
+            expected_answer_terms=["speaker"],
+            expected_evidence_terms=["speaker"],
+        ),
+        QualityCase(
+            id="ready",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=ready_metadata,
+            expected_answer_terms=["speaker"],
+            expected_evidence_terms=["speaker"],
+        ),
+    ]
+
+    queue = build_long_video_metadata_refresh_queue(cases)
+    markdown = render_long_video_metadata_refresh_queue_markdown(queue)
+
+    assert queue.refresh_needed == 1
+    assert queue.items[0].case_id == "missing"
+    assert "source video.mp4" in queue.items[0].command
+    assert "--audio-scorer whisper" in queue.items[0].command
+    assert "--transcript-quality balanced" in queue.items[0].command
+    assert "Transcript Metadata Refresh Queue" in markdown
+
+
+def test_long_video_suite_cli_writes_metadata_refresh_queue(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    artifact = _write_artifact(tmp_path / "missing" / "compression.json", "video", 3700)
+    payload = json.loads(artifact.read_text())
+    payload["compression"]["transcript_metadata"] = None
+    artifact.write_text(json.dumps(payload) + "\n")
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        QualityCase(
+            id="missing",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+    refresh_path = tmp_path / "reports" / "metadata-refresh.json"
+    refresh_markdown_path = tmp_path / "reports" / "metadata-refresh.md"
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--metadata-refresh-output",
+            str(refresh_path),
+            "--metadata-refresh-markdown-output",
+            str(refresh_markdown_path),
+            "--metadata-refresh-quality",
+            "accurate",
+            "--min-cases",
+            "1",
+            "--min-distinct-videos",
+            "1",
+            "--min-distinct-domains",
+            "1",
+            "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
+            "0",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "metadata_refresh_items=1" in output
+    refresh = json.loads(refresh_path.read_text())
+    assert refresh["refresh_needed"] == 1
+    assert refresh["target_transcript_quality"] == "accurate"
+    assert "Metadata Refresh Queue" in refresh_markdown_path.read_text()
 
 
 def test_curate_long_video_query_proposal_writes_review_bundle(tmp_path: Path) -> None:
