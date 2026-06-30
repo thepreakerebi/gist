@@ -38,6 +38,34 @@ REQUIRED_QUERY_CATEGORIES = (
     QueryIntent.MIXED_AV,
 )
 
+_PROPOSAL_STOPWORDS = {
+    "about",
+    "actually",
+    "after",
+    "also",
+    "because",
+    "before",
+    "case",
+    "does",
+    "from",
+    "have",
+    "into",
+    "like",
+    "most",
+    "relevant",
+    "say",
+    "shown",
+    "speaker",
+    "that",
+    "their",
+    "there",
+    "this",
+    "what",
+    "while",
+    "with",
+    "would",
+}
+
 
 class LongVideoSuiteGates(BaseModel):
     min_cases: Annotated[int, Field(ge=1)] = 30
@@ -1933,15 +1961,35 @@ def _query_proposals(
     if not categories:
         return []
 
-    sources_by_video: dict[str, tuple[QualityCase, Path, dict]] = {}
-    for case, path, payload in proposal_sources:
-        video_id = _proposal_video_label(path, payload)
-        sources_by_video.setdefault(video_id, (case, path, payload))
-
     proposals: list[LongVideoQueryProposal] = []
     max_proposals = max(1, min(12, needed_cases or sum(needed_by_category.values()) or len(categories)))
+    used_pairs: set[tuple[str, QueryIntent]] = set()
     for category in categories:
-        for video_id, (case, path, payload) in sorted(sources_by_video.items()):
+        for case, path, payload in _ranked_proposal_sources(category, proposal_sources):
+            video_id = _proposal_video_label(path, payload)
+            used_pairs.add((video_id, category))
+            proposals.append(
+                LongVideoQueryProposal(
+                    video_id=video_id,
+                    domain=(case.domain or "unknown").strip() or "unknown",
+                    query_category=category,
+                    query=_proposal_query(category, video_id, payload),
+                    rationale=_proposal_rationale(category, category_counts, needed_by_category),
+                    source_artifact=path,
+                )
+            )
+            break
+        if len(proposals) >= max_proposals:
+            return proposals
+    for category in categories:
+        seen_videos: set[str] = set()
+        for case, path, payload in _ranked_proposal_sources(category, proposal_sources):
+            video_id = _proposal_video_label(path, payload)
+            if (video_id, category) in used_pairs:
+                continue
+            if video_id in seen_videos:
+                continue
+            seen_videos.add(video_id)
             if len(proposals) >= max_proposals:
                 return proposals
             proposals.append(
@@ -1949,7 +1997,7 @@ def _query_proposals(
                     video_id=video_id,
                     domain=(case.domain or "unknown").strip() or "unknown",
                     query_category=category,
-                    query=_proposal_query(category, video_id),
+                    query=_proposal_query(category, video_id, payload),
                     rationale=_proposal_rationale(category, category_counts, needed_by_category),
                     source_artifact=path,
                 )
@@ -1957,7 +2005,46 @@ def _query_proposals(
     return proposals
 
 
-def _proposal_query(category: QueryIntent, video_label: str) -> str:
+def _ranked_proposal_sources(
+    category: QueryIntent,
+    proposal_sources: list[tuple[QualityCase, Path, dict]],
+) -> list[tuple[QualityCase, Path, dict]]:
+    return sorted(
+        proposal_sources,
+        key=lambda source: (
+            -_proposal_source_score(category, source[0], source[2]),
+            _proposal_video_label(source[1], source[2]),
+            source[0].id,
+        ),
+    )
+
+
+def _proposal_source_score(category: QueryIntent, case: QualityCase, payload: dict) -> int:
+    compression = payload.get("compression", payload)
+    selected = compression.get("selected") or []
+    modalities = {
+        str(candidate.get("modality") or "").lower()
+        for candidate in selected
+        if isinstance(candidate, dict)
+    }
+    score = 0
+    if case.query_category == category:
+        score += 10
+    if category == QueryIntent.MIXED_AV:
+        if "audio" in modalities:
+            score += 6
+        if "visual" in modalities:
+            score += 3
+        if str(compression.get("audio_scorer_used") or "").lower() == AudioScoringMode.WHISPER.value:
+            score += 2
+    elif category == QueryIntent.VISUAL_OBJECT_ACTION and "visual" in modalities:
+        score += 5
+    elif category == QueryIntent.SPEECH_SEMANTIC and "audio" in modalities:
+        score += 5
+    return score
+
+
+def _proposal_query(category: QueryIntent, video_label: str, payload: dict) -> str:
     video_id = video_label.replace("-", " ")
     if category == QueryIntent.SPEECH_SEMANTIC:
         return f"What key claim does the speaker make in {video_id}?"
@@ -1968,8 +2055,29 @@ def _proposal_query(category: QueryIntent, video_label: str) -> str:
     if category == QueryIntent.GLOBAL_SUMMARY:
         return f"What are the main topics covered throughout {video_id}?"
     if category == QueryIntent.MIXED_AV:
-        return f"What does the speaker say while the most relevant visual evidence is shown in {video_id}?"
+        phrase = _proposal_audio_phrase(payload)
+        if phrase:
+            return f"What does the speaker say about {phrase} while the related visual moment is shown?"
+        return f"What does the speaker say while the relevant visual moment is shown in {video_id}?"
     return f"What evidence in {video_id} best answers the user question?"
+
+
+def _proposal_audio_phrase(payload: dict) -> str:
+    compression = payload.get("compression", payload)
+    for candidate in compression.get("selected") or []:
+        if not isinstance(candidate, dict):
+            continue
+        if str(candidate.get("modality") or "").lower() != "audio":
+            continue
+        text = re.sub(r"[^A-Za-z0-9 ]+", " ", str(candidate.get("text") or ""))
+        words = [
+            word.lower()
+            for word in text.split()
+            if len(word) > 3 and word.lower() not in _PROPOSAL_STOPWORDS
+        ]
+        if len(words) >= 3:
+            return " ".join(words[:6])
+    return ""
 
 
 def _proposal_video_label(path: Path, payload: dict) -> str:

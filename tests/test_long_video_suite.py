@@ -125,6 +125,67 @@ def test_long_video_suite_expansion_plan_prioritizes_missing_categories(
     assert "Proposed Query" in html
 
 
+def test_long_video_mixed_av_proposals_prefer_audio_grounded_sources(
+    tmp_path: Path,
+) -> None:
+    visual_artifact = _write_artifact(
+        tmp_path / "visual" / "compression.json",
+        "visual-video",
+        3700,
+    )
+    visual_payload = json.loads(visual_artifact.read_text())
+    visual_payload["compression"]["selected"][0]["modality"] = "visual"
+    visual_payload["compression"]["selected"][0]["text"] = "on-screen lecture title"
+    visual_artifact.write_text(json.dumps(visual_payload) + "\n")
+    audio_artifact = _write_artifact(
+        tmp_path / "audio" / "compression.json",
+        "audio-video",
+        3700,
+    )
+    audio_payload = json.loads(audio_artifact.read_text())
+    audio_payload["compression"]["selected"][0]["modality"] = "audio"
+    audio_payload["compression"]["selected"][0]["text"] = (
+        "The presenter explains the skeleton tracking demonstration in detail."
+    )
+    audio_artifact.write_text(json.dumps(audio_payload) + "\n")
+    cases = [
+        QualityCase(
+            id="visual",
+            query_category=QueryIntent.VISUAL_OBJECT_ACTION,
+            domain="education",
+            compression_path=visual_artifact,
+            expected_answer_terms=["lecture"],
+            expected_evidence_terms=["title"],
+        ),
+        QualityCase(
+            id="speech",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=audio_artifact,
+            expected_answer_terms=["skeleton"],
+            expected_evidence_terms=["tracking"],
+        ),
+    ]
+
+    report = evaluate_long_video_suite(
+        cases,
+        LongVideoSuiteGates(
+            min_cases=5,
+            min_distinct_videos=1,
+            min_distinct_domains=1,
+            min_cases_per_category=1,
+        ),
+    )
+    mixed_proposal = next(
+        proposal
+        for proposal in report.expansion_plan.query_proposals
+        if proposal.query_category == QueryIntent.MIXED_AV
+    )
+
+    assert mixed_proposal.video_id == "audio-video"
+    assert "skeleton tracking demonstration" in mixed_proposal.query
+
+
 def test_long_video_curation_queue_reports_next_actions(tmp_path: Path) -> None:
     speech_case = QualityCase(
         id="speech",
