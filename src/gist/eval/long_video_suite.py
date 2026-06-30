@@ -588,6 +588,8 @@ def build_long_video_metadata_refresh_queue(
         if isinstance(transcript_metadata, dict) and transcript_metadata:
             current_quality = str(transcript_metadata.get("quality") or "unknown")
             continue
+        if not _requires_transcript_metadata(compression):
+            continue
         query = str(case.query or compression.get("query") or "").strip()
         if not query:
             continue
@@ -671,7 +673,7 @@ def build_long_video_roundup_report(
             "Freeze the curated long-video dataset and start paper experiments/ablations."
         ]
     promotion_template = None
-    if metadata_refresh_queue.items:
+    if metadata_refresh_queue.items and metadata_refresh_needed_for_target > 0:
         promotion_template = (
             "gist-long-video-suite --dataset data/eval/long-video-quality.jsonl "
             "--promote-metadata-refresh-case <case-id> "
@@ -706,7 +708,7 @@ def build_long_video_roundup_report(
         ),
         next_metadata_refresh_command=(
             metadata_refresh_queue.items[0].command
-            if metadata_refresh_queue.items
+            if metadata_refresh_queue.items and metadata_refresh_needed_for_target > 0
             else None
         ),
         promotion_command_template=promotion_template,
@@ -1796,6 +1798,7 @@ def _health_summary(payloads: list[dict]) -> LongVideoHealthSummary:
     selected_counts: list[int] = []
     noisy_count = 0
     metadata_count = 0
+    metadata_eligible_count = 0
     answered_count = 0
 
     for payload in payloads:
@@ -1819,6 +1822,9 @@ def _health_summary(payloads: list[dict]) -> LongVideoHealthSummary:
             noisy_count += 1
 
         transcript_metadata = compression.get("transcript_metadata")
+        requires_transcript_metadata = _requires_transcript_metadata(compression)
+        if requires_transcript_metadata:
+            metadata_eligible_count += 1
         if isinstance(transcript_metadata, dict) and transcript_metadata:
             metadata_count += 1
             quality = str(transcript_metadata.get("quality") or "unknown")
@@ -1829,11 +1835,26 @@ def _health_summary(payloads: list[dict]) -> LongVideoHealthSummary:
         artifacts=total,
         avg_token_reduction_percent=_average(token_reductions),
         noisy_transcript_warning_rate=noisy_count / total,
-        transcript_metadata_rate=metadata_count / total,
+        transcript_metadata_rate=(
+            1.0 if metadata_eligible_count == 0 else metadata_count / metadata_eligible_count
+        ),
         answered_rate=answered_count / total,
         avg_selected_evidence=_average(selected_counts),
         quality_warning_counts=dict(sorted(warning_counts.items())),
         transcript_quality_counts=dict(sorted(transcript_quality_counts.items())),
+    )
+
+
+def _requires_transcript_metadata(compression: dict) -> bool:
+    if isinstance(compression.get("transcript_metadata"), dict):
+        return True
+    if str(compression.get("audio_scorer_used") or "").lower() == AudioScoringMode.WHISPER.value:
+        return True
+    selected = compression.get("selected") or []
+    return any(
+        isinstance(candidate, dict)
+        and str(candidate.get("modality") or "").lower() == "audio"
+        for candidate in selected
     )
 
 

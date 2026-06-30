@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import gist.eval.long_video_suite as long_video_suite
+from gist.core.modes import AudioScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.query_intent import QueryIntent
 from gist.core.schemas import CompressionMetrics, CompressionResponse, Modality, SelectedCandidate
@@ -421,6 +422,46 @@ def test_long_video_roundup_report_summarizes_remaining_work(tmp_path: Path) -> 
     assert "Metadata refreshes needed for target: 1" in markdown
 
 
+def test_long_video_roundup_hides_metadata_command_when_target_is_met(
+    tmp_path: Path,
+) -> None:
+    cases = _cases(tmp_path)
+    artifact = _write_artifact(tmp_path / "missing" / "compression.json", "video", 3700)
+    payload = json.loads(artifact.read_text())
+    payload["compression"]["transcript_metadata"] = None
+    payload["compression"]["audio_scorer_used"] = AudioScoringMode.WHISPER.value
+    artifact.write_text(json.dumps(payload) + "\n")
+    cases.append(
+        QualityCase(
+            id="optional-refresh",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+        )
+    )
+    report = evaluate_long_video_suite(
+        cases,
+        LongVideoSuiteGates(
+            min_cases=7,
+            min_distinct_videos=5,
+            min_distinct_domains=3,
+            min_cases_per_category=1,
+            min_transcript_metadata_rate=0.5,
+        ),
+    )
+    curation_queue = build_long_video_curation_queue(report, tmp_path / "suite.jsonl")
+    metadata_queue = build_long_video_metadata_refresh_queue(cases)
+
+    roundup = build_long_video_roundup_report(report, curation_queue, metadata_queue)
+
+    assert metadata_queue.refresh_needed == 1
+    assert roundup.metadata_refresh_needed_for_target == 0
+    assert roundup.next_metadata_refresh_command is None
+    assert roundup.promotion_command_template is None
+
+
 def test_long_video_suite_cli_writes_roundup_report(tmp_path: Path, capsys) -> None:
     cases = _cases(tmp_path)
     payload = json.loads(cases[0].compression_path.read_text())
@@ -512,6 +553,64 @@ def test_long_video_metadata_refresh_queue_reports_missing_metadata(tmp_path: Pa
     assert "--audio-scorer whisper" in queue.items[0].command
     assert "--transcript-quality balanced" in queue.items[0].command
     assert "Transcript Metadata Refresh Queue" in markdown
+
+
+def test_long_video_metadata_refresh_queue_skips_visual_only_artifacts(
+    tmp_path: Path,
+) -> None:
+    visual_artifact = _write_artifact(
+        tmp_path / "visual" / "compression.json",
+        "video-a",
+        3700,
+    )
+    payload = json.loads(visual_artifact.read_text())
+    payload["compression"]["transcript_metadata"] = None
+    payload["compression"]["audio_scorer_used"] = AudioScoringMode.BASELINE.value
+    payload["compression"]["selected"][0]["modality"] = "visual"
+    visual_artifact.write_text(json.dumps(payload) + "\n")
+    audio_artifact = _write_artifact(
+        tmp_path / "audio" / "compression.json",
+        "video-b",
+        3700,
+    )
+    payload = json.loads(audio_artifact.read_text())
+    payload["compression"]["transcript_metadata"] = None
+    payload["compression"]["audio_scorer_used"] = AudioScoringMode.WHISPER.value
+    audio_artifact.write_text(json.dumps(payload) + "\n")
+    cases = [
+        QualityCase(
+            id="visual",
+            query_category=QueryIntent.VISUAL_OBJECT_ACTION,
+            domain="education",
+            compression_path=visual_artifact,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+        ),
+        QualityCase(
+            id="audio",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=audio_artifact,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+        ),
+    ]
+
+    report = evaluate_long_video_suite(
+        cases,
+        LongVideoSuiteGates(
+            min_cases=1,
+            min_distinct_videos=1,
+            min_distinct_domains=1,
+            min_cases_per_category=1,
+            min_transcript_metadata_rate=1,
+        ),
+    )
+    queue = build_long_video_metadata_refresh_queue(cases)
+
+    assert report.health.transcript_metadata_rate == 0
+    assert queue.refresh_needed == 1
+    assert queue.items[0].case_id == "audio"
 
 
 def test_long_video_suite_cli_writes_metadata_refresh_queue(
