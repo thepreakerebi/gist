@@ -154,11 +154,15 @@ gist-long-video-suite \
   --dataset data/eval/long-video-quality.jsonl \
   --promote-metadata-refresh-case paul-graham-startup-killer \
   --promote-metadata-refresh-compression .gist/metadata-refresh/video-slug/query-slug/compression.json \
+  --metadata-refresh-promotion-mode metadata-only \
   --metadata-refresh-promotion-output reports/long-video-suite/metadata-refresh-promotion.json
 ```
 
 Promotion is gated by the existing quality thresholds for that case. If the
-refreshed artifact fails, the curated artifact is left untouched.
+refreshed artifact fails in `full` mode, the curated artifact is left untouched.
+Use `metadata-only` mode for transcript coverage cleanup: it validates that the
+existing curated artifact still passes, then copies only `transcript_metadata`
+from the refreshed artifact so verified answer/evidence clips are preserved.
 
 Run a proposed query and write a review bundle:
 

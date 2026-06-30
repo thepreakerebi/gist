@@ -708,6 +708,50 @@ def test_promote_long_video_metadata_refresh_copies_passing_artifact(tmp_path: P
     assert (target.parent / "clips" / "evidence.mp4").read_text() == "clip"
 
 
+def test_promote_long_video_metadata_refresh_can_stamp_metadata_only(
+    tmp_path: Path,
+) -> None:
+    target = _write_quality_artifact(tmp_path / "curated" / "compression.json", "old-video")
+    refreshed = _write_quality_artifact(
+        tmp_path / "refresh" / "compression.json",
+        "new-video",
+    )
+    refreshed_payload = json.loads(refreshed.read_text())
+    refreshed_payload["compression"]["answer"] = "weak answer"
+    refreshed_payload["compression"]["selected"][0]["text"] = "weak evidence"
+    refreshed_payload["compression"]["transcript_metadata"] = {
+        "quality": "balanced",
+        "model_size": "base",
+    }
+    refreshed.write_text(json.dumps(refreshed_payload) + "\n")
+    case = QualityCase(
+        id="case",
+        query_category=QueryIntent.SPEECH_SEMANTIC,
+        domain="education",
+        compression_path=target,
+        expected_answer_terms=["answer"],
+        expected_evidence_terms=["evidence"],
+        min_answer_term_recall=1.0,
+        min_evidence_relevance_rate=1.0,
+        min_token_reduction_percent=90,
+    )
+
+    result = promote_long_video_metadata_refresh(
+        [case],
+        "case",
+        refreshed,
+        promotion_mode="metadata-only",
+    )
+
+    target_payload = json.loads(target.read_text())
+    assert result.promoted
+    assert result.quality_passed
+    assert result.promotion_mode == "metadata-only"
+    assert target_payload["compression"]["video_id"] == "old-video"
+    assert target_payload["compression"]["answer"] == "This answer covers the expected evidence."
+    assert target_payload["compression"]["transcript_metadata"]["quality"] == "balanced"
+
+
 def test_long_video_suite_cli_promotes_metadata_refresh(
     tmp_path: Path,
     capsys,
@@ -757,6 +801,65 @@ def test_long_video_suite_cli_promotes_metadata_refresh(
     assert exit_code == 0
     assert "metadata_refresh_promoted=yes" in output
     assert json.loads(target.read_text())["compression"]["video_id"] == "new-video"
+
+
+def test_long_video_suite_cli_promotes_metadata_only_refresh(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    target = _write_quality_artifact(tmp_path / "curated" / "compression.json", "old-video")
+    refreshed = _write_quality_artifact(tmp_path / "refresh" / "compression.json", "new-video")
+    refreshed_payload = json.loads(refreshed.read_text())
+    refreshed_payload["compression"]["answer"] = "weak answer"
+    refreshed_payload["compression"]["selected"][0]["text"] = "weak evidence"
+    refreshed_payload["compression"]["transcript_metadata"] = {"quality": "balanced"}
+    refreshed.write_text(json.dumps(refreshed_payload) + "\n")
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        QualityCase(
+            id="case",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=target,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+            min_answer_term_recall=1.0,
+            min_evidence_relevance_rate=1.0,
+            min_token_reduction_percent=90,
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--promote-metadata-refresh-case",
+            "case",
+            "--promote-metadata-refresh-compression",
+            str(refreshed),
+            "--metadata-refresh-promotion-mode",
+            "metadata-only",
+            "--min-cases",
+            "1",
+            "--min-distinct-videos",
+            "1",
+            "--min-distinct-domains",
+            "1",
+            "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
+            "0",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "metadata_refresh_promoted=yes" in output
+    assert "metadata_refresh_promotion_mode=metadata-only" in output
+    target_payload = json.loads(target.read_text())
+    assert target_payload["compression"]["video_id"] == "old-video"
+    assert target_payload["compression"]["transcript_metadata"]["quality"] == "balanced"
 
 
 def test_curate_long_video_query_proposal_writes_review_bundle(tmp_path: Path) -> None:

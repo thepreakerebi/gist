@@ -225,6 +225,7 @@ class LongVideoMetadataRefreshPromotionResult(BaseModel):
     case_id: str
     promoted: bool
     quality_passed: bool
+    promotion_mode: str = "full"
     source_path: Path
     target_path: Path | None = None
     failures: list[str] = Field(default_factory=list)
@@ -676,6 +677,7 @@ def build_long_video_roundup_report(
             "--promote-metadata-refresh-case <case-id> "
             "--promote-metadata-refresh-compression "
             ".gist/metadata-refresh/<video-slug>/<query-slug>/compression.json "
+            "--metadata-refresh-promotion-mode metadata-only "
             "--metadata-refresh-promotion-output "
             "reports/long-video-suite/metadata-refresh-promotion.json"
         )
@@ -743,13 +745,17 @@ def promote_long_video_metadata_refresh(
     case_id: str,
     refreshed_compression_path: Path,
     quality_output_root: Path = Path(".gist/metadata-refresh-promotion"),
+    promotion_mode: str = "full",
 ) -> LongVideoMetadataRefreshPromotionResult:
+    if promotion_mode not in {"full", "metadata-only"}:
+        raise ValueError("promotion_mode must be 'full' or 'metadata-only'")
     source_path = refreshed_compression_path
     if not source_path.exists():
         return LongVideoMetadataRefreshPromotionResult(
             case_id=case_id,
             promoted=False,
             quality_passed=False,
+            promotion_mode=promotion_mode,
             source_path=source_path,
             failures=[f"refreshed compression does not exist: {source_path}"],
         )
@@ -760,6 +766,7 @@ def promote_long_video_metadata_refresh(
             case_id=case_id,
             promoted=False,
             quality_passed=False,
+            promotion_mode=promotion_mode,
             source_path=source_path,
             failures=[f"expected exactly one matching case, found {len(matches)}"],
         )
@@ -769,6 +776,7 @@ def promote_long_video_metadata_refresh(
             case_id=case_id,
             promoted=False,
             quality_passed=False,
+            promotion_mode=promotion_mode,
             source_path=source_path,
             failures=["target case has no compression_path"],
         )
@@ -778,6 +786,52 @@ def promote_long_video_metadata_refresh(
         [refreshed_case],
         output_root=quality_output_root / _safe_stem(case_id),
     )
+    if promotion_mode == "metadata-only":
+        target_quality = run_quality_cases(
+            [case],
+            output_root=quality_output_root / f"{_safe_stem(case_id)}-target",
+        )
+        if not target_quality.passed:
+            failures = [
+                failure
+                for result in target_quality.results
+                for failure in result.failures
+            ]
+            return LongVideoMetadataRefreshPromotionResult(
+                case_id=case_id,
+                promoted=False,
+                quality_passed=False,
+                promotion_mode=promotion_mode,
+                source_path=source_path,
+                target_path=case.compression_path,
+                failures=failures or ["target artifact failed quality checks"],
+            )
+        refreshed_payload = _load_artifact(source_path)
+        refreshed_compression = refreshed_payload.get("compression", refreshed_payload)
+        transcript_metadata = refreshed_compression.get("transcript_metadata")
+        if not isinstance(transcript_metadata, dict) or not transcript_metadata:
+            return LongVideoMetadataRefreshPromotionResult(
+                case_id=case_id,
+                promoted=False,
+                quality_passed=False,
+                promotion_mode=promotion_mode,
+                source_path=source_path,
+                target_path=case.compression_path,
+                failures=["refreshed artifact has no transcript_metadata to promote"],
+            )
+        target_payload = _load_artifact(case.compression_path)
+        target_compression = target_payload.setdefault("compression", {})
+        target_compression["transcript_metadata"] = transcript_metadata
+        case.compression_path.write_text(json.dumps(target_payload, indent=2) + "\n")
+        return LongVideoMetadataRefreshPromotionResult(
+            case_id=case_id,
+            promoted=True,
+            quality_passed=True,
+            promotion_mode=promotion_mode,
+            source_path=source_path,
+            target_path=case.compression_path,
+        )
+
     if not quality.passed:
         failures = [
             failure
@@ -788,6 +842,7 @@ def promote_long_video_metadata_refresh(
             case_id=case_id,
             promoted=False,
             quality_passed=False,
+            promotion_mode=promotion_mode,
             source_path=source_path,
             target_path=case.compression_path,
             failures=failures or ["refreshed artifact failed quality checks"],
@@ -798,6 +853,7 @@ def promote_long_video_metadata_refresh(
         case_id=case_id,
         promoted=True,
         quality_passed=True,
+        promotion_mode=promotion_mode,
         source_path=source_path,
         target_path=case.compression_path,
     )
@@ -1410,6 +1466,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--promote-metadata-refresh-case")
     parser.add_argument("--promote-metadata-refresh-compression", type=Path)
+    parser.add_argument(
+        "--metadata-refresh-promotion-mode",
+        choices=("full", "metadata-only"),
+        default="full",
+        help=(
+            "Use full to replace the curated artifact only if the refreshed artifact "
+            "passes quality; use metadata-only to stamp transcript metadata onto the "
+            "existing curated artifact when full replacement is weaker."
+        ),
+    )
     parser.add_argument("--metadata-refresh-promotion-output", type=Path)
     parser.add_argument(
         "--metadata-refresh-promotion-quality-root",
@@ -1524,10 +1590,12 @@ def main(argv: list[str] | None = None) -> int:
             case_id=args.promote_metadata_refresh_case,
             refreshed_compression_path=args.promote_metadata_refresh_compression,
             quality_output_root=args.metadata_refresh_promotion_quality_root,
+            promotion_mode=args.metadata_refresh_promotion_mode,
         )
         if args.metadata_refresh_promotion_output is not None:
             promotion_result.write_json(args.metadata_refresh_promotion_output)
         print(f"metadata_refresh_promoted={'yes' if promotion_result.promoted else 'no'}")
+        print(f"metadata_refresh_promotion_mode={promotion_result.promotion_mode}")
         print(
             "metadata_refresh_quality_passed="
             f"{'yes' if promotion_result.quality_passed else 'no'}"
