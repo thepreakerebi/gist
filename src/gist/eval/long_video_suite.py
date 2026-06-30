@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+import shutil
 import shlex
 import subprocess
 import sys
@@ -184,6 +185,19 @@ class LongVideoMetadataRefreshRunReport(BaseModel):
     succeeded: int
     failed: int
     items: list[LongVideoMetadataRefreshRunItem]
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2) + "\n")
+
+
+class LongVideoMetadataRefreshPromotionResult(BaseModel):
+    case_id: str
+    promoted: bool
+    quality_passed: bool
+    source_path: Path
+    target_path: Path | None = None
+    failures: list[str] = Field(default_factory=list)
 
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -622,6 +636,83 @@ def run_long_video_metadata_refresh_queue(
         failed=len(run_items) - succeeded,
         items=run_items,
     )
+
+
+def promote_long_video_metadata_refresh(
+    cases: list[QualityCase],
+    case_id: str,
+    refreshed_compression_path: Path,
+    quality_output_root: Path = Path(".gist/metadata-refresh-promotion"),
+) -> LongVideoMetadataRefreshPromotionResult:
+    source_path = refreshed_compression_path
+    if not source_path.exists():
+        return LongVideoMetadataRefreshPromotionResult(
+            case_id=case_id,
+            promoted=False,
+            quality_passed=False,
+            source_path=source_path,
+            failures=[f"refreshed compression does not exist: {source_path}"],
+        )
+
+    matches = [case for case in cases if case.id == case_id]
+    if len(matches) != 1:
+        return LongVideoMetadataRefreshPromotionResult(
+            case_id=case_id,
+            promoted=False,
+            quality_passed=False,
+            source_path=source_path,
+            failures=[f"expected exactly one matching case, found {len(matches)}"],
+        )
+    case = matches[0]
+    if case.compression_path is None:
+        return LongVideoMetadataRefreshPromotionResult(
+            case_id=case_id,
+            promoted=False,
+            quality_passed=False,
+            source_path=source_path,
+            failures=["target case has no compression_path"],
+        )
+
+    refreshed_case = case.model_copy(update={"compression_path": source_path})
+    quality = run_quality_cases(
+        [refreshed_case],
+        output_root=quality_output_root / _safe_stem(case_id),
+    )
+    if not quality.passed:
+        failures = [
+            failure
+            for result in quality.results
+            for failure in result.failures
+        ]
+        return LongVideoMetadataRefreshPromotionResult(
+            case_id=case_id,
+            promoted=False,
+            quality_passed=False,
+            source_path=source_path,
+            target_path=case.compression_path,
+            failures=failures or ["refreshed artifact failed quality checks"],
+        )
+
+    _copy_refresh_artifact_tree(source_path.parent, case.compression_path.parent)
+    return LongVideoMetadataRefreshPromotionResult(
+        case_id=case_id,
+        promoted=True,
+        quality_passed=True,
+        source_path=source_path,
+        target_path=case.compression_path,
+    )
+
+
+def _copy_refresh_artifact_tree(source_dir: Path, target_dir: Path) -> None:
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for source_child in source_dir.iterdir():
+        target_child = target_dir / source_child.name
+        if source_child.is_dir():
+            if target_child.exists():
+                shutil.rmtree(target_child)
+            shutil.copytree(source_child, target_child)
+        else:
+            shutil.copy2(source_child, target_child)
 
 
 def append_reviewed_long_video_quality_draft(
@@ -1150,6 +1241,14 @@ def main(argv: list[str] | None = None) -> int:
         default=VisualScoringMode.BASELINE,
         help="Visual scorer used for metadata refresh reruns; baseline avoids CLIP downloads.",
     )
+    parser.add_argument("--promote-metadata-refresh-case")
+    parser.add_argument("--promote-metadata-refresh-compression", type=Path)
+    parser.add_argument("--metadata-refresh-promotion-output", type=Path)
+    parser.add_argument(
+        "--metadata-refresh-promotion-quality-root",
+        type=Path,
+        default=Path(".gist/metadata-refresh-promotion"),
+    )
     parser.add_argument(
         "--review-draft",
         type=Path,
@@ -1211,6 +1310,13 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.metadata_refresh_run_output is not None and not args.run_metadata_refresh:
         raise SystemExit("--metadata-refresh-run-output requires --run-metadata-refresh")
+    if (args.promote_metadata_refresh_case is None) != (
+        args.promote_metadata_refresh_compression is None
+    ):
+        raise SystemExit(
+            "--promote-metadata-refresh-case and "
+            "--promote-metadata-refresh-compression must be used together"
+        )
 
     if args.review_draft is not None:
         append_result = None
@@ -1244,6 +1350,25 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("--dataset is required unless --review-draft is used")
 
     cases = load_quality_cases(args.dataset)
+    promotion_result = None
+    if args.promote_metadata_refresh_case is not None:
+        promotion_result = promote_long_video_metadata_refresh(
+            cases=cases,
+            case_id=args.promote_metadata_refresh_case,
+            refreshed_compression_path=args.promote_metadata_refresh_compression,
+            quality_output_root=args.metadata_refresh_promotion_quality_root,
+        )
+        if args.metadata_refresh_promotion_output is not None:
+            promotion_result.write_json(args.metadata_refresh_promotion_output)
+        print(f"metadata_refresh_promoted={'yes' if promotion_result.promoted else 'no'}")
+        print(
+            "metadata_refresh_quality_passed="
+            f"{'yes' if promotion_result.quality_passed else 'no'}"
+        )
+        if promotion_result.target_path is not None:
+            print(f"metadata_refresh_target={promotion_result.target_path}")
+        for failure in promotion_result.failures:
+            print(f"  - {failure}")
     quality = (
         run_quality_cases(cases, output_root=args.output_root)
         if args.run_quality
@@ -1373,6 +1498,8 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if metadata_refresh_run is not None:
         return 0 if metadata_refresh_run.failed == 0 else 1
+    if promotion_result is not None:
+        return 0 if promotion_result.promoted else 1
     return 0 if report.passed else 1
 
 

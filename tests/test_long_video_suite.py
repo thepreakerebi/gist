@@ -16,6 +16,7 @@ from gist.eval.long_video_suite import (
     curate_long_video_query_proposal,
     evaluate_long_video_suite,
     main,
+    promote_long_video_metadata_refresh,
     render_long_video_curation_queue_markdown,
     render_long_video_metadata_refresh_queue_markdown,
     review_long_video_quality_draft,
@@ -600,6 +601,87 @@ def test_long_video_suite_cli_runs_metadata_refresh_queue(
     assert "metadata_refresh_failed=0" in output
 
 
+def test_promote_long_video_metadata_refresh_copies_passing_artifact(tmp_path: Path) -> None:
+    target = _write_quality_artifact(tmp_path / "curated" / "compression.json", "old-video")
+    refreshed = _write_quality_artifact(
+        tmp_path / "refresh" / "compression.json",
+        "new-video",
+    )
+    (refreshed.parent / "report.html").write_text("<html>refresh</html>")
+    (refreshed.parent / "clips").mkdir()
+    (refreshed.parent / "clips" / "evidence.mp4").write_text("clip")
+    case = QualityCase(
+        id="case",
+        query_category=QueryIntent.SPEECH_SEMANTIC,
+        domain="education",
+        compression_path=target,
+        expected_answer_terms=["answer"],
+        expected_evidence_terms=["evidence"],
+        min_answer_term_recall=1.0,
+        min_evidence_relevance_rate=1.0,
+        min_token_reduction_percent=90,
+    )
+
+    result = promote_long_video_metadata_refresh([case], "case", refreshed)
+
+    assert result.promoted
+    assert result.quality_passed
+    assert json.loads(target.read_text())["compression"]["video_id"] == "new-video"
+    assert (target.parent / "report.html").read_text() == "<html>refresh</html>"
+    assert (target.parent / "clips" / "evidence.mp4").read_text() == "clip"
+
+
+def test_long_video_suite_cli_promotes_metadata_refresh(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    target = _write_quality_artifact(tmp_path / "curated" / "compression.json", "old-video")
+    refreshed = _write_quality_artifact(tmp_path / "refresh" / "compression.json", "new-video")
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        QualityCase(
+            id="case",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=target,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+            min_answer_term_recall=1.0,
+            min_evidence_relevance_rate=1.0,
+            min_token_reduction_percent=90,
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--promote-metadata-refresh-case",
+            "case",
+            "--promote-metadata-refresh-compression",
+            str(refreshed),
+            "--metadata-refresh-promotion-output",
+            str(tmp_path / "reports" / "promotion.json"),
+            "--min-cases",
+            "1",
+            "--min-distinct-videos",
+            "1",
+            "--min-distinct-domains",
+            "1",
+            "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
+            "0",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "metadata_refresh_promoted=yes" in output
+    assert json.loads(target.read_text())["compression"]["video_id"] == "new-video"
+
+
 def test_curate_long_video_query_proposal_writes_review_bundle(tmp_path: Path) -> None:
     video_path = tmp_path / "source.mp4"
     video_path.write_text("video")
@@ -988,6 +1070,55 @@ def _write_artifact(
                         "beam_size": 1,
                     },
                 },
+            }
+        )
+        + "\n"
+    )
+    return path
+
+
+def _write_quality_artifact(path: Path, video_id: str) -> Path:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    compression = CompressionResponse(
+        video_id=video_id,
+        query="query",
+        answer="This answer covers the expected evidence.",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.SPEECH_SEMANTIC,
+        selected=[
+            SelectedCandidate(
+                id="a-1",
+                modality=Modality.AUDIO,
+                timestamp_seconds=10,
+                text="evidence answer",
+                selection_rank=1,
+                relevance_score=1,
+                normalized_score=1,
+                mmr_score=1,
+                source_score_type="test",
+                reason="test",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=10,
+            selected_candidates=1,
+            visual_selected=0,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=0.9,
+            estimated_candidate_reduction_percent=90,
+            dropped_candidates=9,
+            budget_preset_used=CompressionPreset.BALANCED,
+            estimated_token_reduction_percent=95,
+        ),
+    )
+    path.write_text(
+        json.dumps(
+            {
+                "ingestion": {
+                    "source_path": "source.mp4",
+                    "metadata": {"duration_seconds": 3700},
+                },
+                "compression": compression.model_dump(mode="json"),
             }
         )
         + "\n"

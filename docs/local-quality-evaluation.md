@@ -132,6 +132,19 @@ Start with a limit of `1`, inspect the regenerated report, then only promote or
 recapture the case if the refreshed artifact still passes the curated quality
 thresholds.
 
+Promote a reviewed metadata refresh artifact back to its curated run path:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --promote-metadata-refresh-case paul-graham-startup-killer \
+  --promote-metadata-refresh-compression .gist/metadata-refresh/video-slug/query-slug/compression.json \
+  --metadata-refresh-promotion-output reports/long-video-suite/metadata-refresh-promotion.json
+```
+
+Promotion is gated by the existing quality thresholds for that case. If the
+refreshed artifact fails, the curated artifact is left untouched.
+
 Run a proposed query and write a review bundle:
 
 ```bash
