@@ -21,6 +21,7 @@ from gist.eval.long_video_suite import (
     review_long_video_quality_draft,
     render_long_video_suite_html,
     render_long_video_suite_markdown,
+    run_long_video_metadata_refresh_queue,
 )
 from gist.eval.quality import QualityCase
 from gist.media.models import IngestedVideo, VideoMetadata
@@ -486,6 +487,115 @@ def test_long_video_suite_cli_writes_metadata_refresh_queue(
     assert refresh["refresh_needed"] == 1
     assert refresh["target_transcript_quality"] == "accurate"
     assert "Metadata Refresh Queue" in refresh_markdown_path.read_text()
+
+
+def test_run_long_video_metadata_refresh_queue_respects_limit(tmp_path: Path) -> None:
+    video_path = tmp_path / "source.mp4"
+    video_path.write_text("video")
+    cases = []
+    for index in range(2):
+        artifact = _write_artifact(
+            tmp_path / f"missing-{index}" / "compression.json",
+            f"video-{index}",
+            3700,
+            source_path=video_path,
+        )
+        payload = json.loads(artifact.read_text())
+        payload["compression"]["transcript_metadata"] = None
+        artifact.write_text(json.dumps(payload) + "\n")
+        cases.append(
+            QualityCase(
+                id=f"missing-{index}",
+                query_category=QueryIntent.SPEECH_SEMANTIC,
+                domain="education",
+                compression_path=artifact,
+                expected_answer_terms=["answer"],
+                expected_evidence_terms=["evidence"],
+            )
+        )
+    queue = build_long_video_metadata_refresh_queue(cases)
+    calls = []
+
+    def fake_runner(command_args, check):
+        calls.append((command_args, check))
+        return SimpleNamespace(returncode=0)
+
+    report = run_long_video_metadata_refresh_queue(queue, limit=1, runner=fake_runner)
+
+    assert report.attempted == 1
+    assert report.succeeded == 1
+    assert report.failed == 0
+    assert len(calls) == 1
+    assert calls[0][0][0] == "gist-compress"
+    assert calls[0][1] is False
+
+
+def test_long_video_suite_cli_runs_metadata_refresh_queue(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
+    artifact = _write_artifact(tmp_path / "missing" / "compression.json", "video", 3700)
+    payload = json.loads(artifact.read_text())
+    payload["compression"]["transcript_metadata"] = None
+    artifact.write_text(json.dumps(payload) + "\n")
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        QualityCase(
+            id="missing",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="education",
+            compression_path=artifact,
+            expected_answer_terms=["answer"],
+            expected_evidence_terms=["evidence"],
+        ).model_dump_json(exclude_none=True)
+        + "\n"
+    )
+
+    def fake_run_queue(queue, limit=None, runner=None):
+        def write_json(path: Path) -> None:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("{}\n")
+
+        return SimpleNamespace(
+            attempted=1,
+            succeeded=1,
+            failed=0,
+            write_json=write_json,
+        )
+
+    monkeypatch.setattr(
+        long_video_suite,
+        "run_long_video_metadata_refresh_queue",
+        fake_run_queue,
+    )
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--run-metadata-refresh",
+            "--metadata-refresh-limit",
+            "1",
+            "--metadata-refresh-run-output",
+            str(tmp_path / "reports" / "refresh-run.json"),
+            "--min-cases",
+            "1",
+            "--min-distinct-videos",
+            "1",
+            "--min-distinct-domains",
+            "1",
+            "--min-cases-per-category",
+            "1",
+            "--min-transcript-metadata-rate",
+            "0",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "metadata_refresh_attempted=1" in output
+    assert "metadata_refresh_failed=0" in output
 
 
 def test_curate_long_video_query_proposal_writes_review_bundle(tmp_path: Path) -> None:

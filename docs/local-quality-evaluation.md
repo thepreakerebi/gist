@@ -112,6 +112,19 @@ Use this when target readiness fails on `transcript_metadata_rate`. The generate
 commands rerun older curated cases with Whisper-backed audio scoring so refreshed
 artifacts include transcript metadata.
 
+Run a controlled metadata refresh batch:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --run-metadata-refresh \
+  --metadata-refresh-limit 1 \
+  --metadata-refresh-run-output reports/long-video-suite/metadata-refresh-run.json
+```
+
+Start with a limit of `1`, inspect the regenerated report, then increase the
+limit once the refreshed case still passes quality.
+
 Run a proposed query and write a review bundle:
 
 ```bash

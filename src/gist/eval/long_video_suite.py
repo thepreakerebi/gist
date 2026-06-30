@@ -2,6 +2,7 @@ import argparse
 import json
 import re
 import shlex
+import subprocess
 from collections import Counter
 from html import escape
 from pathlib import Path
@@ -156,6 +157,7 @@ class LongVideoMetadataRefreshQueueItem(BaseModel):
     source_path: Path
     current_transcript_quality: str | None = None
     command: str
+    command_args: list[str]
 
 
 class LongVideoMetadataRefreshQueueReport(BaseModel):
@@ -163,6 +165,24 @@ class LongVideoMetadataRefreshQueueReport(BaseModel):
     refresh_needed: int
     target_transcript_quality: TranscriptQuality
     items: list[LongVideoMetadataRefreshQueueItem]
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2) + "\n")
+
+
+class LongVideoMetadataRefreshRunItem(BaseModel):
+    case_id: str
+    command: str
+    returncode: int
+    succeeded: bool
+
+
+class LongVideoMetadataRefreshRunReport(BaseModel):
+    attempted: int
+    succeeded: int
+    failed: int
+    items: list[LongVideoMetadataRefreshRunItem]
 
     def write_json(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -525,31 +545,32 @@ def build_long_video_metadata_refresh_queue(
         if not query:
             continue
         source_path = _artifact_source_path(payload, case.compression_path)
-        command = " ".join(
-            [
-                "gist-compress",
-                shlex.quote(str(source_path)),
-                "--query",
-                shlex.quote(query),
-                "--output-root",
-                shlex.quote(str(output_root)),
-                "--preset",
-                shlex.quote(str(case.preset.value)),
-                "--processing-mode",
-                shlex.quote(str(case.processing_mode.value)),
-                "--visual-scorer",
-                shlex.quote(str(case.visual_scorer.value)),
-                "--audio-scorer",
-                shlex.quote(str(AudioScoringMode.WHISPER.value)),
-                "--transcript-quality",
-                shlex.quote(str(target_transcript_quality.value)),
-                "--html-report",
-                "--auto-transcript-retry",
-            ]
-            + (["--adaptive-budget"] if case.adaptive_budget else [])
-            + (["--decompose-query"] if case.decompose_query else [])
-            + ([] if case.visual_ocr else ["--no-visual-ocr"])
-        )
+        command_args = [
+            "gist-compress",
+            str(source_path),
+            "--query",
+            query,
+            "--output-root",
+            str(output_root),
+            "--preset",
+            str(case.preset.value),
+            "--processing-mode",
+            str(case.processing_mode.value),
+            "--visual-scorer",
+            str(case.visual_scorer.value),
+            "--audio-scorer",
+            str(AudioScoringMode.WHISPER.value),
+            "--transcript-quality",
+            str(target_transcript_quality.value),
+            "--html-report",
+            "--auto-transcript-retry",
+        ]
+        if case.adaptive_budget:
+            command_args.append("--adaptive-budget")
+        if case.decompose_query:
+            command_args.append("--decompose-query")
+        if not case.visual_ocr:
+            command_args.append("--no-visual-ocr")
         items.append(
             LongVideoMetadataRefreshQueueItem(
                 case_id=case.id,
@@ -558,7 +579,8 @@ def build_long_video_metadata_refresh_queue(
                 compression_path=case.compression_path,
                 source_path=source_path,
                 current_transcript_quality=current_quality,
-                command=command,
+                command=shlex.join(command_args),
+                command_args=command_args,
             )
         )
     return LongVideoMetadataRefreshQueueReport(
@@ -566,6 +588,33 @@ def build_long_video_metadata_refresh_queue(
         refresh_needed=len(items),
         target_transcript_quality=target_transcript_quality,
         items=items,
+    )
+
+
+def run_long_video_metadata_refresh_queue(
+    queue: LongVideoMetadataRefreshQueueReport,
+    limit: int | None = None,
+    runner=subprocess.run,
+) -> LongVideoMetadataRefreshRunReport:
+    selected_items = queue.items[:limit] if limit is not None else queue.items
+    run_items: list[LongVideoMetadataRefreshRunItem] = []
+    for item in selected_items:
+        completed = runner(item.command_args, check=False)
+        returncode = int(completed.returncode)
+        run_items.append(
+            LongVideoMetadataRefreshRunItem(
+                case_id=item.case_id,
+                command=item.command,
+                returncode=returncode,
+                succeeded=returncode == 0,
+            )
+        )
+    succeeded = sum(item.succeeded for item in run_items)
+    return LongVideoMetadataRefreshRunReport(
+        attempted=len(run_items),
+        succeeded=succeeded,
+        failed=len(run_items) - succeeded,
+        items=run_items,
     )
 
 
@@ -1067,6 +1116,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--queue-markdown-output", type=Path)
     parser.add_argument("--metadata-refresh-output", type=Path)
     parser.add_argument("--metadata-refresh-markdown-output", type=Path)
+    parser.add_argument("--metadata-refresh-run-output", type=Path)
+    parser.add_argument(
+        "--run-metadata-refresh",
+        action="store_true",
+        help="Execute queued transcript metadata refresh commands.",
+    )
+    parser.add_argument(
+        "--metadata-refresh-limit",
+        type=int,
+        help="Maximum number of queued metadata refresh commands to execute.",
+    )
     parser.add_argument(
         "--metadata-refresh-quality",
         choices=list(TranscriptQuality),
@@ -1130,6 +1190,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--min-answered-rate", type=float, default=0.9)
     parser.add_argument("--max-avg-selected-evidence", type=float, default=8.0)
     args = parser.parse_args(argv)
+
+    if args.metadata_refresh_run_output is not None and not args.run_metadata_refresh:
+        raise SystemExit("--metadata-refresh-run-output requires --run-metadata-refresh")
 
     if args.review_draft is not None:
         append_result = None
@@ -1210,10 +1273,14 @@ def main(argv: list[str] | None = None) -> int:
                 render_long_video_curation_queue_markdown(queue)
             )
         print(f"queue_items={len(queue.items)}")
-    if (
+    metadata_refresh = None
+    metadata_refresh_requested = (
         args.metadata_refresh_output is not None
         or args.metadata_refresh_markdown_output is not None
-    ):
+        or args.run_metadata_refresh
+    )
+    metadata_refresh_run = None
+    if metadata_refresh_requested:
         metadata_refresh = build_long_video_metadata_refresh_queue(
             cases=cases,
             target_transcript_quality=TranscriptQuality(args.metadata_refresh_quality),
@@ -1226,6 +1293,18 @@ def main(argv: list[str] | None = None) -> int:
                 render_long_video_metadata_refresh_queue_markdown(metadata_refresh)
             )
         print(f"metadata_refresh_items={len(metadata_refresh.items)}")
+        if args.run_metadata_refresh:
+            if args.metadata_refresh_limit is not None and args.metadata_refresh_limit < 1:
+                raise SystemExit("--metadata-refresh-limit must be greater than 0")
+            metadata_refresh_run = run_long_video_metadata_refresh_queue(
+                queue=metadata_refresh,
+                limit=args.metadata_refresh_limit,
+            )
+            if args.metadata_refresh_run_output is not None:
+                metadata_refresh_run.write_json(args.metadata_refresh_run_output)
+            print(f"metadata_refresh_attempted={metadata_refresh_run.attempted}")
+            print(f"metadata_refresh_succeeded={metadata_refresh_run.succeeded}")
+            print(f"metadata_refresh_failed={metadata_refresh_run.failed}")
     curation_requested = args.curate_proposal_index is not None
     if curation_requested:
         proposals = report.expansion_plan.query_proposals
@@ -1272,6 +1351,8 @@ def main(argv: list[str] | None = None) -> int:
             )
     if curation_requested:
         return 0
+    if metadata_refresh_run is not None:
+        return 0 if metadata_refresh_run.failed == 0 else 1
     return 0 if report.passed else 1
 
 
