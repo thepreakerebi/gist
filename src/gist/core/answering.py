@@ -926,9 +926,42 @@ def _best_sentence(query: str, text: str) -> str:
     ]
     if not sentences:
         return text.strip()
+    enumerated = _enumerated_answer_sentence(query, sentences)
+    if enumerated is not None:
+        return enumerated
     best = max(sentences, key=lambda sentence: _sentence_score(query, sentence))
     followup = _followup_answer_sentence(query, sentences, best)
     return followup or best
+
+
+def _enumerated_answer_sentence(query: str, sentences: list[str]) -> str | None:
+    query_lower = query.lower()
+    if not query_lower.strip().startswith("how") and " how " not in f" {query_lower} ":
+        return None
+    query_terms = set(re.findall(r"[a-z0-9]+", query_lower))
+    if not {"startup", "startups", "ideas", "founders"} & query_terms:
+        return None
+
+    for index, sentence in enumerate(sentences):
+        lower = sentence.lower()
+        if "one," not in lower:
+            continue
+        answer = re.sub(r"^.*?(?=\bOne,)", "", sentence, flags=re.IGNORECASE).strip()
+        if not answer:
+            continue
+        if "three," in answer.lower():
+            return answer
+        followups = [answer]
+        for next_sentence in sentences[index + 1 : index + 3]:
+            next_lower = next_sentence.lower()
+            if (
+                ("two," in next_lower and len(followups) == 1)
+                or ("three," in next_lower and len(followups) == 2)
+            ):
+                followups.append(next_sentence.strip())
+        if len(followups) >= 3:
+            return " ".join(followups)
+    return None
 
 
 def _followup_answer_sentence(

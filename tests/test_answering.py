@@ -114,6 +114,51 @@ def test_answer_from_evidence_prefers_startup_mistake_followup_sentence() -> Non
     )
 
 
+def test_answer_from_evidence_extracts_enumerated_startup_ideas_answer() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="According to Paul Graham, how do founders get startup ideas unconsciously?",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.SPEECH_SEMANTIC,
+        selected=[
+            SelectedCandidate(
+                id="answer",
+                modality=Modality.AUDIO,
+                timestamp_seconds=615,
+                text=(
+                    "Okay, so how do you turn your mind into the kind that has "
+                    "startup ideas unconsciously? One, learn a lot about things "
+                    "that matter. Two, work on problems that interest you. "
+                    "Three, with people you like and respect. Hmm, startup ideas "
+                    "in the source of them."
+                ),
+                selection_rank=1,
+                relevance_score=0.8,
+                normalized_score=1.0,
+                mmr_score=0.5,
+                source_score_type="lexical_overlap",
+                reason="test",
+            )
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=1,
+            selected_candidates=1,
+            visual_selected=0,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=1,
+            estimated_candidate_reduction_percent=0,
+            dropped_candidates=0,
+            budget_preset_used=CompressionPreset.BALANCED,
+            token_estimator=TokenEstimatorProfile.GENERIC,
+        ),
+    )
+
+    assert answer_from_evidence(compression) == (
+        "One, learn a lot about things that matter. Two, work on problems that "
+        "interest you. Three, with people you like and respect."
+    )
+
+
 def test_answer_from_evidence_summarizes_global_topics_across_timeline() -> None:
     compression = CompressionResponse(
         video_id="demo",
