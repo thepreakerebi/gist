@@ -26,6 +26,15 @@ def test_routes_speech_while_showing_query_to_mixed_av() -> None:
     assert "cross-modal" in reason
 
 
+def test_routes_ask_admit_visible_query_to_mixed_av() -> None:
+    intent, reason = route_query_intent(
+        "What does the woman ask about her robot hand, and what does the man admit while the robot hand is visible?"
+    )
+
+    assert intent == QueryIntent.MIXED_AV
+    assert "cross-modal" in reason
+
+
 def test_routes_visual_query() -> None:
     intent, reason = route_query_intent("show the person holding the tool")
 

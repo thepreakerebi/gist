@@ -67,6 +67,13 @@ def shortlist_relevant_segments(
             audio_ids={candidate.id for candidate in candidates.audio},
         )
     )
+    selected_ids.update(
+        _mixed_av_audio_group_ids(
+            groups,
+            query,
+            audio_ids={candidate.id for candidate in candidates.audio},
+        )
+    )
     visual = [
         _candidate_with_group(candidate, groups)
         for candidate in candidates.visual
@@ -306,4 +313,35 @@ def _global_audio_group_ids(
             ),
         ).id
         for target in targets
+    }
+
+
+def _mixed_av_audio_group_ids(
+    groups: list[SegmentCandidateGroup],
+    query: str,
+    audio_ids: set[str],
+    max_groups: int = 4,
+) -> set[str]:
+    query_intent, _reason = route_query_intent(query)
+    if query_intent != QueryIntent.MIXED_AV:
+        return set()
+
+    scored: list[tuple[float, SegmentCandidateGroup]] = []
+    for group in groups:
+        audio_candidates = [
+            candidate for candidate in group.candidates if candidate.id in audio_ids
+        ]
+        if not audio_candidates:
+            continue
+        score = max(lexical_relevance(query, candidate) for candidate in audio_candidates)
+        if score > 0.0:
+            scored.append((score, group))
+
+    return {
+        group.id
+        for score, group in sorted(
+            scored,
+            key=lambda item: (item[0], -item[1].start_seconds),
+            reverse=True,
+        )[:max_groups]
     }

@@ -58,6 +58,13 @@ def fuse_transcript_moments(
             query=query,
             visual_radius_seconds=max(visual_radius_seconds, 30.0),
         )
+        _add_mixed_av_audio_fallback(
+            scored_audio=scored_audio,
+            used_visual_ids=used_visual_ids,
+            candidates=candidates,
+            query=query,
+            visual_radius_seconds=max(visual_radius_seconds, 30.0),
+        )
     if preserve_global_audio:
         _add_global_audio_coverage(
             scored_audio=scored_audio,
@@ -163,6 +170,40 @@ def _add_visual_context_audio(
                 _audio_with_visual_grounding(audio, visual),
             )
         )
+
+
+def _add_mixed_av_audio_fallback(
+    scored_audio: list[tuple[float, Candidate]],
+    used_visual_ids: set[str],
+    candidates: CandidateSet,
+    query: str,
+    visual_radius_seconds: float,
+    max_fallback_audio: int = 4,
+) -> None:
+    existing_audio_ids = {
+        candidate.id.split("+", maxsplit=1)[0]
+        for _score, candidate in scored_audio
+    }
+    ranked_audio = sorted(
+        (
+            (lexical_relevance(query, audio), audio)
+            for audio in candidates.audio
+            if audio.id not in existing_audio_ids
+        ),
+        key=lambda item: (item[0], -item[1].timestamp_seconds),
+        reverse=True,
+    )
+    fallback_audio = [
+        (score, audio)
+        for score, audio in ranked_audio
+        if score > 0.0
+    ][:max_fallback_audio]
+    for score, audio in fallback_audio:
+        visual = _nearest_visual(audio, candidates.visual, visual_radius_seconds)
+        if visual is not None:
+            used_visual_ids.add(visual.id)
+            audio = _audio_with_visual_grounding(audio, visual)
+        scored_audio.append((score, audio))
 
 
 def _visual_relevance(query: str, visual: Candidate) -> float:

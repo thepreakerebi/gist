@@ -28,6 +28,12 @@ _SPEECH_TERMS = {
     "mentions",
     "voice",
     "transcript",
+    "ask",
+    "asks",
+    "asked",
+    "admit",
+    "admits",
+    "admitted",
 }
 _CONCEPTUAL_SPEECH_TERMS = {
     "according",
@@ -59,6 +65,8 @@ _VISUAL_TERMS = {
     "looks",
     "wearing",
     "holding",
+    "hand",
+    "visible",
     "object",
     "person",
     "people",

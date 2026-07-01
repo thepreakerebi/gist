@@ -687,6 +687,72 @@ def test_mixed_av_selection_keeps_nearby_audio_and_visual_evidence() -> None:
     assert any(item.id == "audio-near" for item in response.selected)
 
 
+def test_mixed_av_selection_replaces_weak_visual_when_audio_is_missing() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="What does the woman ask while the robot hand is visible?",
+        duration_seconds=3600,
+        preset=CompressionPreset.AGGRESSIVE,
+        task_aware_selection=True,
+        query_intent=QueryIntent.MIXED_AV,
+        visual_candidates=[
+            Candidate(
+                id=f"visual-{index}",
+                timestamp_seconds=float(index * 60),
+                text="robot hand visible robot hand visible",
+            )
+            for index in range(8)
+        ],
+        audio_candidates=[
+            Candidate(
+                id="audio-answer",
+                timestamp_seconds=345,
+                text="why don't you admit that you are freaked out by my robot hand",
+            )
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.metrics.selected_candidates == 6
+    assert response.metrics.audio_selected >= 1
+    assert response.metrics.visual_selected >= 1
+    assert "audio-answer" in {item.id for item in response.selected}
+
+
+def test_mixed_av_selection_replaces_weak_audio_when_visual_is_missing() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="What does the presenter say while the product chart is visible?",
+        duration_seconds=3600,
+        preset=CompressionPreset.AGGRESSIVE,
+        task_aware_selection=True,
+        query_intent=QueryIntent.MIXED_AV,
+        visual_candidates=[
+            Candidate(
+                id="visual-chart",
+                timestamp_seconds=120,
+                text="product chart visible on screen",
+            )
+        ],
+        audio_candidates=[
+            Candidate(
+                id=f"audio-{index}",
+                timestamp_seconds=float(index * 60),
+                text="presenter says product chart while explaining the metric",
+            )
+            for index in range(8)
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.metrics.selected_candidates == 6
+    assert response.metrics.audio_selected >= 1
+    assert response.metrics.visual_selected >= 1
+    assert "visual-chart" in {item.id for item in response.selected}
+
+
 def test_adaptive_budget_keeps_aggressive_for_grounded_transcript_moments() -> None:
     request = CompressionRequest(
         video_id="demo",

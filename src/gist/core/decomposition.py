@@ -39,6 +39,12 @@ class RuleBasedQueryDecomposer:
         "gesture",
     }
     _audio_terms = {
+        "admit",
+        "admits",
+        "admitted",
+        "ask",
+        "asks",
+        "asked",
         "say",
         "says",
         "speaking",

@@ -950,6 +950,42 @@ def test_prune_evidence_to_answer_keeps_mixed_av_audio_evidence() -> None:
     assert pruned.metrics.visual_selected == 0
 
 
+def test_prune_evidence_to_answer_demotes_visual_noise_for_mixed_av_ask_query() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What does the woman ask while her robot hand is visible?",
+        answer="Why don't you just admit that you're freaked out by my robot hand?",
+        preset=CompressionPreset.BALANCED,
+        query_intent=QueryIntent.MIXED_AV,
+        selected=[
+            _item(
+                "audio-answer+visual-hand",
+                345,
+                "Why don't you just admit that you're freaked out by my robot hand?",
+            ),
+            _visual_item("visual-noise-1", 1100, "on-screen text near 1100.00 seconds: x", 1.0),
+            _visual_item("visual-noise-2", 2580, "on-screen text near 2580.00 seconds: y", 0.9),
+            _visual_item("visual-noise-3", 2609, "on-screen text near 2609.00 seconds: z", 0.8),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=50,
+            selected_candidates=4,
+            visual_selected=3,
+            audio_selected=1,
+            estimated_candidate_reduction_ratio=0.08,
+            estimated_candidate_reduction_percent=92,
+            dropped_candidates=46,
+            budget_preset_used=CompressionPreset.BALANCED,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression)
+
+    assert [item.id for item in pruned.selected] == ["audio-answer+visual-hand"]
+    assert pruned.metrics.audio_selected == 1
+    assert pruned.metrics.visual_selected == 0
+
+
 def test_prune_evidence_to_answer_preserves_global_summary_audio_coverage() -> None:
     compression = CompressionResponse(
         video_id="demo",

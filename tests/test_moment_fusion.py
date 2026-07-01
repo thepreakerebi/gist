@@ -146,6 +146,40 @@ def test_fuse_transcript_moments_preserves_audio_near_relevant_mixed_visual() ->
     assert [candidate.id for candidate in fused.audio] == ["audio-near+visual-hit"]
 
 
+def test_fuse_transcript_moments_keeps_low_overlap_mixed_av_transcript_fallback() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id="visual-hand",
+                timestamp_seconds=345,
+                text="robot hand visible",
+                saliency_score=0.8,
+            )
+        ],
+        audio=[
+            Candidate(
+                id="audio-answer",
+                timestamp_seconds=345,
+                text="why don't you admit that you're freaked out by my robot hand",
+            ),
+            Candidate(
+                id="audio-noise",
+                timestamp_seconds=700,
+                text="unrelated background conversation",
+            ),
+        ],
+    )
+
+    fused = fuse_transcript_moments(
+        candidates,
+        query="What does the woman ask while her robot hand is visible?",
+        preserve_visual_context_audio=True,
+    )
+
+    assert "audio-answer+visual-hand" in {candidate.id for candidate in fused.audio}
+    assert "audio-noise" not in {candidate.id for candidate in fused.audio}
+
+
 def test_fuse_transcript_moments_preserves_global_timeline_audio() -> None:
     candidates = CandidateSet(
         visual=[],

@@ -149,6 +149,42 @@ def test_shortlist_relevant_segments_uses_model_saliency_when_available() -> Non
     assert [candidate.id for candidate in shortlisted.visual] == ["v-high"]
 
 
+def test_shortlist_relevant_segments_preserves_mixed_av_audio_groups() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id=f"v-{index}",
+                timestamp_seconds=float(index * 120 + 5),
+                text="visual OCR noise",
+                saliency_score=1.0,
+            )
+            for index in range(6)
+        ],
+        audio=[
+            Candidate(
+                id="audio-answer",
+                timestamp_seconds=485,
+                text="why don't you admit that you're freaked out by my robot hand",
+            ),
+            Candidate(
+                id="audio-noise",
+                timestamp_seconds=15,
+                text="background conversation",
+            ),
+        ],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="What does the woman ask while her robot hand is visible?",
+        duration_seconds=720,
+        segment_seconds=120,
+        max_segments=1,
+    )
+
+    assert "audio-answer" in {candidate.id for candidate in shortlisted.audio}
+
+
 def test_shortlist_relevant_segments_preserves_temporal_anchor_and_target() -> None:
     candidates = CandidateSet(
         visual=[

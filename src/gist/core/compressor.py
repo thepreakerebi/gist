@@ -829,29 +829,58 @@ class GistCompressor:
         candidates: list[ScoredCandidate],
         max_items: int,
     ) -> list[Selection]:
-        visual_selections = [
-            selection
-            for selection in selections
-            if selection.candidate.modality == Modality.VISUAL
-        ]
-        audio_selections = [
-            selection
-            for selection in selections
-            if selection.candidate.modality == Modality.AUDIO
+        visual_candidates = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == Modality.VISUAL
         ]
         audio_candidates = [
             candidate
             for candidate in candidates
             if candidate.modality == Modality.AUDIO
         ]
-        if not visual_selections or not audio_candidates:
+        if max_items < 2 or not visual_candidates or not audio_candidates:
             return selections
+
+        balanced = self._ensure_required_mixed_av_modality(
+            selections=list(selections),
+            candidates=audio_candidates,
+            required_modality=Modality.AUDIO,
+            max_items=max_items,
+            reason=(
+                "Included as the strongest transcript evidence because mixed "
+                "audio-visual queries require at least one spoken/contextual source."
+            ),
+        )
+        balanced = self._ensure_required_mixed_av_modality(
+            selections=balanced,
+            candidates=visual_candidates,
+            required_modality=Modality.VISUAL,
+            max_items=max_items,
+            reason=(
+                "Included as the strongest visual evidence because mixed "
+                "audio-visual queries require at least one shown/source frame."
+            ),
+        )
+
+        visual_selections = [
+            selection
+            for selection in balanced
+            if selection.candidate.modality == Modality.VISUAL
+        ]
+        audio_selections = [
+            selection
+            for selection in balanced
+            if selection.candidate.modality == Modality.AUDIO
+        ]
+        if not visual_selections or not audio_candidates:
+            return self._rerank_selections(balanced)
 
         target_audio = min(len(audio_candidates), max(2, max_items // 3))
         if len(audio_selections) >= target_audio:
-            return selections
+            return self._rerank_selections(balanced)
 
-        selected_ids = {selection.candidate.id for selection in selections}
+        selected_ids = {selection.candidate.id for selection in balanced}
         visual_anchors = sorted(
             (selection.candidate for selection in visual_selections),
             key=lambda candidate: (
@@ -876,7 +905,6 @@ class GistCompressor:
             ),
         )
 
-        balanced = list(selections)
         audio_count = len(audio_selections)
         for candidate in nearby_audio:
             if audio_count >= target_audio:
@@ -900,6 +928,53 @@ class GistCompressor:
             )
             audio_count += 1
         return self._rerank_selections(balanced)
+
+    def _ensure_required_mixed_av_modality(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        required_modality: Modality,
+        max_items: int,
+        reason: str,
+    ) -> list[Selection]:
+        if any(selection.candidate.modality == required_modality for selection in selections):
+            return selections
+
+        selected_ids = {selection.candidate.id for selection in selections}
+        available = [
+            candidate
+            for candidate in candidates
+            if candidate.modality == required_modality and candidate.id not in selected_ids
+        ]
+        if not available:
+            return selections
+
+        candidate = max(
+            available,
+            key=lambda item: (
+                item.relevance_score,
+                item.normalized_score,
+                -item.timestamp_seconds,
+            ),
+        )
+        if len(selections) >= max_items and not self._drop_weakest_modality(
+            selections,
+            modality=Modality.VISUAL
+            if required_modality == Modality.AUDIO
+            else Modality.AUDIO,
+            minimum_remaining=1,
+        ):
+            return selections
+
+        selections.append(
+            Selection(
+                candidate=candidate,
+                selection_rank=0,
+                mmr_score=candidate.normalized_score,
+                reason=reason,
+            )
+        )
+        return selections
 
     def _ensure_counting_visual_neighbors(
         self,
