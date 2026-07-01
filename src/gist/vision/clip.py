@@ -103,7 +103,7 @@ class HuggingFaceClipFrameScorer:
 
         try:
             import torch
-            from transformers import CLIPModel, CLIPProcessor
+            from transformers import CLIPImageProcessor, CLIPModel, CLIPProcessor, CLIPTokenizer
         except ImportError as exc:
             raise VisualScoringError(
                 "CLIP scoring requires optional vision dependencies. "
@@ -112,8 +112,31 @@ class HuggingFaceClipFrameScorer:
 
         selected_device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         self._torch = torch
-        self._processor = CLIPProcessor.from_pretrained(self.model_name)
-        self._model = CLIPModel.from_pretrained(self.model_name).to(selected_device)
+        try:
+            self._processor = CLIPProcessor.from_pretrained(
+                self.model_name,
+                local_files_only=True,
+            )
+        except OSError:
+            image_processor = CLIPImageProcessor.from_pretrained(
+                self.model_name,
+                local_files_only=True,
+            )
+            tokenizer = CLIPTokenizer.from_pretrained(
+                self.model_name,
+                local_files_only=True,
+            )
+            self._processor = _ClipProcessorCompat(
+                image_processor=image_processor,
+                tokenizer=tokenizer,
+            )
+        try:
+            self._model = CLIPModel.from_pretrained(
+                self.model_name,
+                local_files_only=True,
+            ).to(selected_device)
+        except OSError:
+            self._model = CLIPModel.from_pretrained(self.model_name).to(selected_device)
         self._model.eval()
 
     def _load_image(self, path: Path) -> Any:
@@ -147,6 +170,38 @@ def _feature_tensor(output: Any) -> Any:
     if isinstance(output, tuple) and output:
         return output[0]
     raise VisualScoringError("CLIP image feature output did not contain a tensor")
+
+
+class _ClipProcessorCompat:
+    def __init__(self, image_processor: Any, tokenizer: Any) -> None:
+        self.image_processor = image_processor
+        self.tokenizer = tokenizer
+
+    def __call__(
+        self,
+        *,
+        text: list[str] | None = None,
+        images: list[Any] | None = None,
+        return_tensors: str = "pt",
+        padding: bool = True,
+    ) -> dict[str, Any]:
+        inputs: dict[str, Any] = {}
+        if text is not None:
+            inputs.update(
+                self.tokenizer(
+                    text,
+                    return_tensors=return_tensors,
+                    padding=padding,
+                )
+            )
+        if images is not None:
+            inputs.update(
+                self.image_processor(
+                    images=images,
+                    return_tensors=return_tensors,
+                )
+            )
+        return inputs
 
 
 def _chunks(items: list[T], batch_size: int) -> list[list[T]]:
