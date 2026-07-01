@@ -123,6 +123,37 @@ def test_evaluate_case_enforces_visual_evidence_floor(tmp_path: Path) -> None:
     assert any("visual evidence" in failure for failure in result.failures)
 
 
+def test_evaluate_case_counts_video_grounded_audio_as_visual_evidence(
+    tmp_path: Path,
+) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        selected=[
+            _item(
+                "video:audio:11+video:visual:48",
+                timestamp=345,
+                clip_start=330,
+                clip_end=360,
+            )
+        ],
+        answer="She asks why he will not admit he is freaked out by her robot hand.",
+        token_reduction=99.0,
+    )
+    case = RegressionCase(
+        id="mixed-av-video-grounded",
+        compression_path=compression_path,
+        expected_evidence_ranges=[TimeRange(start_seconds=330, end_seconds=360)],
+        min_visual_evidence=1,
+        min_audio_evidence=1,
+    )
+
+    result = evaluate_case(case)
+
+    assert result.passed is True
+    assert result.visual_evidence == 1
+    assert result.audio_evidence == 1
+
+
 def test_evaluate_case_enforces_spatial_artifacts_for_visual_evidence(
     tmp_path: Path,
 ) -> None:

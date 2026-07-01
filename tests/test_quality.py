@@ -140,6 +140,47 @@ def test_evaluate_quality_case_can_gate_grounded_evidence_rate(tmp_path: Path) -
     assert any("grounded evidence rate" in failure for failure in result.failures)
 
 
+def test_evaluate_quality_case_counts_video_grounded_audio_as_visual_evidence(
+    tmp_path: Path,
+) -> None:
+    compression_path = _write_compression(
+        tmp_path,
+        answer="She asks why he will not admit he is freaked out by her robot hand.",
+        selected=[
+            _item(
+                "video:audio:11+video:visual:48",
+                timestamp=345,
+                clip_start=330,
+                clip_end=360,
+                text="Why don't you admit that you're freaked out by my robot hand?",
+            )
+        ],
+        token_reduction=99.0,
+    )
+    case = QualityCase(
+        id="mixed-av-video-grounded",
+        compression_path=compression_path,
+        expected_answer_terms=["admit", "freaked", "robot", "hand"],
+        expected_evidence_terms=["admit", "freaked", "robot", "hand"],
+        relevant_ranges=[{"start_seconds": 330, "end_seconds": 360}],
+        min_answer_term_recall=1.0,
+        min_evidence_term_coverage=1.0,
+        min_evidence_relevance_rate=1.0,
+        min_timestamp_hit_rate=1.0,
+        min_grounded_evidence_rate=1.0,
+        min_token_reduction_percent=99.0,
+        max_selected_evidence=1,
+        min_visual_evidence=1,
+        min_audio_evidence=1,
+    )
+
+    result = evaluate_quality_case(case)
+
+    assert result.passed is True
+    assert result.visual_evidence == 1
+    assert result.audio_evidence == 1
+
+
 def test_run_quality_cases_and_markdown_summary(tmp_path: Path) -> None:
     compression_path = _write_compression(
         tmp_path,

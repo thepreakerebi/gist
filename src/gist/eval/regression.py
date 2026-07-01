@@ -6,6 +6,7 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 from gist.core.schemas import CompressionResponse
+from gist.eval.evidence_counts import audio_evidence_count, visual_evidence_count
 
 
 class TimeRange(BaseModel):
@@ -113,15 +114,17 @@ def evaluate_case(case: RegressionCase) -> RegressionResult:
             "selected evidence "
             f"{compression.metrics.selected_candidates} exceeds limit {case.max_selected_evidence}"
         )
-    if compression.metrics.visual_selected < case.min_visual_evidence:
+    visual_evidence = visual_evidence_count(compression.selected)
+    audio_evidence = audio_evidence_count(compression.selected)
+    if visual_evidence < case.min_visual_evidence:
         failures.append(
             "visual evidence "
-            f"{compression.metrics.visual_selected} is below required {case.min_visual_evidence}"
+            f"{visual_evidence} is below required {case.min_visual_evidence}"
         )
-    if compression.metrics.audio_selected < case.min_audio_evidence:
+    if audio_evidence < case.min_audio_evidence:
         failures.append(
             "audio evidence "
-            f"{compression.metrics.audio_selected} is below required {case.min_audio_evidence}"
+            f"{audio_evidence} is below required {case.min_audio_evidence}"
         )
     if spatial_reduction < case.min_spatial_token_reduction_percent:
         failures.append(
@@ -167,8 +170,8 @@ def evaluate_case(case: RegressionCase) -> RegressionResult:
         timestamp_hit_rate=hit_rate,
         token_reduction_percent=token_reduction,
         selected_evidence=compression.metrics.selected_candidates,
-        visual_evidence=compression.metrics.visual_selected,
-        audio_evidence=compression.metrics.audio_selected,
+        visual_evidence=visual_evidence,
+        audio_evidence=audio_evidence,
         spatial_token_reduction_percent=spatial_reduction,
         failures=failures,
     )

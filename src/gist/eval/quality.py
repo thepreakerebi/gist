@@ -15,6 +15,7 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.query_intent import QueryIntent
 from gist.core.schemas import CompressionResponse, Modality
+from gist.eval.evidence_counts import audio_evidence_count, visual_evidence_count
 from gist.eval.regression import TimeRange
 from gist.gateway.structured import (
     LocalStructuredExtractor,
@@ -181,8 +182,8 @@ def draft_quality_case(
         min_timestamp_hit_rate=0.75 if evidence_ranges else 0.0,
         min_token_reduction_percent=min_token_reduction_percent,
         max_selected_evidence=max_selected_evidence or max(len(compression.selected), 1),
-        min_visual_evidence=1 if compression.metrics.visual_selected else 0,
-        min_audio_evidence=1 if compression.metrics.audio_selected else 0,
+        min_visual_evidence=1 if visual_evidence_count(compression.selected) else 0,
+        min_audio_evidence=1 if audio_evidence_count(compression.selected) else 0,
     )
     return QualityCaseDraft(case=case, notes=_draft_notes(compression, case))
 
@@ -320,8 +321,8 @@ def evaluate_quality_case(
         grounded_evidence_rate=grounded_rate,
         token_reduction_percent=token_reduction,
         selected_evidence=compression.metrics.selected_candidates,
-        visual_evidence=compression.metrics.visual_selected,
-        audio_evidence=compression.metrics.audio_selected,
+        visual_evidence=visual_evidence_count(compression.selected),
+        audio_evidence=audio_evidence_count(compression.selected),
         failure_categories=failure_categories,
         recommendation=_recommendation(failure_categories),
         failures=failures,
@@ -758,14 +759,16 @@ def _quality_failures(
             f"selected evidence {compression.metrics.selected_candidates} exceeds "
             f"limit {case.max_selected_evidence}"
         )
-    if compression.metrics.visual_selected < case.min_visual_evidence:
+    visual_evidence = visual_evidence_count(compression.selected)
+    audio_evidence = audio_evidence_count(compression.selected)
+    if visual_evidence < case.min_visual_evidence:
         failures.append(
-            f"visual evidence {compression.metrics.visual_selected} below required "
+            f"visual evidence {visual_evidence} below required "
             f"{case.min_visual_evidence}"
         )
-    if compression.metrics.audio_selected < case.min_audio_evidence:
+    if audio_evidence < case.min_audio_evidence:
         failures.append(
-            f"audio evidence {compression.metrics.audio_selected} below required "
+            f"audio evidence {audio_evidence} below required "
             f"{case.min_audio_evidence}"
         )
     return failures
@@ -801,8 +804,8 @@ def _failure_categories(
     ):
         categories.append("evidence_pruning")
     if (
-        compression.metrics.visual_selected < case.min_visual_evidence
-        or compression.metrics.audio_selected < case.min_audio_evidence
+        visual_evidence_count(compression.selected) < case.min_visual_evidence
+        or audio_evidence_count(compression.selected) < case.min_audio_evidence
     ):
         categories.append("modality_balance")
     return sorted(set(categories))
