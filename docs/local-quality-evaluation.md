@@ -172,7 +172,9 @@ gist-long-video-suite \
   --curate-proposal-index 0 \
   --curation-output-root .gist/curation \
   --curation-visual-scorer clip_scene \
-  --curation-audio-scorer baseline
+  --curation-audio-scorer whisper \
+  --curation-audio-window-seconds 30 \
+  --curation-whisper-max-windows 3
 ```
 
 The curation command writes `compression.json`, `report.html`, and
@@ -180,6 +182,13 @@ The curation command writes `compression.json`, `report.html`, and
 review bundle is written, even if the readiness gates still fail. Review the HTML
 report and edit the drafted answer terms, evidence terms, grounding threshold, and
 timestamp ranges before appending the case to `data/eval/long-video-quality.jsonl`.
+Whisper is the default curation audio scorer because quality-case drafts need
+semantic transcript evidence. The curation default transcribes at most three
+evenly distributed 30-second windows to keep 1-hour videos practical on a local
+machine. This is a fast draft mode; manually review the report and rerun with a
+higher `--curation-whisper-max-windows` value when a candidate needs denser
+transcript coverage before promotion. Use `baseline` only for dependency-light
+smoke runs that will not be promoted into the curated dataset.
 
 Validate the edited draft before appending it:
 

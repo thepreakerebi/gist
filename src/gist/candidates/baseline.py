@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+import re
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,6 +14,40 @@ from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
 from gist.vision.ocr_protocol import FrameOcr
 from gist.vision.scene import SceneSegment, detect_scene_segments, scene_by_frame_index
 from gist.vision.scorers import VisualFrameScorer
+
+_COMMON_TRANSCRIPT_WORDS = {
+    "about",
+    "after",
+    "also",
+    "and",
+    "are",
+    "as",
+    "because",
+    "but",
+    "can",
+    "different",
+    "for",
+    "from",
+    "have",
+    "in",
+    "into",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "our",
+    "that",
+    "the",
+    "their",
+    "they",
+    "this",
+    "to",
+    "we",
+    "what",
+    "with",
+    "you",
+}
 
 
 class CandidateSet(BaseModel):
@@ -93,19 +128,11 @@ class BaselineCandidateGenerator:
                 )
                 for frame in ingested_video.frames
             ],
-            audio=[
-                self._audio_candidate(
-                    ingested_video.video_id,
-                    window,
-                    self._audio_transcript_context(
-                        ingested_video.audio_windows,
-                        audio_transcripts,
-                        window.index,
-                    ),
-                    audio_scores.get(window.path),
-                )
-                for window in ingested_video.audio_windows
-            ],
+            audio=self._audio_candidates(
+                ingested_video=ingested_video,
+                audio_transcripts=audio_transcripts,
+                audio_scores=audio_scores,
+            ),
         )
         if progress is not None:
             progress(
@@ -181,6 +208,34 @@ class BaselineCandidateGenerator:
         if self.frame_ocr is None:
             return {}
         return self.frame_ocr.extract_text(ingested_video.frames)
+
+    def _audio_candidates(
+        self,
+        ingested_video: IngestedVideo,
+        audio_transcripts: dict[Path, str],
+        audio_scores: dict[Path, float],
+    ) -> list[Candidate]:
+        candidates: list[Candidate] = []
+        for window in ingested_video.audio_windows:
+            transcript_context = self._audio_transcript_context(
+                ingested_video.audio_windows,
+                audio_transcripts,
+                window.index,
+            )
+            if self.audio_transcriber is not None:
+                if transcript_context.text is None:
+                    continue
+                if _looks_like_noisy_transcript(transcript_context.text):
+                    continue
+            candidates.append(
+                self._audio_candidate(
+                    ingested_video.video_id,
+                    window,
+                    transcript_context,
+                    audio_scores.get(window.path),
+                )
+            )
+        return candidates
 
     def _audio_transcript_context(
         self,
@@ -284,3 +339,14 @@ class BaselineCandidateGenerator:
             scene_start_seconds=clip_start_seconds,
             scene_end_seconds=clip_end_seconds,
         )
+
+
+def _looks_like_noisy_transcript(text: str) -> bool:
+    words = re.findall(r"[a-z]+", text.lower())
+    if len(words) < 8:
+        return False
+    ascii_ratio = sum(1 for char in text if char.isascii()) / max(len(text), 1)
+    if ascii_ratio < 0.92:
+        return True
+    common_ratio = sum(1 for word in words if word in _COMMON_TRANSCRIPT_WORDS) / len(words)
+    return common_ratio < 0.08

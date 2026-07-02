@@ -440,6 +440,9 @@ def test_long_video_curation_queue_reports_next_actions(tmp_path: Path) -> None:
     assert queue.items
     assert queue.items[0].proposal_index == 0
     assert "--curate-proposal-index 0" in queue.items[0].command
+    assert "--curation-audio-scorer whisper" in queue.items[0].command
+    assert "--curation-audio-window-seconds 30" in queue.items[0].command
+    assert "--curation-whisper-max-windows 3" in queue.items[0].command
     assert "Gist Long-Video Curation Queue" in markdown
     assert "Run proposal `0` first" in markdown
 

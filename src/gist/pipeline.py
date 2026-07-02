@@ -68,6 +68,7 @@ class LocalCompressionPipeline:
         whisper_device: str | None = None,
         whisper_compute_type: str | None = None,
         whisper_beam_size: int | None = None,
+        whisper_max_windows: int | None = None,
         progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CompressionResponse]:
         if progress is not None:
@@ -86,6 +87,7 @@ class LocalCompressionPipeline:
             whisper_device=whisper_device,
             whisper_compute_type=whisper_compute_type,
             whisper_beam_size=whisper_beam_size,
+            whisper_max_windows=whisper_max_windows,
             progress=progress,
         )
         resolved_audio_scorer = resolve_audio_scorer(
@@ -150,6 +152,7 @@ class LocalCompressionPipeline:
         whisper_device: str | None = None,
         whisper_compute_type: str | None = None,
         whisper_beam_size: int | None = None,
+        whisper_max_windows: int | None = None,
         progress: ProgressCallback | None = None,
     ) -> tuple[IngestedVideo, CandidateSet, int]:
         ingestion_key = ingestion_cache_key(
@@ -194,6 +197,8 @@ class LocalCompressionPipeline:
                 beam_size=whisper_beam_size,
             )
             transcript_fingerprint = whisper_settings.cache_fingerprint
+            if whisper_max_windows is not None:
+                transcript_fingerprint += f"|max_windows={whisper_max_windows}"
         if progress is not None and transcript_fingerprint is not None:
             progress(f"transcript settings: {transcript_fingerprint}")
 
@@ -208,6 +213,7 @@ class LocalCompressionPipeline:
             whisper_device=whisper_device,
             whisper_compute_type=whisper_compute_type,
             whisper_beam_size=whisper_beam_size,
+            whisper_max_windows=whisper_max_windows,
         )
         candidates_key = candidate_cache_key(
             ingestion=ingested,
@@ -254,6 +260,7 @@ class LocalCompressionPipeline:
         whisper_device: str | None = None,
         whisper_compute_type: str | None = None,
         whisper_beam_size: int | None = None,
+        whisper_max_windows: int | None = None,
     ) -> BaselineCandidateGenerator:
         visual_adapter = None
         audio_transcriber = None
@@ -281,6 +288,7 @@ class LocalCompressionPipeline:
                 compute_type=whisper_settings.compute_type,
                 beam_size=whisper_settings.beam_size,
                 cache_dir=self.output_root / "cache" / "transcripts",
+                max_windows=whisper_max_windows,
             )
         elif audio_scorer == AudioScoringMode.CLAP:
             audio_score_adapter = HuggingFaceClapAudioScorer()

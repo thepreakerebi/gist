@@ -70,12 +70,16 @@ class FasterWhisperTranscriber:
         compute_type: str = "int8",
         beam_size: int = 1,
         cache_dir: Path | None = None,
+        max_windows: int | None = None,
     ) -> None:
+        if max_windows is not None and max_windows <= 0:
+            raise ValueError("max_windows must be greater than zero")
         self.model_size = model_size
         self.device = device
         self.compute_type = compute_type
         self.beam_size = beam_size
         self.cache_dir = cache_dir
+        self.max_windows = max_windows
         self._model: Any | None = None
 
     def transcribe_windows(self, windows: list[AudioWindow]) -> dict[Path, str]:
@@ -83,7 +87,7 @@ class FasterWhisperTranscriber:
             return {}
 
         transcripts: dict[Path, str] = {}
-        for window in windows:
+        for window in self._selected_windows(windows):
             if not window.path.exists() or not window.path.is_file():
                 raise AudioTranscriptionError(f"audio window does not exist: {window.path}")
 
@@ -105,6 +109,24 @@ class FasterWhisperTranscriber:
             transcripts[window.path] = transcript
 
         return transcripts
+
+    def _selected_windows(self, windows: list[AudioWindow]) -> list[AudioWindow]:
+        if self.max_windows is None or len(windows) <= self.max_windows:
+            return windows
+
+        if self.max_windows == 1:
+            return [windows[len(windows) // 2]]
+
+        last_index = len(windows) - 1
+        selected_indices = {
+            round(position * last_index / (self.max_windows - 1))
+            for position in range(self.max_windows)
+        }
+        return [
+            window
+            for index, window in enumerate(windows)
+            if index in selected_indices
+        ]
 
     def _load(self) -> None:
         if self._model is not None:

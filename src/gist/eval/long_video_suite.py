@@ -44,6 +44,8 @@ _TOTAL_CASE_CATEGORY_PRIORITY = {
     QueryIntent.SPEECH_SEMANTIC: 3,
     QueryIntent.VISUAL_OBJECT_ACTION: 4,
 }
+_DEFAULT_CURATION_AUDIO_WINDOW_SECONDS = 30.0
+_DEFAULT_CURATION_WHISPER_MAX_WINDOWS = 3
 
 _PROPOSAL_STOPWORDS = {
     "about",
@@ -488,10 +490,11 @@ def curate_long_video_query_proposal(
     proposal: LongVideoQueryProposal,
     output_root: Path,
     sample_count: int | None = None,
-    audio_window_seconds: float | None = None,
+    audio_window_seconds: float | None = _DEFAULT_CURATION_AUDIO_WINDOW_SECONDS,
     visual_scorer: VisualScoringMode = VisualScoringMode.CLIP_SCENE,
-    audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+    audio_scorer: AudioScoringMode = AudioScoringMode.WHISPER,
     transcript_quality: TranscriptQuality = TranscriptQuality.FAST,
+    whisper_max_windows: int | None = _DEFAULT_CURATION_WHISPER_MAX_WINDOWS,
     pipeline: LocalCompressionPipeline | None = None,
 ) -> LongVideoCurationResult:
     source_payload = _load_artifact(proposal.source_artifact)
@@ -516,6 +519,7 @@ def curate_long_video_query_proposal(
         task_aware_selection=True,
         visual_ocr=True,
         transcript_quality=transcript_quality,
+        whisper_max_windows=whisper_max_windows,
     )
 
     compression_path = run_dir / "compression.json"
@@ -537,6 +541,8 @@ def curate_long_video_query_proposal(
         update={
             "query_category": proposal.query_category,
             "domain": proposal.domain,
+            "visual_scorer": visual_scorer,
+            "audio_scorer": audio_scorer,
         }
     )
     draft = QualityCaseDraft(case=draft_case, notes=draft.notes)
@@ -576,7 +582,9 @@ def build_long_video_curation_queue(
     dataset_path: Path,
     curation_output_root: Path = Path(".gist/curation"),
     visual_scorer: VisualScoringMode = VisualScoringMode.CLIP_SCENE,
-    audio_scorer: AudioScoringMode = AudioScoringMode.BASELINE,
+    audio_scorer: AudioScoringMode = AudioScoringMode.WHISPER,
+    audio_window_seconds: float | None = _DEFAULT_CURATION_AUDIO_WINDOW_SECONDS,
+    whisper_max_windows: int | None = _DEFAULT_CURATION_WHISPER_MAX_WINDOWS,
 ) -> LongVideoCurationQueueReport:
     items = [
         LongVideoCurationQueueItem(
@@ -594,6 +602,8 @@ def build_long_video_curation_queue(
                 f"--curation-output-root {curation_output_root} "
                 f"--curation-visual-scorer {visual_scorer.value} "
                 f"--curation-audio-scorer {audio_scorer.value}"
+                f"{_curation_audio_window_flag(audio_window_seconds)}"
+                f"{_curation_whisper_max_windows_flag(whisper_max_windows)}"
             ),
         )
         for index, proposal in enumerate(report.expansion_plan.query_proposals)
@@ -614,6 +624,18 @@ def build_long_video_curation_queue(
         priority_actions=report.expansion_plan.priority_actions,
         items=items,
     )
+
+
+def _curation_audio_window_flag(audio_window_seconds: float | None) -> str:
+    if audio_window_seconds is None:
+        return ""
+    return f" --curation-audio-window-seconds {audio_window_seconds:g}"
+
+
+def _curation_whisper_max_windows_flag(max_windows: int | None) -> str:
+    if max_windows is None:
+        return ""
+    return f" --curation-whisper-max-windows {max_windows}"
 
 
 def build_long_video_metadata_refresh_queue(
@@ -1567,7 +1589,16 @@ def main(argv: list[str] | None = None) -> int:
         default=Path(".gist/curation"),
     )
     parser.add_argument("--curation-sample-count", type=int)
-    parser.add_argument("--curation-audio-window-seconds", type=float)
+    parser.add_argument(
+        "--curation-audio-window-seconds",
+        type=float,
+        default=_DEFAULT_CURATION_AUDIO_WINDOW_SECONDS,
+    )
+    parser.add_argument(
+        "--curation-whisper-max-windows",
+        type=int,
+        default=_DEFAULT_CURATION_WHISPER_MAX_WINDOWS,
+    )
     parser.add_argument(
         "--curation-visual-scorer",
         choices=list(VisualScoringMode),
@@ -1576,7 +1607,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--curation-audio-scorer",
         choices=list(AudioScoringMode),
-        default=AudioScoringMode.BASELINE,
+        default=AudioScoringMode.WHISPER,
     )
     parser.add_argument(
         "--curation-transcript-quality",
@@ -1795,6 +1826,7 @@ def main(argv: list[str] | None = None) -> int:
             visual_scorer=VisualScoringMode(args.curation_visual_scorer),
             audio_scorer=AudioScoringMode(args.curation_audio_scorer),
             transcript_quality=TranscriptQuality(args.curation_transcript_quality),
+            whisper_max_windows=args.curation_whisper_max_windows,
         )
         print(f"curation_compression={curation.compression_path}")
         print(f"curation_report={curation.html_report_path}")

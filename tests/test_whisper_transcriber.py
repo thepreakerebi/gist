@@ -102,6 +102,43 @@ def test_whisper_transcriber_reuses_cached_window_transcripts(
     assert calls["count"] == 1
 
 
+def test_whisper_transcriber_can_bound_long_window_lists(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[str] = []
+
+    class FakeSegment:
+        text = "bounded"
+
+    class FakeModel:
+        def transcribe(self, path: str, **_kwargs: object) -> tuple[list[FakeSegment], None]:
+            calls.append(Path(path).name)
+            return [FakeSegment()], None
+
+    windows = []
+    for index in range(10):
+        audio_path = tmp_path / f"audio-{index}.wav"
+        audio_path.write_bytes(b"fake")
+        windows.append(
+            AudioWindow(
+                index=index,
+                start_seconds=float(index * 120),
+                duration_seconds=120.0,
+                path=audio_path,
+            )
+        )
+
+    monkeypatch.setattr(whisper, "_TRANSCRIPT_CACHE", {})
+    transcriber = FasterWhisperTranscriber(max_windows=3)
+    transcriber._model = FakeModel()
+
+    transcripts = transcriber.transcribe_windows(windows)
+
+    assert calls == ["audio-0.wav", "audio-4.wav", "audio-9.wav"]
+    assert set(transcripts) == {windows[0].path, windows[4].path, windows[9].path}
+
+
 def test_whisper_transcriber_persists_window_transcripts(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

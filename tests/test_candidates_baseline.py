@@ -217,6 +217,82 @@ def test_baseline_candidate_generator_can_attach_audio_transcripts() -> None:
     assert candidates.audio[0].text == "speaker explains pricing"
 
 
+def test_whisper_candidate_generator_drops_untranscribed_audio_windows() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=4.0, has_audio=True),
+        frames=[],
+        audio_windows=[
+            AudioWindow(
+                index=0,
+                start_seconds=0.0,
+                duration_seconds=2.0,
+                path=Path("audio-0.wav"),
+            ),
+            AudioWindow(
+                index=1,
+                start_seconds=2.0,
+                duration_seconds=2.0,
+                path=Path("audio-1.wav"),
+            ),
+        ],
+    )
+
+    class PartialTranscriber:
+        def transcribe_windows(self, windows: list[AudioWindow]) -> dict[Path, str]:
+            return {windows[1].path: "speaker explains pricing"}
+
+    candidates = BaselineCandidateGenerator(
+        audio_transcriber=PartialTranscriber(),
+        audio_context_window_count=0,
+    ).generate(manifest, query="pricing")
+
+    assert [candidate.id for candidate in candidates.audio] == ["video-1:audio:1"]
+    assert candidates.audio[0].text == "speaker explains pricing"
+
+
+def test_whisper_candidate_generator_drops_noisy_transcripts() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=4.0, has_audio=True),
+        frames=[],
+        audio_windows=[
+            AudioWindow(
+                index=0,
+                start_seconds=0.0,
+                duration_seconds=2.0,
+                path=Path("audio-0.wav"),
+            ),
+            AudioWindow(
+                index=1,
+                start_seconds=2.0,
+                duration_seconds=2.0,
+                path=Path("audio-1.wav"),
+            ),
+        ],
+    )
+
+    class NoisyTranscriber:
+        def transcribe_windows(self, windows: list[AudioWindow]) -> dict[Path, str]:
+            return {
+                windows[0].path: (
+                    "aga'u ydylda eithfysu yn ymthraudien ar y nos "
+                    "ymdatodad jrhymmerdio funnyd ganwred"
+                ),
+                windows[1].path: "the speaker explains how the device works with software",
+            }
+
+    candidates = BaselineCandidateGenerator(
+        audio_transcriber=NoisyTranscriber(),
+        audio_context_window_count=0,
+    ).generate(manifest, query="device")
+
+    assert [candidate.id for candidate in candidates.audio] == ["video-1:audio:1"]
+    assert "device works" in candidates.audio[0].text
+
+
 def test_baseline_candidate_generator_stitches_neighboring_audio_transcripts() -> None:
     manifest = IngestedVideo(
         video_id="video-1",
