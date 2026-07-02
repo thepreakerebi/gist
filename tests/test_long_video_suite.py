@@ -186,6 +186,226 @@ def test_long_video_mixed_av_proposals_prefer_audio_grounded_sources(
     assert "skeleton tracking demonstration" in mixed_proposal.query
 
 
+def test_long_video_visual_proposal_uses_concrete_evidence_phrase(
+    tmp_path: Path,
+) -> None:
+    artifact = _write_artifact(
+        tmp_path / "visual" / "compression.json",
+        "visual-video",
+        3700,
+    )
+    payload = json.loads(artifact.read_text())
+    payload["compression"]["selected"][0]["modality"] = "visual"
+    payload["compression"]["selected"][0]["text"] = (
+        "on-screen text near 42.00 seconds: Robot hand calibration panel"
+    )
+    artifact.write_text(json.dumps(payload) + "\n")
+
+    query = long_video_suite._proposal_query(  # noqa: SLF001
+        QueryIntent.VISUAL_OBJECT_ACTION,
+        "visual-video",
+        payload,
+    )
+
+    assert query == (
+        "What visual evidence related to robot hand calibration panel appears "
+        "in visual video?"
+    )
+
+
+def test_long_video_visual_phrase_does_not_fallback_to_answer_text(
+    tmp_path: Path,
+) -> None:
+    artifact = _write_artifact(
+        tmp_path / "speech" / "compression.json",
+        "speech-video",
+        3700,
+    )
+    payload = json.loads(artifact.read_text())
+    payload["compression"]["answer"] = (
+        "According to Paul Graham, founders get startup ideas unconsciously."
+    )
+    artifact.write_text(json.dumps(payload) + "\n")
+
+    query = long_video_suite._proposal_query(  # noqa: SLF001
+        QueryIntent.VISUAL_OBJECT_ACTION,
+        "speech-video",
+        payload,
+    )
+
+    assert query == (
+        "What specific visible object, slide title, or on-screen action appears "
+        "in speech video?"
+    )
+    assert "paul graham" not in query
+
+
+def test_long_video_temporal_proposal_prefers_specific_source_query(
+    tmp_path: Path,
+) -> None:
+    artifact = _write_artifact(
+        tmp_path / "startup" / "compression.json",
+        "startup-video",
+        3700,
+    )
+    payload = json.loads(artifact.read_text())
+    payload["compression"]["query"] = (
+        "According to Paul Graham, how do founders get startup ideas unconsciously?"
+    )
+    payload["compression"]["selected"][0]["text"] = (
+        "Reject them ideas companies okay turn."
+    )
+    artifact.write_text(json.dumps(payload) + "\n")
+
+    query = long_video_suite._proposal_query(  # noqa: SLF001
+        QueryIntent.TEMPORAL_BEFORE_AFTER,
+        "startup-video",
+        payload,
+    )
+
+    assert query == (
+        "What happens immediately after the moment about paul graham founders "
+        "startup ideas unconsciously in startup video?"
+    )
+
+
+def test_long_video_total_case_proposals_skip_speech_only_visual_sources(
+    tmp_path: Path,
+) -> None:
+    speech_artifact = _write_artifact(
+        tmp_path / "speech" / "compression.json",
+        "speech-video",
+        3700,
+    )
+    speech_payload = json.loads(speech_artifact.read_text())
+    speech_payload["compression"]["answer"] = (
+        "According to Paul Graham, founders get startup ideas unconsciously."
+    )
+    speech_artifact.write_text(json.dumps(speech_payload) + "\n")
+
+    visual_artifact = _write_artifact(
+        tmp_path / "visual" / "compression.json",
+        "visual-video",
+        3700,
+    )
+    visual_payload = json.loads(visual_artifact.read_text())
+    visual_payload["compression"]["selected"][0]["modality"] = "visual"
+    visual_payload["compression"]["selected"][0]["text"] = (
+        "on-screen text near 9.00 seconds: Kinect product title"
+    )
+    visual_artifact.write_text(json.dumps(visual_payload) + "\n")
+    covered_visual_artifact = _write_artifact(
+        tmp_path / "covered-visual" / "compression.json",
+        "covered-visual-video",
+        3700,
+    )
+    temporal_artifact = _write_artifact(
+        tmp_path / "temporal" / "compression.json",
+        "temporal-video",
+        3700,
+    )
+    global_artifact = _write_artifact(
+        tmp_path / "global" / "compression.json",
+        "global-video",
+        3700,
+    )
+    mixed_artifact = _write_artifact(
+        tmp_path / "mixed" / "compression.json",
+        "mixed-video",
+        3700,
+    )
+
+    cases = [
+        QualityCase(
+            id="speech",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="startup education",
+            compression_path=speech_artifact,
+            expected_answer_terms=["founders"],
+            expected_evidence_terms=["ideas"],
+        ),
+        QualityCase(
+            id="visual",
+            query_category=QueryIntent.SPEECH_SEMANTIC,
+            domain="developer technology",
+            compression_path=visual_artifact,
+            expected_answer_terms=["kinect"],
+            expected_evidence_terms=["kinect"],
+        ),
+        QualityCase(
+            id="covered-visual",
+            query_category=QueryIntent.VISUAL_OBJECT_ACTION,
+            domain="developer technology",
+            compression_path=covered_visual_artifact,
+            expected_answer_terms=["visible"],
+            expected_evidence_terms=["visible"],
+        ),
+        QualityCase(
+            id="temporal",
+            query_category=QueryIntent.TEMPORAL_BEFORE_AFTER,
+            domain="education",
+            compression_path=temporal_artifact,
+            expected_answer_terms=["after"],
+            expected_evidence_terms=["after"],
+        ),
+        QualityCase(
+            id="global",
+            query_category=QueryIntent.GLOBAL_SUMMARY,
+            domain="education",
+            compression_path=global_artifact,
+            expected_answer_terms=["summary"],
+            expected_evidence_terms=["summary"],
+        ),
+        QualityCase(
+            id="mixed",
+            query_category=QueryIntent.MIXED_AV,
+            domain="education",
+            compression_path=mixed_artifact,
+            expected_answer_terms=["mixed"],
+            expected_evidence_terms=["mixed"],
+        ),
+    ]
+
+    report = evaluate_long_video_suite(
+        cases,
+        LongVideoSuiteGates(
+            min_cases=10,
+            min_distinct_videos=1,
+            min_distinct_domains=1,
+            min_cases_per_category=1,
+        ),
+    )
+    visual_proposal = next(
+        proposal
+        for proposal in report.expansion_plan.query_proposals
+        if proposal.query_category == QueryIntent.VISUAL_OBJECT_ACTION
+    )
+
+    assert visual_proposal.video_id == "visual-video"
+    assert "kinect product title" in visual_proposal.query
+    assert "paul graham" not in visual_proposal.query
+
+
+def test_long_video_proposal_label_supports_curation_paths(tmp_path: Path) -> None:
+    artifact = _write_artifact(
+        tmp_path
+        / ".gist"
+        / "curation"
+        / "tears-of-steel-61min"
+        / "query"
+        / "compression.json",
+        "internal-hash",
+        3700,
+    )
+
+    label = long_video_suite._proposal_video_label(  # noqa: SLF001
+        artifact,
+        json.loads(artifact.read_text()),
+    )
+
+    assert label == "tears-of-steel-61min"
+
+
 def test_long_video_curation_queue_reports_next_actions(tmp_path: Path) -> None:
     speech_case = QualityCase(
         id="speech",

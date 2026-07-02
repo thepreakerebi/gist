@@ -37,29 +37,46 @@ REQUIRED_QUERY_CATEGORIES = (
     QueryIntent.GLOBAL_SUMMARY,
     QueryIntent.MIXED_AV,
 )
+_TOTAL_CASE_CATEGORY_PRIORITY = {
+    QueryIntent.GLOBAL_SUMMARY: 0,
+    QueryIntent.TEMPORAL_BEFORE_AFTER: 1,
+    QueryIntent.MIXED_AV: 2,
+    QueryIntent.SPEECH_SEMANTIC: 3,
+    QueryIntent.VISUAL_OBJECT_ACTION: 4,
+}
 
 _PROPOSAL_STOPWORDS = {
     "about",
     "actually",
     "after",
     "also",
+    "appears",
     "because",
     "before",
     "case",
+    "according",
+    "covered",
     "does",
     "from",
     "have",
     "into",
     "like",
+    "main",
     "most",
+    "object",
     "relevant",
     "say",
     "shown",
+    "slide",
     "speaker",
     "that",
     "their",
     "there",
     "this",
+    "throughout",
+    "topics",
+    "visual",
+    "video",
     "what",
     "while",
     "with",
@@ -1972,7 +1989,10 @@ def _query_proposals(
     if not categories and needed_cases:
         categories = sorted(
             REQUIRED_QUERY_CATEGORIES,
-            key=lambda category: category_counts[category.value],
+            key=lambda category: (
+                category_counts[category.value],
+                _TOTAL_CASE_CATEGORY_PRIORITY[category],
+            ),
         )
     if not categories:
         return []
@@ -1983,6 +2003,18 @@ def _query_proposals(
     for category in categories:
         for case, path, payload in _ranked_proposal_sources(category, proposal_sources):
             video_id = _proposal_video_label(path, payload)
+            require_concrete = category.value not in needed_by_category
+            if (
+                require_concrete
+                and _has_curated_pair(proposal_sources, video_id, category)
+            ):
+                continue
+            if not _proposal_source_is_viable(
+                category,
+                payload,
+                require_concrete=require_concrete,
+            ):
+                continue
             used_pairs.add((video_id, category))
             proposals.append(
                 LongVideoQueryProposal(
@@ -2001,7 +2033,19 @@ def _query_proposals(
         seen_videos: set[str] = set()
         for case, path, payload in _ranked_proposal_sources(category, proposal_sources):
             video_id = _proposal_video_label(path, payload)
+            require_concrete = category.value not in needed_by_category
             if (video_id, category) in used_pairs:
+                continue
+            if (
+                require_concrete
+                and _has_curated_pair(proposal_sources, video_id, category)
+            ):
+                continue
+            if not _proposal_source_is_viable(
+                category,
+                payload,
+                require_concrete=require_concrete,
+            ):
                 continue
             if video_id in seen_videos:
                 continue
@@ -2037,12 +2081,7 @@ def _ranked_proposal_sources(
 
 def _proposal_source_score(category: QueryIntent, case: QualityCase, payload: dict) -> int:
     compression = payload.get("compression", payload)
-    selected = compression.get("selected") or []
-    modalities = {
-        str(candidate.get("modality") or "").lower()
-        for candidate in selected
-        if isinstance(candidate, dict)
-    }
+    modalities = _payload_modalities(payload)
     score = 0
     if case.query_category == category:
         score += 10
@@ -2060,22 +2099,91 @@ def _proposal_source_score(category: QueryIntent, case: QualityCase, payload: di
     return score
 
 
+def _proposal_source_is_viable(
+    category: QueryIntent,
+    payload: dict,
+    *,
+    require_concrete: bool,
+) -> bool:
+    if not require_concrete:
+        return True
+    modalities = _payload_modalities(payload)
+    if category == QueryIntent.VISUAL_OBJECT_ACTION:
+        return "visual" in modalities
+    if category == QueryIntent.SPEECH_SEMANTIC:
+        return "audio" in modalities
+    if category == QueryIntent.MIXED_AV:
+        return bool(modalities & {"audio", "visual"})
+    if category == QueryIntent.TEMPORAL_BEFORE_AFTER:
+        return bool(_proposal_audio_phrase(payload) or _proposal_visual_phrase(payload))
+    return True
+
+
+def _payload_modalities(payload: dict) -> set[str]:
+    compression = payload.get("compression", payload)
+    selected = compression.get("selected") or []
+    return {
+        str(candidate.get("modality") or "").lower()
+        for candidate in selected
+        if isinstance(candidate, dict)
+    }
+
+
 def _proposal_query(category: QueryIntent, video_label: str, payload: dict) -> str:
     video_id = video_label.replace("-", " ")
     if category == QueryIntent.SPEECH_SEMANTIC:
+        phrase = _proposal_source_query_phrase(payload) or _proposal_audio_phrase(payload)
+        if phrase:
+            return f"What key claim does the speaker make about {phrase} in {video_id}?"
         return f"What key claim does the speaker make in {video_id}?"
     if category == QueryIntent.VISUAL_OBJECT_ACTION:
-        return f"What important object, slide, or on-screen action appears in {video_id}?"
+        phrase = _proposal_visual_phrase(payload)
+        if phrase:
+            return f"What visual evidence related to {phrase} appears in {video_id}?"
+        return f"What specific visible object, slide title, or on-screen action appears in {video_id}?"
     if category == QueryIntent.TEMPORAL_BEFORE_AFTER:
+        phrase = (
+            _proposal_source_query_phrase(payload)
+            or _proposal_audio_phrase(payload)
+            or _proposal_visual_phrase(payload)
+        )
+        if phrase:
+            return f"What happens immediately after the moment about {phrase} in {video_id}?"
         return f"What happens immediately after an important transition in {video_id}?"
     if category == QueryIntent.GLOBAL_SUMMARY:
         return f"What are the main topics covered throughout {video_id}?"
     if category == QueryIntent.MIXED_AV:
-        phrase = _proposal_audio_phrase(payload)
+        phrase = _proposal_source_query_phrase(payload) or _proposal_audio_phrase(payload)
         if phrase:
             return f"What does the speaker say about {phrase} while the related visual moment is shown?"
         return f"What does the speaker say while the relevant visual moment is shown in {video_id}?"
     return f"What evidence in {video_id} best answers the user question?"
+
+
+def _has_curated_pair(
+    proposal_sources: list[tuple[QualityCase, Path, dict]],
+    video_id: str,
+    category: QueryIntent,
+) -> bool:
+    return any(
+        _proposal_video_label(path, payload) == video_id
+        and case.query_category == category
+        for case, path, payload in proposal_sources
+    )
+
+
+def _proposal_visual_phrase(payload: dict) -> str:
+    compression = payload.get("compression", payload)
+    selected = compression.get("selected") or []
+    for candidate in selected:
+        if not isinstance(candidate, dict):
+            continue
+        if str(candidate.get("modality") or "").lower() != "visual":
+            continue
+        phrase = _proposal_phrase_from_text(str(candidate.get("text") or ""))
+        if phrase:
+            return phrase
+    return ""
 
 
 def _proposal_audio_phrase(payload: dict) -> str:
@@ -2085,14 +2193,39 @@ def _proposal_audio_phrase(payload: dict) -> str:
             continue
         if str(candidate.get("modality") or "").lower() != "audio":
             continue
-        text = re.sub(r"[^A-Za-z0-9 ]+", " ", str(candidate.get("text") or ""))
-        words = [
-            word.lower()
-            for word in text.split()
-            if len(word) > 3 and word.lower() not in _PROPOSAL_STOPWORDS
-        ]
-        if len(words) >= 3:
-            return " ".join(words[:6])
+        phrase = _proposal_phrase_from_text(str(candidate.get("text") or ""))
+        if phrase:
+            return phrase
+    return ""
+
+
+def _proposal_source_query_phrase(payload: dict) -> str:
+    compression = payload.get("compression", payload)
+    return _proposal_phrase_from_text(str(compression.get("query") or ""))
+
+
+def _proposal_phrase_from_text(text: str) -> str:
+    cleaned = re.sub(
+        r"on[- ]screen text near \d+(?:\.\d+)? seconds:?",
+        " ",
+        text,
+        flags=re.I,
+    )
+    cleaned = re.sub(r"[^A-Za-z0-9 ]+", " ", cleaned)
+    words = [
+        word.lower()
+        for word in cleaned.split()
+        if len(word) > 3 and word.lower() not in _PROPOSAL_STOPWORDS
+    ]
+    deduped: list[str] = []
+    for word in words:
+        if word in deduped:
+            continue
+        deduped.append(word)
+        if len(deduped) >= 6:
+            break
+    if len(deduped) >= 3:
+        return " ".join(deduped)
     return ""
 
 
@@ -2100,7 +2233,10 @@ def _proposal_video_label(path: Path, payload: dict) -> str:
     parts = path.parts
     if ".gist" in parts:
         gist_index = parts.index(".gist")
-        if len(parts) > gist_index + 2 and parts[gist_index + 1] == "runs":
+        if (
+            len(parts) > gist_index + 2
+            and parts[gist_index + 1] in {"runs", "curation"}
+        ):
             return parts[gist_index + 2]
     compression = payload.get("compression", payload)
     return str(compression.get("video_id") or path.parent.parent.name)
