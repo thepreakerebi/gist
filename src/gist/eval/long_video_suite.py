@@ -1464,6 +1464,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--queue-markdown-output", type=Path)
     parser.add_argument("--roundup-output", type=Path)
     parser.add_argument("--roundup-markdown-output", type=Path)
+    parser.add_argument(
+        "--print-next-actions",
+        action="store_true",
+        help=(
+            "Print the long-video roundup markdown to stdout, including remaining "
+            "gates and exact next curation/metadata commands."
+        ),
+    )
     parser.add_argument("--metadata-refresh-output", type=Path)
     parser.add_argument("--metadata-refresh-markdown-output", type=Path)
     parser.add_argument("--metadata-refresh-run-output", type=Path)
@@ -1670,6 +1678,7 @@ def main(argv: list[str] | None = None) -> int:
         or args.queue_markdown_output is not None
         or args.roundup_output is not None
         or args.roundup_markdown_output is not None
+        or args.print_next_actions
     )
     if queue_requested:
         queue = build_long_video_curation_queue(
@@ -1695,6 +1704,7 @@ def main(argv: list[str] | None = None) -> int:
         or args.run_metadata_refresh
         or args.roundup_output is not None
         or args.roundup_markdown_output is not None
+        or args.print_next_actions
     )
     metadata_refresh_run = None
     if metadata_refresh_requested:
@@ -1729,7 +1739,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"metadata_refresh_attempted={metadata_refresh_run.attempted}")
             print(f"metadata_refresh_succeeded={metadata_refresh_run.succeeded}")
             print(f"metadata_refresh_failed={metadata_refresh_run.failed}")
-    if args.roundup_output is not None or args.roundup_markdown_output is not None:
+    if (
+        args.roundup_output is not None
+        or args.roundup_markdown_output is not None
+        or args.print_next_actions
+    ):
         if queue is None:
             raise RuntimeError("roundup requires a curation queue")
         if metadata_refresh is None:
@@ -1746,6 +1760,8 @@ def main(argv: list[str] | None = None) -> int:
             args.roundup_markdown_output.write_text(
                 render_long_video_roundup_markdown(roundup)
             )
+        if args.print_next_actions:
+            print(render_long_video_roundup_markdown(roundup))
         print(f"roundup_actions={len(roundup.next_actions)}")
     curation_requested = args.curate_proposal_index is not None
     if curation_requested:

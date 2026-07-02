@@ -499,6 +499,15 @@ gist-long-video-suite \
   --html-output reports/long-video-suite/readiness.html
 ```
 
+For a terminal-first view of what to do next, print the roundup directly:
+
+```bash
+gist-long-video-suite \
+  --dataset data/eval/long-video-quality.jsonl \
+  --run-quality \
+  --print-next-actions
+```
+
 Readiness requires 30 verified questions, five distinct 60+ minute videos, three domains, and at
 least three questions in each core category: speech, visual, temporal, global summary, and mixed
 audio-visual. Add `--run-quality` after the manifest reaches sufficient coverage. The committed

@@ -565,6 +565,37 @@ def test_long_video_suite_cli_writes_roundup_report(tmp_path: Path, capsys) -> N
     assert "Ready for paper freeze: no" in roundup_markdown_path.read_text()
 
 
+def test_long_video_suite_cli_prints_next_actions(tmp_path: Path, capsys) -> None:
+    cases = _cases(tmp_path)
+    dataset = tmp_path / "suite.jsonl"
+    dataset.write_text(
+        "\n".join(case.model_dump_json(exclude_none=True) for case in cases) + "\n"
+    )
+
+    exit_code = main(
+        [
+            "--dataset",
+            str(dataset),
+            "--print-next-actions",
+            "--min-cases",
+            "7",
+            "--min-distinct-videos",
+            "5",
+            "--min-distinct-domains",
+            "3",
+            "--min-cases-per-category",
+            "1",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "Gist Long-Video Roundup" in output
+    assert "Cases: 5/7" in output
+    assert "Next curation:" in output
+    assert "gist-long-video-suite" in output
+
+
 def test_long_video_metadata_refresh_queue_reports_missing_metadata(tmp_path: Path) -> None:
     video_path = tmp_path / "source video.mp4"
     video_path.write_text("video")
