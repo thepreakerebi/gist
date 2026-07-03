@@ -465,6 +465,21 @@ def render_ablation_markdown(report: AblationReport) -> str:
         "- Candidate pool held fixed per case; only the selection input varies.",
         "- Uniform sampling uses the same budget the full Gist run selected.",
         "",
+        "## How to read this",
+        "",
+        "All four modes run the current code over an identical per-case candidate "
+        "pool and are scored against the same reference terms and timestamp ranges. "
+        "The **continuous averages below are the comparison of record**: they show, "
+        "at matched token reduction, which selection strategy best recovers the "
+        "answer-bearing moment. The reference terms/ranges were authored from the "
+        "full-Gist artifacts, so they are if anything biased in full Gist's favour; "
+        "the baselines are judged against the same targets.",
+        "",
+        "The per-case pass/fail table is secondary. Its gates were pinned to the "
+        "exact evidence the committed suite selected, so a mode that picks a "
+        "different-but-valid moment (e.g. one of several identical recurring slides) "
+        "can score high on the averages yet miss a strict gate.",
+        "",
         "## Mode comparison",
         "",
         "| Mode | Pass rate | Answer recall | Evidence coverage | Evidence relevance "
