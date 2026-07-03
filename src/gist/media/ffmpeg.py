@@ -48,33 +48,51 @@ class FfmpegMediaProcessor:
         timestamps = evenly_spaced_timestamps(metadata.duration_seconds, sample_count)
         _remove_stale_outputs(output_dir, "frame_*.jpg", expected_count=len(timestamps))
         frames: list[ExtractedFrame] = []
+        skipped = 0
         for index, timestamp in enumerate(timestamps):
             frame_path = output_dir / f"frame_{index:04d}.jpg"
             if not _usable_file(frame_path):
-                self._run(
-                    [
-                        self.ffmpeg_bin,
-                        "-hide_banner",
-                        "-loglevel",
-                        "error",
-                        "-y",
-                        "-ss",
-                        f"{timestamp:.3f}",
-                        "-i",
-                        str(video_path),
-                        "-frames:v",
-                        "1",
-                        "-q:v",
-                        "2",
-                        # Normalize to JPEG full-range YUV so sources with
-                        # non-standard color ranges still encode as MJPEG.
-                        "-pix_fmt",
-                        "yuvj420p",
-                        str(frame_path),
-                    ]
-                )
+                try:
+                    self._run(
+                        [
+                            self.ffmpeg_bin,
+                            "-hide_banner",
+                            "-loglevel",
+                            "error",
+                            "-y",
+                            "-ss",
+                            f"{timestamp:.3f}",
+                            "-i",
+                            str(video_path),
+                            "-frames:v",
+                            "1",
+                            "-q:v",
+                            "2",
+                            # Normalize to JPEG full-range YUV so sources with
+                            # non-standard color ranges still encode as MJPEG.
+                            "-pix_fmt",
+                            "yuvj420p",
+                            str(frame_path),
+                        ]
+                    )
+                except MediaProcessingError:
+                    # A corrupt region at this timestamp should not abort the
+                    # whole ingestion; skip the frame and keep going.
+                    skipped += 1
+                    continue
+            # ffmpeg can exit 0 while writing nothing over a damaged region, so
+            # only keep frames that were actually produced.
+            if not _usable_file(frame_path):
+                skipped += 1
+                continue
             frames.append(
                 ExtractedFrame(index=index, timestamp_seconds=timestamp, path=frame_path)
+            )
+
+        if not frames:
+            raise MediaProcessingError(
+                f"no frames could be extracted from {video_path} "
+                f"({skipped} timestamps failed)"
             )
 
         return frames
