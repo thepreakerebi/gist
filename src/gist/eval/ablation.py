@@ -41,7 +41,7 @@ from gist.core.schemas import (
     CompressionResponse,
 )
 from gist.core.token_estimation import TokenEstimatorProfile, estimate_tokens
-from gist.eval.baselines import _uniform_select
+from gist.eval.baselines import _score_topk_select, _uniform_select
 from gist.eval.quality import (
     QualityCase,
     QualityResult,
@@ -51,12 +51,13 @@ from gist.eval.quality import (
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline, _with_raw_reduction_metrics
 
-MODES = ("full_gist", "visual_only", "transcript_only", "uniform")
+MODES = ("full_gist", "visual_only", "transcript_only", "score_topk", "uniform")
 
 MODE_LABELS = {
     "full_gist": "Full Gist (audio+visual)",
     "visual_only": "Visual-only retrieval",
     "transcript_only": "Transcript-only retrieval",
+    "score_topk": "Score top-k (relevance only)",
     "uniform": "Uniform sampling",
 }
 
@@ -293,6 +294,61 @@ def _uniform_mode(
     return _extractive_answer(response)
 
 
+def _score_topk_mode(
+    request_template: CompressionRequest,
+    visual: list[Candidate],
+    audio: list[Candidate],
+    budget: int,
+    raw_candidate_count: int,
+    raw_visual_count: int,
+    raw_audio_count: int,
+) -> CompressionResponse:
+    """Query-aware ranking baseline: greedy top-k by candidate saliency, no
+    diversity, scene structure, cross-modal fusion, or answer pruning."""
+
+    selected = _score_topk_select(visual, audio, max(budget, 1))
+    input_count = len(visual) + len(audio)
+    selected_count = len(selected)
+    reduction_ratio = 1.0 if input_count == 0 else selected_count / input_count
+    token_estimate = estimate_tokens(
+        input_visual_candidates=len(visual),
+        input_audio_candidates=len(audio),
+        selected_modalities=[item.modality for item in selected],
+        profile=request_template.token_estimator,
+    )
+    metrics = CompressionMetrics(
+        input_candidates=input_count,
+        selected_candidates=selected_count,
+        visual_selected=sum(item.modality.value == "visual" for item in selected),
+        audio_selected=sum(item.modality.value == "audio" for item in selected),
+        estimated_candidate_reduction_ratio=reduction_ratio,
+        estimated_candidate_reduction_percent=(1.0 - reduction_ratio) * 100,
+        dropped_candidates=max(input_count - selected_count, 0),
+        budget_mode="score_topk",
+        budget_preset_used=request_template.preset,
+        estimated_baseline_tokens=token_estimate.baseline_tokens,
+        estimated_compressed_tokens=token_estimate.compressed_tokens,
+        estimated_saved_tokens=token_estimate.saved_tokens,
+        estimated_token_reduction_ratio=token_estimate.reduction_ratio,
+        estimated_token_reduction_percent=token_estimate.reduction_percent,
+        token_estimator=token_estimate.profile,
+    )
+    response = CompressionResponse(
+        video_id=request_template.video_id,
+        query=request_template.query,
+        preset=request_template.preset,
+        selected=selected,
+        metrics=metrics,
+    )
+    response = _with_raw_reduction_metrics(
+        compression=response,
+        raw_candidate_count=raw_candidate_count,
+        raw_visual_count=raw_visual_count,
+        raw_audio_count=raw_audio_count,
+    )
+    return _extractive_answer(response)
+
+
 def _mode_outcome(mode: str, result: QualityResult) -> ModeOutcome:
     return ModeOutcome(
         mode=mode,
@@ -374,12 +430,21 @@ def run_ablation_case(
         raw_visual_count,
         raw_audio_count,
     )
-    uniform_budget = max(responses["full_gist"].metrics.selected_candidates, 1)
+    shared_budget = max(responses["full_gist"].metrics.selected_candidates, 1)
+    responses["score_topk"] = _score_topk_mode(
+        request_template,
+        candidates.visual,
+        candidates.audio,
+        shared_budget,
+        raw_candidate_count,
+        raw_visual_count,
+        raw_audio_count,
+    )
     responses["uniform"] = _uniform_mode(
         request_template,
         candidates.visual,
         candidates.audio,
-        uniform_budget,
+        shared_budget,
         raw_candidate_count,
         raw_visual_count,
         raw_audio_count,
