@@ -91,7 +91,7 @@ def test_extract_frames_reuses_existing_outputs_and_removes_stale_files(tmp_path
                 }
             ),
         ):
-            with patch.object(processor, "_run") as run:
+            with patch.object(processor, "_run", side_effect=_writing_run) as run:
                 frames = processor.extract_frames(
                     video_path=video_path,
                     output_dir=output_dir,
@@ -102,6 +102,73 @@ def test_extract_frames_reuses_existing_outputs_and_removes_stale_files(tmp_path
     assert stale.exists() is False
     assert run.call_count == 1
     assert run.call_args.args[0][-1] == str(output_dir / "frame_0001.jpg")
+
+
+def _writing_run(command: list[str]) -> None:
+    """Simulate ffmpeg writing its output file (the last command argument)."""
+
+    Path(command[-1]).write_bytes(b"frame")
+
+
+def test_extract_frames_skips_frames_that_fail_to_write(tmp_path: Path) -> None:
+    video_path = tmp_path / "input.mp4"
+    video_path.write_bytes(b"fake")
+    output_dir = tmp_path / "frames"
+    processor = FfmpegMediaProcessor()
+
+    def run_writes_all_but_one(command: list[str]) -> None:
+        # Simulate a corrupt region: ffmpeg exits 0 but writes nothing for
+        # frame index 1 (the second timestamp).
+        if command[-1].endswith("frame_0001.jpg"):
+            return
+        Path(command[-1]).write_bytes(b"frame")
+
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
+        with patch.object(
+            processor,
+            "probe",
+            return_value=processor._parse_metadata(
+                {
+                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                    "format": {"duration": "6.0"},
+                }
+            ),
+        ):
+            with patch.object(processor, "_run", side_effect=run_writes_all_but_one):
+                frames = processor.extract_frames(
+                    video_path=video_path,
+                    output_dir=output_dir,
+                    sample_count=3,
+                )
+
+    # The undecodable frame is skipped; the others survive.
+    assert [frame.path.name for frame in frames] == ["frame_0000.jpg", "frame_0002.jpg"]
+
+
+def test_extract_frames_raises_when_no_frames_extracted(tmp_path: Path) -> None:
+    video_path = tmp_path / "input.mp4"
+    video_path.write_bytes(b"fake")
+    output_dir = tmp_path / "frames"
+    processor = FfmpegMediaProcessor()
+
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
+        with patch.object(
+            processor,
+            "probe",
+            return_value=processor._parse_metadata(
+                {
+                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                    "format": {"duration": "6.0"},
+                }
+            ),
+        ):
+            with patch.object(processor, "_run", side_effect=lambda command: None):
+                with pytest.raises(MediaProcessingError, match="no frames could be extracted"):
+                    processor.extract_frames(
+                        video_path=video_path,
+                        output_dir=output_dir,
+                        sample_count=3,
+                    )
 
 
 def test_extract_audio_windows_reuses_existing_outputs_and_removes_stale_files(
