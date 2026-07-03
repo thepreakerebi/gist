@@ -7,7 +7,7 @@ from gist.core.schemas import Candidate
 from gist.media.models import IngestedVideo
 
 INGESTION_CACHE_VERSION = "v2"
-CANDIDATE_CACHE_VERSION = "v26"
+CANDIDATE_CACHE_VERSION = "v29"
 
 
 @dataclass(slots=True)

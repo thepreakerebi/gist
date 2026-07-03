@@ -61,6 +61,13 @@ def shortlist_relevant_segments(
     if opening_group_id is not None:
         selected_ids.add(opening_group_id)
     selected_ids.update(
+        _exact_ocr_group_ids(
+            candidates=candidates.visual,
+            groups=groups,
+            query=query,
+        )
+    )
+    selected_ids.update(
         _global_audio_group_ids(
             groups,
             query,
@@ -280,6 +287,39 @@ def _opening_group_id(
         key=lambda candidate: (candidate.timestamp_seconds, candidate.id),
     )
     return _group_id_for_candidate(opening, groups) or None
+
+
+def _exact_ocr_group_ids(
+    candidates: list[Candidate],
+    groups: list[SegmentCandidateGroup],
+    query: str,
+    min_score: float = 0.95,
+) -> set[str]:
+    if not _looks_like_visual_text_query(query):
+        return set()
+    selected = [
+        _group_id_for_candidate(candidate, groups)
+        for candidate in candidates
+        if candidate.text.lower().startswith("on-screen text near")
+        and float(candidate.saliency_score or 0.0) >= min_score
+    ]
+    return {group_id for group_id in selected if group_id}
+
+
+def _looks_like_visual_text_query(query: str) -> bool:
+    normalized = query.lower()
+    if any(marker in normalized for marker in (" after ", " before ", " then ", " next ")):
+        return False
+    return any(
+        marker in normalized
+        for marker in (
+            "on-screen text",
+            "onscreen text",
+            "screen text",
+            "text says",
+            "title says",
+        )
+    )
 
 
 def _global_audio_group_ids(

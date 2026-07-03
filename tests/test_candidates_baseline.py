@@ -10,6 +10,11 @@ class FakeVisualScorer:
         return {frame.path: 0.9 for frame in frames}
 
 
+class LowConfidenceVisualScorer:
+    def score_frames(self, frames: list[ExtractedFrame], query: str) -> dict[Path, float]:
+        return {frame.path: 0.1 for frame in frames}
+
+
 class FakeTemporalVisualScorer:
     def score_frames(self, frames: list[ExtractedFrame], query: str) -> dict[Path, float]:
         score = 0.2
@@ -81,6 +86,30 @@ def test_baseline_candidate_generator_maps_manifest_to_candidates() -> None:
     assert candidates.audio[0].id == "video-1:audio:0"
     assert candidates.audio[0].timestamp_seconds == 4.0
     assert candidates.audio[0].asset_path == Path("audio.wav")
+
+
+def test_baseline_candidate_generator_can_skip_unscored_audio_placeholders() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=2.0, has_audio=True),
+        frames=[],
+        audio_windows=[
+            AudioWindow(
+                index=0,
+                start_seconds=2.0,
+                duration_seconds=4.0,
+                path=Path("audio.wav"),
+            ),
+        ],
+    )
+
+    candidates = BaselineCandidateGenerator(include_unscored_audio=False).generate(
+        manifest,
+        query="visible slide title",
+    )
+
+    assert candidates.audio == []
 
 
 def test_baseline_candidate_generator_can_attach_visual_saliency_scores() -> None:
@@ -167,6 +196,28 @@ def test_baseline_candidate_generator_uses_frame_ocr_as_visual_text() -> None:
     assert candidates.visual[0].text == (
         "on-screen text near 5.00 seconds: Conductor ships code with AI"
     )
+
+
+def test_exact_visual_ocr_match_boosts_visual_saliency() -> None:
+    manifest = IngestedVideo(
+        video_id="video-1",
+        source_path=Path("video.mp4"),
+        metadata=VideoMetadata(duration_seconds=2.0, has_audio=False),
+        frames=[
+            ExtractedFrame(index=0, timestamp_seconds=5.0, path=Path("frame.jpg")),
+        ],
+        audio_windows=[],
+    )
+
+    candidates = BaselineCandidateGenerator(
+        visual_scorer=LowConfidenceVisualScorer(),
+        frame_ocr=FakeFrameOcr("Characterization and Modelling"),
+    ).generate(
+        manifest,
+        query="What on-screen text says Characterization and Modelling?",
+    )
+
+    assert candidates.visual[0].saliency_score == 1.0
 
 
 def test_scene_aware_candidate_generator_attaches_scene_metadata() -> None:

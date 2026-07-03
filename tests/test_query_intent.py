@@ -42,6 +42,15 @@ def test_routes_visual_query() -> None:
     assert "visual" in reason
 
 
+def test_routes_on_screen_text_says_query_to_visual() -> None:
+    intent, reason = route_query_intent(
+        "What on-screen text says Characterization and Modelling?"
+    )
+
+    assert intent == QueryIntent.VISUAL_OBJECT_ACTION
+    assert "OCR" in reason
+
+
 def test_routes_sound_event_query() -> None:
     intent, reason = route_query_intent("where is the applause loudest")
 

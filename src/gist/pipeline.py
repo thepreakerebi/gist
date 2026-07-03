@@ -310,6 +310,7 @@ class LocalCompressionPipeline:
             frame_ocr=frame_ocr,
             audio_context_window_count=audio_context_window_count,
             scene_aware_visuals=scene_aware_visuals,
+            include_unscored_audio=visual_adapter is None,
         )
 
 

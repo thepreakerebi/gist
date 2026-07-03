@@ -80,6 +80,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--whisper-compute-type")
     parser.add_argument("--whisper-beam-size", type=int)
     parser.add_argument(
+        "--whisper-max-windows",
+        type=int,
+        help=(
+            "Optional cap on the number of audio windows sent to Whisper. "
+            "Useful for fast local long-video curation runs."
+        ),
+    )
+    parser.add_argument(
         "--auto-transcript-retry",
         action="store_true",
         help=(
@@ -295,6 +303,7 @@ def _run_pipeline_pass(
         whisper_device=args.whisper_device,
         whisper_compute_type=args.whisper_compute_type,
         whisper_beam_size=args.whisper_beam_size,
+        whisper_max_windows=args.whisper_max_windows,
         adaptive_budget=args.adaptive_budget,
         decompose_query=args.decompose_query,
         task_aware_selection=True,

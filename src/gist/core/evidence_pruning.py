@@ -57,7 +57,10 @@ def prune_evidence_to_answer(
         raise ValueError("min_items must be non-negative")
     if min_items > max_items:
         raise ValueError("min_items must not exceed max_items")
-    if _is_visual_text_query(compression):
+    if _is_exact_ocr_answer_query(compression):
+        max_items = min(max_items, 1)
+        min_items = min(min_items, 1)
+    elif _is_visual_text_query(compression):
         max_items = min(max_items, 2)
         min_items = min(min_items, 1)
     if _is_mixed_speech_answer_query(compression):
@@ -860,6 +863,31 @@ def _is_visual_text_query(compression: CompressionResponse) -> bool:
             " label ",
             " slide ",
         ]
+    )
+
+
+def _is_exact_ocr_answer_query(compression: CompressionResponse) -> bool:
+    query = f" {compression.query.lower()} "
+    if any(marker in query for marker in [" after ", " before ", " then ", " next "]):
+        return False
+    if not any(
+        marker in query
+        for marker in [
+            " on-screen text ",
+            " onscreen text ",
+            " screen text ",
+            " text says ",
+            " title says ",
+        ]
+    ):
+        return False
+    if not compression.answer or not _is_ocr_text(compression.answer):
+        return False
+    return any(
+        item.modality == Modality.VISUAL
+        and _is_ocr_text(item.text)
+        and item.relevance_score >= 0.95
+        for item in compression.selected
     )
 
 

@@ -452,6 +452,11 @@ class GistCompressor:
 
         modalities = {selection.candidate.modality for selection in selections}
         if len(selections) > 1 and len(modalities) == 1:
+            if any(
+                _is_high_confidence_visual_text_match(selection.candidate)
+                for selection in selections
+            ):
+                return False, None
             if all(_is_grounded_transcript_moment(selection.candidate) for selection in selections):
                 return False, None
             return True, "aggressive budget selected only one modality"
@@ -1126,6 +1131,9 @@ class GistCompressor:
         if not visual_candidates:
             return selections
 
+        if any(_is_high_confidence_visual_text_match(selection.candidate) for selection in selections):
+            return selections
+
         target_visual = min(len(visual_candidates), max(2, max_items // 2))
         selected_visual = sum(
             selection.candidate.modality == Modality.VISUAL for selection in selections
@@ -1479,4 +1487,12 @@ def _is_grounded_transcript_moment(candidate: ScoredCandidate) -> bool:
         and ":audio:" in candidate.id
         and ":visual:" in candidate.id
         and candidate.asset_path is not None
+    )
+
+
+def _is_high_confidence_visual_text_match(candidate: ScoredCandidate) -> bool:
+    return (
+        candidate.modality == Modality.VISUAL
+        and candidate.text.lower().startswith("on-screen text near")
+        and candidate.relevance_score >= 0.95
     )

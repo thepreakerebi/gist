@@ -49,6 +49,22 @@ _COMMON_TRANSCRIPT_WORDS = {
     "you",
 }
 
+_VISUAL_QUERY_WORDS = {
+    "appear",
+    "appears",
+    "display",
+    "displayed",
+    "list",
+    "lists",
+    "on",
+    "screen",
+    "says",
+    "shown",
+    "slide",
+    "text",
+    "title",
+}
+
 
 class CandidateSet(BaseModel):
     model_config = ConfigDict(frozen=True)
@@ -75,6 +91,7 @@ class BaselineCandidateGenerator:
         frame_ocr: FrameOcr | None = None,
         audio_context_window_count: int = 1,
         scene_aware_visuals: bool = False,
+        include_unscored_audio: bool = True,
     ) -> None:
         if audio_context_window_count < 0:
             raise ValueError("audio_context_window_count must be non-negative")
@@ -84,6 +101,7 @@ class BaselineCandidateGenerator:
         self.frame_ocr = frame_ocr
         self.audio_context_window_count = audio_context_window_count
         self.scene_aware_visuals = scene_aware_visuals
+        self.include_unscored_audio = include_unscored_audio
 
     def generate(
         self,
@@ -123,6 +141,7 @@ class BaselineCandidateGenerator:
                     temporal_query.direction if temporal_query is not None else None,
                     temporal_query.anchor if temporal_query is not None else None,
                     temporal_query.target if temporal_query is not None else None,
+                    query,
                     frame_ocr_text.get(frame.path),
                     scene_by_frame.get(frame.index),
                 )
@@ -215,6 +234,13 @@ class BaselineCandidateGenerator:
         audio_transcripts: dict[Path, str],
         audio_scores: dict[Path, float],
     ) -> list[Candidate]:
+        if (
+            self.audio_transcriber is None
+            and self.audio_scorer is None
+            and not self.include_unscored_audio
+        ):
+            return []
+
         candidates: list[Candidate] = []
         for window in ingested_video.audio_windows:
             transcript_context = self._audio_transcript_context(
@@ -275,6 +301,7 @@ class BaselineCandidateGenerator:
         temporal_direction: str | None,
         temporal_anchor_query: str | None,
         temporal_target_query: str | None,
+        query: str,
         ocr_text: str | None,
         scene: SceneSegment | None,
     ) -> Candidate:
@@ -291,6 +318,11 @@ class BaselineCandidateGenerator:
             temporal_target_score = max(
                 float(temporal_target_score or 0.0),
                 text_similarity(temporal_target_query, temporal_text),
+            )
+        if ocr_text:
+            saliency_score = max(
+                float(saliency_score or 0.0),
+                _ocr_query_match_score(query, ocr_text),
             )
         return Candidate(
             id=f"{video_id}:visual:{frame.index}",
@@ -350,3 +382,14 @@ def _looks_like_noisy_transcript(text: str) -> bool:
         return True
     common_ratio = sum(1 for word in words if word in _COMMON_TRANSCRIPT_WORDS) / len(words)
     return common_ratio < 0.08
+
+
+def _ocr_query_match_score(query: str, ocr_text: str) -> float:
+    query_terms = {
+        term for term in re.findall(r"[a-z0-9]+", query.lower())
+        if term not in _COMMON_TRANSCRIPT_WORDS and term not in _VISUAL_QUERY_WORDS
+    }
+    ocr_terms = set(re.findall(r"[a-z0-9]+", ocr_text.lower()))
+    if not query_terms or not ocr_terms:
+        return 0.0
+    return len(query_terms & ocr_terms) / len(query_terms)

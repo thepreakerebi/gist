@@ -366,6 +366,38 @@ def test_opening_visual_query_keeps_earliest_ocr_frame() -> None:
     assert "opening-title" in {item.id for item in response.selected}
 
 
+def test_adaptive_budget_does_not_expand_exact_ocr_visual_answer() -> None:
+    request = CompressionRequest(
+        video_id="demo",
+        query="What on-screen text says Characterization and Modelling?",
+        duration_seconds=4500,
+        preset=CompressionPreset.BALANCED,
+        adaptive_budget=True,
+        task_aware_selection=True,
+        visual_candidates=[
+            Candidate(
+                id="exact-title",
+                timestamp_seconds=1123,
+                text="on-screen text near 1123 seconds: Characterization and Modelling",
+                saliency_score=1.0,
+                segment_id="scene-1",
+            ),
+            Candidate(
+                id="weak-visual",
+                timestamp_seconds=3695,
+                text="on-screen text near 3695 seconds: Ma unin Spiny",
+                saliency_score=0.3,
+                segment_id="scene-2",
+            ),
+        ],
+    )
+
+    response = GistCompressor().compress(request)
+
+    assert response.metrics.budget_preset_used == CompressionPreset.AGGRESSIVE
+    assert response.metrics.budget_expanded is False
+
+
 def test_temporal_query_keeps_anchor_and_directional_target() -> None:
     request = CompressionRequest(
         video_id="demo",

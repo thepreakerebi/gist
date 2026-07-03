@@ -149,6 +149,7 @@ _NEGATIVE_PHRASES = {
 
 
 def route_query_intent(query: str) -> tuple[QueryIntent, str]:
+    normalized_query = query.lower()
     tokens = set(re.findall(r"[a-z0-9]+", query.lower()))
     if not tokens:
         return (
@@ -164,9 +165,9 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
     has_temporal = bool(tokens & _TEMPORAL_TERMS)
     has_global = bool(tokens & _GLOBAL_TERMS)
     has_sound = bool(tokens & _SOUND_TERMS)
-    has_counting = bool(tokens & _COUNTING_TERMS) or "how many" in query.lower()
+    has_counting = bool(tokens & _COUNTING_TERMS) or "how many" in normalized_query
     has_negative = bool(tokens & _NEGATIVE_TERMS) or any(
-        phrase in query.lower() for phrase in _NEGATIVE_PHRASES
+        phrase in normalized_query for phrase in _NEGATIVE_PHRASES
     )
 
     if has_negative:
@@ -181,6 +182,11 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
         )
     if has_global and not (has_speech or has_visual or has_sound):
         return QueryIntent.GLOBAL_SUMMARY, "global summary terms favor broad segment coverage"
+    if has_visual and has_speech and not has_temporal and _is_visual_text_query(normalized_query):
+        return (
+            QueryIntent.VISUAL_OBJECT_ACTION,
+            "on-screen text query favors OCR/frame retrieval over transcript retrieval",
+        )
     if has_speech and has_visual:
         return QueryIntent.MIXED_AV, "speech and visual terms require cross-modal evidence"
     if has_temporal and (has_speech or has_visual or has_sound):
@@ -210,3 +216,15 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
     if has_global:
         return QueryIntent.GLOBAL_SUMMARY, "global terms favor broad segment coverage"
     return QueryIntent.MIXED_AV, "no dominant route detected; using mixed audio-visual retrieval"
+
+
+def _is_visual_text_query(normalized_query: str) -> bool:
+    visual_text_markers = (
+        "on-screen text",
+        "onscreen text",
+        "screen text",
+        "slide says",
+        "text says",
+        "title says",
+    )
+    return any(marker in normalized_query for marker in visual_text_markers)

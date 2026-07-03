@@ -913,6 +913,43 @@ def test_prune_evidence_to_answer_keeps_only_supporting_ocr_for_title_query() ->
     assert [item.id for item in pruned.selected] == ["opening"]
 
 
+def test_prune_evidence_to_answer_caps_exact_ocr_query_to_one_item() -> None:
+    compression = CompressionResponse(
+        video_id="demo",
+        query="What on-screen text says Characterization and Modelling?",
+        answer="on-screen text near 1123.79 seconds: Characterization and Modelling",
+        preset=CompressionPreset.AGGRESSIVE,
+        selected=[
+            _visual_item(
+                "exact-title",
+                1123,
+                "on-screen text near 1123.79 seconds: Characterization and Modelling",
+                relevance_score=1.0,
+            ),
+            _visual_item(
+                "weak-tail",
+                3695,
+                "on-screen text near 3695.35 seconds: Ma unin Spiny",
+                relevance_score=0.3,
+            ),
+        ],
+        metrics=CompressionMetrics(
+            input_candidates=285,
+            selected_candidates=2,
+            visual_selected=2,
+            audio_selected=0,
+            estimated_candidate_reduction_ratio=0.007,
+            estimated_candidate_reduction_percent=99.3,
+            dropped_candidates=283,
+            budget_preset_used=CompressionPreset.AGGRESSIVE,
+        ),
+    )
+
+    pruned = prune_evidence_to_answer(compression)
+
+    assert [item.id for item in pruned.selected] == ["exact-title"]
+
+
 def test_prune_evidence_to_answer_keeps_mixed_av_audio_evidence() -> None:
     compression = CompressionResponse(
         video_id="demo",

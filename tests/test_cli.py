@@ -183,6 +183,47 @@ def test_main_cli_accepts_builtin_extraction_schema_name(tmp_path: Path, monkeyp
     assert "pricing objection" in extraction_csv_output.read_text()
 
 
+def test_main_cli_passes_whisper_max_windows(tmp_path: Path, monkeypatch) -> None:
+    seen_kwargs = {}
+
+    class FakePipeline:
+        def __init__(self, output_root: Path) -> None:
+            self.output_root = output_root
+
+        def run(self, **kwargs):
+            seen_kwargs.update(kwargs)
+            ingestion = IngestedVideo(
+                video_id="video",
+                source_path=tmp_path / "video.mp4",
+                metadata=VideoMetadata(duration_seconds=3600, has_audio=True),
+                frames=[],
+                audio_windows=[],
+            )
+            return ingestion, _compression_with_warning(None)
+
+    monkeypatch.setattr(cli, "LocalCompressionPipeline", FakePipeline)
+
+    exit_code = cli.main(
+        [
+            str(tmp_path / "video.mp4"),
+            "--query",
+            "What are the main topics covered throughout this lecture?",
+            "--output-root",
+            str(tmp_path / "runs"),
+            "--audio-scorer",
+            "whisper",
+            "--whisper-max-windows",
+            "4",
+            "--no-clips",
+            "--no-answer-prune",
+            "--quiet",
+        ]
+    )
+
+    assert exit_code == 0
+    assert seen_kwargs["whisper_max_windows"] == 4
+
+
 def test_should_retry_transcripts_requires_noisy_whisper_warning() -> None:
     args = Namespace(
         auto_transcript_retry=True,

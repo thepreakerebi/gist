@@ -263,6 +263,39 @@ def test_shortlist_relevant_segments_preserves_opening_segment() -> None:
     assert "opening" in {candidate.id for candidate in shortlisted.visual}
 
 
+def test_shortlist_relevant_segments_preserves_exact_ocr_text_segment() -> None:
+    candidates = CandidateSet(
+        visual=[
+            *[
+                Candidate(
+                    id=f"strong-scene-{index}",
+                    timestamp_seconds=float(index * 120),
+                    text="generic strong scene",
+                    saliency_score=0.9,
+                )
+                for index in range(1, 8)
+            ],
+            Candidate(
+                id="exact-ocr",
+                timestamp_seconds=4665,
+                text="on-screen text near 4665.26 seconds: Further Reading Materials",
+                saliency_score=1.0,
+            ),
+        ],
+        audio=[],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="What on-screen text says Further Reading Materials?",
+        duration_seconds=5200,
+        segment_seconds=120,
+        max_segments=2,
+    )
+
+    assert "exact-ocr" in {candidate.id for candidate in shortlisted.visual}
+
+
 def test_shortlist_relevant_segments_preserves_opening_temporal_pair() -> None:
     candidates = CandidateSet(
         visual=[

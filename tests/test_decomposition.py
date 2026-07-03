@@ -38,3 +38,11 @@ def test_rule_based_decomposer_treats_ask_as_audio_signal() -> None:
 
     assert aspects[0].modality == QueryAspectModality.AUDIO
     assert aspects[1].modality == QueryAspectModality.VISUAL
+
+
+def test_rule_based_decomposer_routes_on_screen_text_says_to_visual() -> None:
+    aspects = RuleBasedQueryDecomposer().decompose(
+        "What on-screen text says Further Reading Materials?"
+    )
+
+    assert aspects[0].modality == QueryAspectModality.VISUAL

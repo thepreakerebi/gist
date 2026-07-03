@@ -33,7 +33,11 @@ class RuleBasedQueryDecomposer:
         "frame",
         "object",
         "scene",
+        "screen",
         "visible",
+        "slide",
+        "text",
+        "title",
         "look",
         "appears",
         "gesture",
@@ -76,6 +80,9 @@ class RuleBasedQueryDecomposer:
         return _dedupe_aspects(aspects)
 
     def _infer_modality(self, text: str) -> QueryAspectModality:
+        if _is_visual_text_query(text):
+            return QueryAspectModality.VISUAL
+
         tokens = set(re.findall(r"[a-z0-9]+", text.lower()))
         has_visual = bool(tokens & self._visual_terms)
         has_audio = bool(tokens & self._audio_terms)
@@ -112,3 +119,17 @@ def _conceptual_aspects(query: str) -> list[QueryAspect]:
             )
         ]
     return []
+
+
+def _is_visual_text_query(text: str) -> bool:
+    normalized = text.lower()
+    return any(
+        marker in normalized
+        for marker in (
+            "on-screen text",
+            "onscreen text",
+            "screen text",
+            "text says",
+            "title says",
+        )
+    )
