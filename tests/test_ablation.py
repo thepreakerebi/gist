@@ -153,6 +153,8 @@ def test_resolve_case_config_detects_whisper(tmp_path):
     config = resolve_case_config(case)
     assert config.audio_scorer.value == "whisper"
     assert config.whisper_model_size == "tiny"
+    assert config.transcript_quality == "fast"
+    assert config.whisper_beam_size == 1
     assert config.preset == CompressionPreset.AGGRESSIVE
 
 
