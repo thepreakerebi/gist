@@ -75,7 +75,7 @@ def shortlist_relevant_segments(
         )
     )
     selected_ids.update(
-        _mixed_av_audio_group_ids(
+        _speech_and_mixed_audio_group_ids(
             groups,
             query,
             audio_ids={candidate.id for candidate in candidates.audio},
@@ -356,14 +356,18 @@ def _global_audio_group_ids(
     }
 
 
-def _mixed_av_audio_group_ids(
+def _speech_and_mixed_audio_group_ids(
     groups: list[SegmentCandidateGroup],
     query: str,
     audio_ids: set[str],
     max_groups: int = 4,
 ) -> set[str]:
+    # Speech-semantic and mixed audio-visual queries are answered from spoken
+    # content, so the shortlist must keep the audio-bearing segments that match
+    # the query lexically instead of letting visual-dominated group scores drop
+    # them.
     query_intent, _reason = route_query_intent(query)
-    if query_intent != QueryIntent.MIXED_AV:
+    if query_intent not in {QueryIntent.SPEECH_SEMANTIC, QueryIntent.MIXED_AV}:
         return set()
 
     scored: list[tuple[float, SegmentCandidateGroup]] = []

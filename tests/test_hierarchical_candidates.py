@@ -185,6 +185,44 @@ def test_shortlist_relevant_segments_preserves_mixed_av_audio_groups() -> None:
     assert "audio-answer" in {candidate.id for candidate in shortlisted.audio}
 
 
+def test_shortlist_relevant_segments_preserves_speech_semantic_audio_groups() -> None:
+    candidates = CandidateSet(
+        visual=[
+            Candidate(
+                id=f"v-{index}",
+                timestamp_seconds=float(index * 120 + 5),
+                text="visual OCR noise",
+                saliency_score=1.0,
+            )
+            for index in range(6)
+        ],
+        audio=[
+            Candidate(
+                id="audio-answer",
+                timestamp_seconds=485,
+                text="police sheriffs and emergency ambulances are overwhelmed with calls",
+            ),
+            Candidate(
+                id="audio-noise",
+                timestamp_seconds=15,
+                text="background music",
+            ),
+        ],
+    )
+
+    shortlisted = shortlist_relevant_segments(
+        candidates=candidates,
+        query="What do the police and ambulances do according to the broadcast?",
+        duration_seconds=720,
+        segment_seconds=120,
+        max_segments=1,
+    )
+
+    # A speech-semantic query must keep the audio segment that answers it, even
+    # when visual groups dominate the top segment scores.
+    assert "audio-answer" in {candidate.id for candidate in shortlisted.audio}
+
+
 def test_shortlist_relevant_segments_preserves_temporal_anchor_and_target() -> None:
     candidates = CandidateSet(
         visual=[
