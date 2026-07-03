@@ -48,6 +48,7 @@ from gist.eval.quality import (
     evaluate_quality_case,
     load_quality_cases,
 )
+from gist.audio.whisper import TranscriptQuality
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline, _with_raw_reduction_metrics
 
@@ -384,6 +385,14 @@ def run_ablation_case(
         visual_scorer=config.visual_scorer,
         audio_scorer=config.audio_scorer,
         visual_ocr=config.visual_ocr,
+        # Match the transcript quality the artifact was produced with, otherwise
+        # prepare_candidates defaults to "balanced" and re-transcribes the whole
+        # video with a heavier Whisper model (cache miss + wrong transcript).
+        transcript_quality=(
+            TranscriptQuality(config.transcript_quality)
+            if config.transcript_quality
+            else TranscriptQuality.BALANCED
+        ),
         whisper_model_size=config.whisper_model_size,
         whisper_device=config.whisper_device,
         whisper_compute_type=config.whisper_compute_type,
