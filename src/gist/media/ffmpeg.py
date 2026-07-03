@@ -66,6 +66,10 @@ class FfmpegMediaProcessor:
                         "1",
                         "-q:v",
                         "2",
+                        # Normalize to JPEG full-range YUV so sources with
+                        # non-standard color ranges still encode as MJPEG.
+                        "-pix_fmt",
+                        "yuvj420p",
                         str(frame_path),
                     ]
                 )
