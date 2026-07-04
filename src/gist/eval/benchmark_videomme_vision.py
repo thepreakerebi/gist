@@ -297,8 +297,9 @@ def run_vision_benchmark(
             accuracy=0.0 if not n else sum(r.correct for r in rows) / n,
             avg_frames=0.0 if not n else sum(r.frames for r in rows) / n,
         )
+    provider = "openai" if model.startswith(("gpt", "o1", "o3", "o4")) else "ollama"
     return VisionReport(
-        answerer=f"ollama:{model}", questions=len(results),
+        answerer=f"{provider}:{model}", questions=len(results),
         videos=len({r.videoID for r in results}),
         dense_budget=dense_budget, small_budget=small_budget,
         summaries=summaries, results=results,
