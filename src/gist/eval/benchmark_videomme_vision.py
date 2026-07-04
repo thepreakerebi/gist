@@ -164,6 +164,58 @@ def _mc_vision_prompt(question: str, options: list[str]) -> str:
     )
 
 
+def _openai_vision_answer(
+    prompt: str, image_paths: list[Path], model: str, api_key: str, timeout: float = 120.0
+) -> str:
+    content: list[dict] = [{"type": "text", "text": prompt}]
+    for p in image_paths:
+        try:
+            b64 = base64.b64encode(p.read_bytes()).decode("ascii")
+        except OSError:
+            continue
+        content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:image/jpeg;base64,{b64}", "detail": "low"},
+        })
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": content}],
+        "max_tokens": 10,
+        "temperature": 0,
+    }
+    req = request.Request(
+        "https://api.openai.com/v1/chat/completions",
+        data=json.dumps(payload).encode(),
+        method="POST",
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+    )
+    try:
+        with request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read().decode())
+        return data["choices"][0]["message"]["content"]
+    except (error.URLError, TimeoutError, json.JSONDecodeError, KeyError, IndexError):
+        return ""
+
+
+def _resolve_openai_key() -> str | None:
+    import os
+    key = os.environ.get("OPENAI_API_KEY")
+    if key:
+        return key
+    key_file = Path(".gist/.openai_key")
+    if key_file.exists():
+        return key_file.read_text().strip() or None
+    return None
+
+
+def _vision_answer(prompt: str, image_paths: list[Path], model: str, api_key: str | None) -> str:
+    if model.startswith(("gpt", "o1", "o3", "o4")):
+        if not api_key:
+            raise RuntimeError("OpenAI model requested but no API key found")
+        return _openai_vision_answer(prompt, image_paths, model, api_key)
+    return _ollama_vision_answer(prompt, image_paths, model)
+
+
 def _ollama_vision_answer(
     prompt: str, image_paths: list[Path], model: str, timeout: float = 600.0
 ) -> str:
@@ -204,6 +256,7 @@ def run_vision_benchmark(
 ) -> VisionReport:
     pipeline = LocalCompressionPipeline(output_root=output_root)
     compressor = GistCompressor()
+    api_key = _resolve_openai_key()
     by_video: dict[str, list[BenchQuestion]] = {}
     for q in questions:
         by_video.setdefault(q.videoID, []).append(q)
@@ -228,7 +281,7 @@ def run_vision_benchmark(
                 if progress:
                     progress(f"answering {q.question_id} [{cond}] ({len(frames)} frames)")
                 prompt = _mc_vision_prompt(q.question, q.options)
-                pred = _parse_letter(_ollama_vision_answer(prompt, frames, model))
+                pred = _parse_letter(_vision_answer(prompt, frames, model, api_key))
                 conds[cond] = VisionConditionResult(
                     condition=cond, predicted=pred, correct=(pred == q.answer), frames=len(frames),
                 )
