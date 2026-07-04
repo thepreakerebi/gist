@@ -37,6 +37,7 @@ from gist.core.schemas import (
 )
 from gist.eval.ablation import resolve_case_config
 from gist.eval.baselines import _uniform_select
+from gist.eval.judge import JudgeError, LlmJudge
 from gist.eval.quality import QualityCase, _load_compression, _term_recall, load_quality_cases
 from gist.gateway.evidence_package import build_evidence_prompt
 from gist.gateway.ollama import DEFAULT_OLLAMA_MODEL, OllamaGatewayError, OllamaTextGateway
@@ -62,6 +63,9 @@ class CaseConditionResult(BaseModel):
     correct: bool
     context_tokens: int
     evidence_items: int
+    judge_correct: bool | None = None
+    judge_score: float | None = None
+    judge_reason: str | None = None
 
 
 class DownstreamCaseResult(BaseModel):
@@ -79,6 +83,7 @@ class ConditionSummary(BaseModel):
     avg_answer_term_recall: float
     correct_rate: float
     avg_context_tokens: float
+    judge_correct_rate: float | None = None
 
 
 class DownstreamReport(BaseModel):
@@ -233,6 +238,7 @@ def run_downstream_case(
     pipeline: LocalCompressionPipeline,
     gateway: OllamaTextGateway,
     correct_threshold: float,
+    judge: LlmJudge | None = None,
 ) -> DownstreamCaseResult | None:
     config = resolve_case_config(case)
     ingested = _ingest_only(pipeline, config)
@@ -267,6 +273,17 @@ def run_downstream_case(
             # A single slow/failed LLM call must not crash the whole suite.
             answer = ""
         recall = _term_recall(case.expected_answer_terms, answer)
+        judge_correct: bool | None = None
+        judge_score: float | None = None
+        judge_reason: str | None = None
+        if judge is not None:
+            try:
+                verdict = judge.judge(config.query, case.expected_answer_terms, answer)
+                judge_correct, judge_score, judge_reason = (
+                    verdict.correct, verdict.score, verdict.reason,
+                )
+            except JudgeError:
+                judge_correct, judge_score, judge_reason = None, None, "judge unavailable"
         conditions[condition] = CaseConditionResult(
             condition=condition,
             answer=answer,
@@ -274,6 +291,9 @@ def run_downstream_case(
             correct=recall >= correct_threshold,
             context_tokens=_approx_tokens(prompt),
             evidence_items=len(selected),
+            judge_correct=judge_correct,
+            judge_score=judge_score,
+            judge_reason=judge_reason,
         )
 
     return DownstreamCaseResult(
@@ -298,6 +318,10 @@ def _summarize(condition: str, results: list[DownstreamCaseResult]) -> Condition
     def avg(fn) -> float:
         return 0.0 if not n else sum(fn(r) for r in rows) / n
 
+    judged = [r for r in rows if r.judge_correct is not None]
+    judge_rate = (
+        None if not judged else sum(1.0 for r in judged if r.judge_correct) / len(judged)
+    )
     return ConditionSummary(
         condition=condition,
         label=CONDITION_LABELS[condition],
@@ -305,6 +329,7 @@ def _summarize(condition: str, results: list[DownstreamCaseResult]) -> Condition
         avg_answer_term_recall=avg(lambda r: r.answer_term_recall),
         correct_rate=avg(lambda r: 1.0 if r.correct else 0.0),
         avg_context_tokens=avg(lambda r: r.context_tokens),
+        judge_correct_rate=judge_rate,
     )
 
 
@@ -314,16 +339,18 @@ def run_downstream_suite(
     model: str = DEFAULT_OLLAMA_MODEL,
     correct_threshold: float = 0.5,
     num_ctx: int = 16384,
+    judge_model: str | None = None,
     progress=None,
 ) -> DownstreamReport:
     pipeline = LocalCompressionPipeline(output_root=output_root)
     # Whole-transcript calls (10k+ tokens) can take minutes on CPU; give headroom.
     gateway = OllamaTextGateway(model=model, num_ctx=num_ctx, timeout_seconds=600.0)
+    judge = LlmJudge(model=judge_model) if judge_model else None
     results: list[DownstreamCaseResult] = []
     for index, case in enumerate(cases, start=1):
         if progress is not None:
             progress(f"[{index}/{len(cases)}] {case.id}")
-        result = run_downstream_case(case, pipeline, gateway, correct_threshold)
+        result = run_downstream_case(case, pipeline, gateway, correct_threshold, judge=judge)
         if result is not None:
             results.append(result)
     summaries = {c: _summarize(c, results) for c in CONDITIONS}
@@ -345,14 +372,15 @@ def render_downstream_markdown(report: DownstreamReport) -> str:
         f"- Correct threshold: answer term recall >= {report.correct_threshold:.2f}",
         "- Same LLM answers three contexts per case; only the context differs.",
         "",
-        "| Context | Answer recall | Correct rate | Avg context tokens |",
-        "| :--- | ---: | ---: | ---: |",
+        "| Context | Answer recall | Correct rate | LLM-judge correct | Avg context tokens |",
+        "| :--- | ---: | ---: | ---: | ---: |",
     ]
     for c in CONDITIONS:
         s = report.summaries[c]
+        judge = "n/a" if s.judge_correct_rate is None else f"{s.judge_correct_rate:.0%}"
         lines.append(
             f"| {s.label} | {s.avg_answer_term_recall:.2f} "
-            f"| {s.correct_rate:.0%} | {s.avg_context_tokens:.0f} |"
+            f"| {s.correct_rate:.0%} | {judge} | {s.avg_context_tokens:.0f} |"
         )
     return "\n".join(lines) + "\n"
 
@@ -380,6 +408,11 @@ def main(argv: list[str] | None = None) -> int:
         default=16384,
         help="Ollama context window; must fit the whole-transcript condition.",
     )
+    parser.add_argument(
+        "--judge-model",
+        default=None,
+        help="Enable LLM-judge semantic scoring with this Ollama model (e.g. llama3.2:3b).",
+    )
     args = parser.parse_args(argv)
 
     cases = load_quality_cases(args.dataset)
@@ -404,6 +437,7 @@ def main(argv: list[str] | None = None) -> int:
         model=args.model,
         correct_threshold=args.correct_threshold,
         num_ctx=args.num_ctx,
+        judge_model=args.judge_model,
         progress=lambda m: print(m, flush=True),
     )
 
@@ -416,9 +450,10 @@ def main(argv: list[str] | None = None) -> int:
     print(f"cases={report.cases} answerer={report.answerer}")
     for c in CONDITIONS:
         s = report.summaries[c]
+        judge = "" if s.judge_correct_rate is None else f"judge_correct={s.judge_correct_rate:.0%}, "
         print(
             f"{c}: answer_recall={s.avg_answer_term_recall:.2f}, "
-            f"correct_rate={s.correct_rate:.0%}, "
+            f"correct_rate={s.correct_rate:.0%}, {judge}"
             f"avg_context_tokens={s.avg_context_tokens:.0f}"
         )
     return 0
