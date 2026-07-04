@@ -109,7 +109,9 @@ def load_questions(path: Path, video_ids: set[str] | None) -> list[BenchQuestion
     return out
 
 
-def _full_transcript(pipeline: LocalCompressionPipeline, video_path: Path) -> list[Candidate]:
+def _full_transcript(
+    pipeline: LocalCompressionPipeline, video_path: Path, transcribe_model: str = "base"
+) -> list[Candidate]:
     key = ingestion_cache_key(
         video_path=video_path, sample_count=None, audio_window_seconds=None,
         processing_mode=ProcessingMode.AUTO.value,
@@ -121,7 +123,7 @@ def _full_transcript(pipeline: LocalCompressionPipeline, video_path: Path) -> li
             processing_mode=ProcessingMode.AUTO,
         )
         pipeline.cache.set_ingestion(key, ingested)
-    transcriber = FasterWhisperTranscriber(model_size="base", device="cpu",
+    transcriber = FasterWhisperTranscriber(model_size=transcribe_model, device="cpu",
                                            compute_type="int8", beam_size=1, max_windows=None)
     transcripts = transcriber.transcribe_windows(ingested.audio_windows)
     cands: list[Candidate] = []
@@ -199,6 +201,7 @@ def run_benchmark(
     output_root: Path = Path(".gist/benchmark"),
     model: str = DEFAULT_MODEL,
     num_ctx: int = 16384,
+    transcribe_model: str = "base",
     progress=None,
 ) -> BenchReport:
     pipeline = LocalCompressionPipeline(output_root=output_root)
@@ -215,7 +218,7 @@ def run_benchmark(
             continue
         if progress:
             progress(f"transcribing {vid} ({len(qs)} questions)")
-        transcript = _full_transcript(pipeline, video_path)
+        transcript = _full_transcript(pipeline, video_path, transcribe_model)
         whole_selected = [_cand_to_selected(c, i) for i, c in enumerate(transcript, 1)]
         for q in qs:
             if progress:
@@ -281,6 +284,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--markdown", type=Path, dest="markdown_output")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--num-ctx", type=int, default=16384)
+    parser.add_argument("--transcribe-model", default="base")
     args = parser.parse_args(argv)
 
     video_ids = set(args.video_id) if args.video_id else None
@@ -289,6 +293,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("no questions selected")
     report = run_benchmark(
         questions, video_dir=args.video_dir, model=args.model, num_ctx=args.num_ctx,
+        transcribe_model=args.transcribe_model,
         progress=lambda m: print(m, flush=True),
     )
     if args.json_output:
