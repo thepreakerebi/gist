@@ -26,6 +26,7 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from gist.audio.whisper import FasterWhisperTranscriber
+from gist.core.cache import ingestion_cache_key
 from gist.core.presets import CompressionPreset
 from gist.core.schemas import (
     Candidate,
@@ -149,6 +150,27 @@ def _build_condition_selected(
     return _uniform_select(visual_candidates=[], audio_candidates=audio, budget=budget)
 
 
+def _ingest_only(pipeline: LocalCompressionPipeline, config):
+    """Get the ingested video (frames + audio windows) without CLIP candidate
+    scoring — the text-QA downstream eval only needs the transcript."""
+    key = ingestion_cache_key(
+        video_path=config.video_path,
+        sample_count=None,
+        audio_window_seconds=None,
+        processing_mode=config.processing_mode.value,
+    )
+    ingested = pipeline.cache.get_ingestion(key)
+    if ingested is None:
+        ingested = pipeline.ingestor.ingest(
+            video_path=config.video_path,
+            sample_count=None,
+            audio_window_seconds=None,
+            processing_mode=config.processing_mode,
+        )
+        pipeline.cache.set_ingestion(key, ingested)
+    return ingested
+
+
 def _full_transcript_selected(ingested, config) -> list[SelectedCandidate]:
     """Transcribe every audio window (cache-backed) for a true whole-transcript."""
     if not ingested.audio_windows:
@@ -213,36 +235,16 @@ def run_downstream_case(
     correct_threshold: float,
 ) -> DownstreamCaseResult | None:
     config = resolve_case_config(case)
-    ingested, candidates, _raw = pipeline.prepare_candidates(
-        video_path=config.video_path,
-        query=config.query,
-        sample_count=None,
-        audio_window_seconds=None,
-        processing_mode=config.processing_mode,
-        visual_scorer=config.visual_scorer,
-        audio_scorer=config.audio_scorer,
-        visual_ocr=config.visual_ocr,
-        transcript_quality=_transcript_quality(config.transcript_quality),
-        whisper_model_size=config.whisper_model_size,
-        whisper_device=config.whisper_device,
-        whisper_compute_type=config.whisper_compute_type,
-        whisper_beam_size=config.whisper_beam_size,
-    )
-    audio = [c for c in candidates.audio if (c.text or "").strip()]
-    if not audio:
+    ingested = _ingest_only(pipeline, config)
+
+    # "whole" = the full transcript (every audio window). No CLIP needed: the
+    # text answerer only reads transcript, so we skip candidate scoring entirely.
+    whole_selected = _full_transcript_selected(ingested, config)
+    if not whole_selected:
         return None  # Not transcript-answerable; skip.
 
     gist_compression = _load_compression(case.compression_path)
     gist_selected = list(gist_compression.selected)
-
-    # "whole" = the full transcript (every audio window), not the shortlisted
-    # pool, so the whole-context token cost is honest.
-    whole_selected = _full_transcript_selected(ingested, config)
-    if not whole_selected:
-        whole_selected = [
-            _to_selected(c, Modality.AUDIO, rank)
-            for rank, c in enumerate(sorted(audio, key=lambda x: x.timestamp_seconds), 1)
-        ]
 
     conditions: dict[str, CaseConditionResult] = {}
     for condition in CONDITIONS:
