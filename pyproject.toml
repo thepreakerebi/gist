@@ -17,6 +17,7 @@ dependencies = [
 [project.scripts]
 gist = "gist.cli:main"
 gist-ablation = "gist.eval.ablation:main"
+gist-downstream = "gist.eval.downstream:main"
 gist-acceptance = "gist.eval.acceptance:main"
 gist-eval = "gist.eval.cli:main"
 gist-extraction-eval = "gist.eval.extraction:main"
