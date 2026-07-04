@@ -34,6 +34,13 @@ _SPEECH_TERMS = {
     "admit",
     "admits",
     "admitted",
+    "narrator",
+    "narrates",
+    "narration",
+    "commentary",
+    "broadcast",
+    "discusses",
+    "states",
 }
 _CONCEPTUAL_SPEECH_TERMS = {
     "according",
@@ -175,7 +182,9 @@ def route_query_intent(query: str) -> tuple[QueryIntent, str]:
             QueryIntent.NEGATIVE_EVIDENCE,
             "negative query terms require coverage of mentioned and unmentioned alternatives",
         )
-    if has_counting:
+    if has_counting and not has_speech:
+        # A count asked about spoken content ("the narrator says 200 cells") should
+        # route to transcript retrieval, not visual-only counting.
         return (
             QueryIntent.COUNTING_COMPARISON,
             "counting/comparison terms require denser visual evidence around relevant moments",

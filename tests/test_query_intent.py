@@ -93,3 +93,22 @@ def test_routes_mixed_query_when_no_dominant_signal_exists() -> None:
 
     assert intent == QueryIntent.MIXED_AV
     assert "mixed" in reason
+
+
+def test_counting_with_speech_signal_routes_to_speech() -> None:
+    # A count about spoken content must not be forced to visual-only counting.
+    intent, _reason = route_query_intent(
+        "according to the narrator, how many solar cells does each panel contain"
+    )
+    assert intent == QueryIntent.SPEECH_SEMANTIC
+
+
+def test_visual_counting_stays_counting_comparison() -> None:
+    # Counting about on-screen objects should still favour visual evidence.
+    intent, _reason = route_query_intent("how many people appear on screen in the frame")
+    assert intent == QueryIntent.COUNTING_COMPARISON
+
+
+def test_narration_terms_route_to_speech() -> None:
+    intent, _reason = route_query_intent("what does the commentary describe about the mission")
+    assert intent == QueryIntent.SPEECH_SEMANTIC
