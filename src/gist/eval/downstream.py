@@ -263,7 +263,8 @@ def run_downstream_case(
         prompt = build_evidence_prompt(response)
         try:
             answer = gateway.answer(GatewayRequest(query=config.query, compression=response)).answer
-        except OllamaGatewayError:
+        except Exception:
+            # A single slow/failed LLM call must not crash the whole suite.
             answer = ""
         recall = _term_recall(case.expected_answer_terms, answer)
         conditions[condition] = CaseConditionResult(
@@ -316,7 +317,8 @@ def run_downstream_suite(
     progress=None,
 ) -> DownstreamReport:
     pipeline = LocalCompressionPipeline(output_root=output_root)
-    gateway = OllamaTextGateway(model=model, num_ctx=num_ctx)
+    # Whole-transcript calls (10k+ tokens) can take minutes on CPU; give headroom.
+    gateway = OllamaTextGateway(model=model, num_ctx=num_ctx, timeout_seconds=600.0)
     results: list[DownstreamCaseResult] = []
     for index, case in enumerate(cases, start=1):
         if progress is not None:
