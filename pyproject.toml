@@ -18,6 +18,7 @@ dependencies = [
 gist = "gist.cli:main"
 gist-ablation = "gist.eval.ablation:main"
 gist-benchmark-videomme = "gist.eval.benchmark_videomme:main"
+gist-benchmark-videomme-vision = "gist.eval.benchmark_videomme_vision:main"
 gist-downstream = "gist.eval.downstream:main"
 gist-acceptance = "gist.eval.acceptance:main"
 gist-eval = "gist.eval.cli:main"
