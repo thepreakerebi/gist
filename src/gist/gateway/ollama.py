@@ -21,22 +21,31 @@ class OllamaTextGateway:
         model: str = DEFAULT_OLLAMA_MODEL,
         base_url: str = DEFAULT_OLLAMA_URL,
         timeout_seconds: float = 120.0,
+        num_ctx: int | None = None,
     ) -> None:
         if not model.strip():
             raise ValueError("model must not be blank")
         if timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be greater than zero")
+        if num_ctx is not None and num_ctx <= 0:
+            raise ValueError("num_ctx must be greater than zero")
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
+        self.num_ctx = num_ctx
 
     def answer(self, request_payload: GatewayRequest) -> GatewayResponse:
         prompt = build_evidence_prompt(request_payload.compression)
+        options: dict[str, object] = {"temperature": 0.0}
+        if self.num_ctx is not None:
+            # Ollama truncates prompts to num_ctx (default ~2048); set explicitly
+            # so a full-transcript context is actually seen, not silently cut.
+            options["num_ctx"] = self.num_ctx
         payload = {
             "model": self.model,
             "prompt": prompt,
             "stream": False,
-            "options": {"temperature": 0.0},
+            "options": options,
         }
         response_payload = self._post_json("/api/generate", payload)
         answer = response_payload.get("response")
