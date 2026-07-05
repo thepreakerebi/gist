@@ -12,3 +12,5 @@ class AudioScoringMode(StrEnum):
     BASELINE = "baseline"
     WHISPER = "whisper"
     CLAP = "clap"
+    # Per-window speech-vs-sound routing (CLAP probe -> Whisper or CLAP scoring).
+    DISPATCHER = "dispatcher"
