@@ -80,6 +80,10 @@ class CompressionRequest(BaseModel):
     decompose_query: bool = False
     token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC
     task_aware_selection: bool = False
+    # Per-intent coverage post-processors (_ensure_* in the compressor) beyond the
+    # structurally-justified opening + temporal-pair preservation. On by default to
+    # preserve behaviour; set False to A/B whether they carry signal or just overfit.
+    coverage_heuristics: bool = True
     query_intent: QueryIntent | None = None
     routing_reason: str | None = None
     visual_candidates: list[Candidate] = Field(default_factory=list)
