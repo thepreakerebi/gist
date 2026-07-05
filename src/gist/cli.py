@@ -66,6 +66,16 @@ def main(argv: list[str] | None = None) -> int:
         default=AudioScoringMode.AUTO,
     )
     parser.add_argument(
+        "--profile",
+        choices=["gist"],
+        default=None,
+        help=(
+            "Shortcut for the full Gist method: sets --visual-scorer clip_scene, "
+            "--audio-scorer dispatcher, OCR on, adaptive budget, and query "
+            "decomposition. Overrides the individual flags."
+        ),
+    )
+    parser.add_argument(
         "--transcript-quality",
         choices=list(TranscriptQuality),
         default=TranscriptQuality.BALANCED,
@@ -155,6 +165,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--ollama-url", default=DEFAULT_OLLAMA_URL)
     parser.add_argument("--quiet", action="store_true", help="Disable progress logging.")
     args = parser.parse_args(argv)
+
+    if args.profile == "gist":
+        # The full Gist method: real cross-modal saliency + dispatcher + the
+        # earned-addition selectors on. Overrides individual scoring flags.
+        args.visual_scorer = VisualScoringMode.CLIP_SCENE
+        args.audio_scorer = AudioScoringMode.DISPATCHER
+        args.no_visual_ocr = False
+        args.adaptive_budget = True
+        args.decompose_query = True
 
     extraction_selectors = [
         args.extraction_schema is not None,
