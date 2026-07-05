@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 from pathlib import Path
 from urllib import error, request
@@ -148,11 +149,32 @@ def _cand_to_selected(c: Candidate, rank: int, score: float = 0.0) -> SelectedCa
     )
 
 
-def _gist_select(question: str, transcript: list[Candidate]) -> list[SelectedCandidate]:
-    scored = [
-        c.model_copy(update={"saliency_score": lexical_relevance(question, c)})
-        for c in transcript
-    ]
+_SEMANTIC_SCORER = None
+
+
+def _semantic_scorer():
+    global _SEMANTIC_SCORER
+    if _SEMANTIC_SCORER is None:
+        from gist.core.semantic import SemanticTextScorer
+
+        _SEMANTIC_SCORER = SemanticTextScorer()
+    return _SEMANTIC_SCORER
+
+
+def _gist_select(
+    question: str, transcript: list[Candidate], *, semantic: bool | None = None
+) -> list[SelectedCandidate]:
+    # Semantic span selection (embedding cosine) instead of token overlap.
+    # Opt in per-call or via GIST_SEMANTIC=1 so it can be A/B-compared.
+    if semantic is None:
+        semantic = os.environ.get("GIST_SEMANTIC", "").lower() in {"1", "true", "yes"}
+    if semantic:
+        scored = _semantic_scorer().score_candidates(question, transcript)
+    else:
+        scored = [
+            c.model_copy(update={"saliency_score": lexical_relevance(question, c)})
+            for c in transcript
+        ]
     response = GistCompressor().compress(CompressionRequest(
         video_id="videomme", query=question, duration_seconds=max(
             (c.scene_end_seconds or c.timestamp_seconds for c in transcript), default=1.0),
@@ -202,6 +224,7 @@ def run_benchmark(
     model: str = DEFAULT_MODEL,
     num_ctx: int = 16384,
     transcribe_model: str = "base",
+    semantic: bool | None = None,
     progress=None,
 ) -> BenchReport:
     pipeline = LocalCompressionPipeline(output_root=output_root)
@@ -223,7 +246,7 @@ def run_benchmark(
         for q in qs:
             if progress:
                 progress(f"answering {q.question_id}")
-            gist_selected = _gist_select(q.question, transcript)
+            gist_selected = _gist_select(q.question, transcript, semantic=semantic)
             budget = max(len(gist_selected), 1)
             uniform_selected = _uniform_select(
                 visual_candidates=[],
@@ -285,6 +308,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--num-ctx", type=int, default=16384)
     parser.add_argument("--transcribe-model", default="base")
+    parser.add_argument("--semantic", action="store_true",
+                        help="Use embedding-based semantic span selection instead of token overlap.")
     args = parser.parse_args(argv)
 
     video_ids = set(args.video_id) if args.video_id else None
@@ -293,7 +318,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit("no questions selected")
     report = run_benchmark(
         questions, video_dir=args.video_dir, model=args.model, num_ctx=args.num_ctx,
-        transcribe_model=args.transcribe_model,
+        transcribe_model=args.transcribe_model, semantic=args.semantic,
         progress=lambda m: print(m, flush=True),
     )
     if args.json_output:
