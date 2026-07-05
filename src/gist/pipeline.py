@@ -4,6 +4,7 @@ from importlib.util import find_spec
 from pathlib import Path
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
+from gist.audio.dispatcher import SpeechSoundDispatcher
 from gist.audio.whisper import (
     FasterWhisperTranscriber,
     TranscriptQuality,
@@ -292,6 +293,28 @@ class LocalCompressionPipeline:
             )
         elif audio_scorer == AudioScoringMode.CLAP:
             audio_score_adapter = HuggingFaceClapAudioScorer()
+        elif audio_scorer == AudioScoringMode.DISPATCHER:
+            whisper_settings = resolve_whisper_settings(
+                quality=transcript_quality,
+                model_size=whisper_model_size,
+                device=whisper_device,
+                compute_type=whisper_compute_type,
+                beam_size=whisper_beam_size,
+            )
+            # One Whisper instance feeds both candidate text and dispatcher
+            # scoring, so per-window transcription is cached once.
+            audio_transcriber = FasterWhisperTranscriber(
+                model_size=whisper_settings.model_size,
+                device=whisper_settings.device,
+                compute_type=whisper_settings.compute_type,
+                beam_size=whisper_settings.beam_size,
+                cache_dir=self.output_root / "cache" / "transcripts",
+                max_windows=whisper_max_windows,
+            )
+            audio_score_adapter = SpeechSoundDispatcher(
+                clap=HuggingFaceClapAudioScorer(),
+                transcriber=audio_transcriber,
+            )
         elif audio_scorer != AudioScoringMode.BASELINE:
             raise ValueError(f"unsupported audio scorer: {audio_scorer}")
 
@@ -324,21 +347,30 @@ def resolve_audio_scorer(
     query: str,
     duration_seconds: float,
     whisper_available: bool | None = None,
+    clap_available: bool | None = None,
 ) -> AudioScoringMode:
     if requested != AudioScoringMode.AUTO:
         return requested
     query_intent, _reason = route_query_intent(query)
     if whisper_available is None:
         whisper_available = find_spec("faster_whisper") is not None
-    whisper_intents = {
+    if clap_available is None:
+        clap_available = find_spec("transformers") is not None
+    audio_intents = {
         QueryIntent.SPEECH_SEMANTIC,
         QueryIntent.MIXED_AV,
         QueryIntent.GLOBAL_SUMMARY,
+        QueryIntent.SOUND_EVENT,
     }
     if query_intent == QueryIntent.TEMPORAL_BEFORE_AFTER and _has_speech_signal(query):
-        whisper_intents.add(QueryIntent.TEMPORAL_BEFORE_AFTER)
-    if query_intent in whisper_intents and duration_seconds >= 600 and whisper_available:
-        return AudioScoringMode.WHISPER
+        audio_intents.add(QueryIntent.TEMPORAL_BEFORE_AFTER)
+    if query_intent in audio_intents and duration_seconds >= 600:
+        # Prefer the full cross-modal dispatcher (per-window speech->Whisper,
+        # sound->CLAP); fall back to Whisper-only, then baseline.
+        if whisper_available and clap_available:
+            return AudioScoringMode.DISPATCHER
+        if whisper_available:
+            return AudioScoringMode.WHISPER
     return AudioScoringMode.BASELINE
 
 

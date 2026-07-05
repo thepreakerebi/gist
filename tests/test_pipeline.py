@@ -92,19 +92,33 @@ def test_local_pipeline_ingests_generates_candidates_and_compresses(tmp_path: Pa
     assert compression.audio_scorer_used == AudioScoringMode.BASELINE
 
 
-def test_auto_audio_scorer_routes_long_speech_queries_to_whisper() -> None:
+def test_auto_audio_scorer_routes_long_speech_queries_to_dispatcher() -> None:
     assert (
         resolve_audio_scorer(
             requested=AudioScoringMode.AUTO,
             query="What does the speaker say about pricing?",
             duration_seconds=3600,
             whisper_available=True,
+            clap_available=True,
+        )
+        == AudioScoringMode.DISPATCHER
+    )
+
+
+def test_auto_audio_scorer_falls_back_to_whisper_without_clap() -> None:
+    assert (
+        resolve_audio_scorer(
+            requested=AudioScoringMode.AUTO,
+            query="What does the speaker say about pricing?",
+            duration_seconds=3600,
+            whisper_available=True,
+            clap_available=False,
         )
         == AudioScoringMode.WHISPER
     )
 
 
-def test_auto_audio_scorer_routes_long_mixed_queries_to_whisper() -> None:
+def test_auto_audio_scorer_routes_long_mixed_queries_to_dispatcher() -> None:
     assert (
         resolve_audio_scorer(
             requested=AudioScoringMode.AUTO,
@@ -115,11 +129,11 @@ def test_auto_audio_scorer_routes_long_mixed_queries_to_whisper() -> None:
             duration_seconds=3600,
             whisper_available=True,
         )
-        == AudioScoringMode.WHISPER
+        == AudioScoringMode.DISPATCHER
     )
 
 
-def test_auto_audio_scorer_routes_long_global_summary_queries_to_whisper() -> None:
+def test_auto_audio_scorer_routes_long_global_summary_queries_to_dispatcher() -> None:
     assert (
         resolve_audio_scorer(
             requested=AudioScoringMode.AUTO,
@@ -127,11 +141,11 @@ def test_auto_audio_scorer_routes_long_global_summary_queries_to_whisper() -> No
             duration_seconds=3600,
             whisper_available=True,
         )
-        == AudioScoringMode.WHISPER
+        == AudioScoringMode.DISPATCHER
     )
 
 
-def test_auto_audio_scorer_routes_long_temporal_speech_queries_to_whisper() -> None:
+def test_auto_audio_scorer_routes_long_temporal_speech_queries_to_dispatcher() -> None:
     assert (
         resolve_audio_scorer(
             requested=AudioScoringMode.AUTO,
@@ -139,7 +153,7 @@ def test_auto_audio_scorer_routes_long_temporal_speech_queries_to_whisper() -> N
             duration_seconds=3600,
             whisper_available=True,
         )
-        == AudioScoringMode.WHISPER
+        == AudioScoringMode.DISPATCHER
     )
 
 

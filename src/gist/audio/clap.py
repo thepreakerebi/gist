@@ -30,17 +30,34 @@ class HuggingFaceClapAudioScorer:
         if not query.strip():
             raise ValueError("query must not be blank")
 
+        prompt = f"the sound of: {query.strip()}"
+        scored = self.score_windows_against(windows, [prompt])
+        return {path: values[0] for path, values in scored.items()}
+
+    def score_windows_against(
+        self, windows: list[AudioWindow], prompts: list[str]
+    ) -> dict[Path, list[float]]:
+        """Score each window against several raw text prompts in one pass.
+
+        Returns per-window contrastive similarities aligned with ``prompts``.
+        Used by the speech-vs-sound dispatcher to probe "a voice speaking" vs
+        "ambient sound" alongside the query prompt without re-encoding audio.
+        """
+        if not windows:
+            return {}
+        if not prompts:
+            raise ValueError("prompts must not be empty")
+
         self._load()
         assert self._model is not None
         assert self._processor is not None
         assert self._torch is not None
 
-        prompt = f"the sound of: {query.strip()}"
-        scores: dict[Path, float] = {}
+        scores: dict[Path, list[float]] = {}
         for batch in _chunks(windows, self.batch_size):
             audio_arrays = [self._read_wav(window.path) for window in batch]
             inputs = self._processor(
-                text=[prompt],
+                text=list(prompts),
                 audios=audio_arrays,
                 sampling_rate=16000,
                 return_tensors="pt",
@@ -52,10 +69,10 @@ class HuggingFaceClapAudioScorer:
                 output = self._model(**inputs)
                 audio_embeds = _normalize(output.audio_embeds, self._torch)
                 text_embeds = _normalize(output.text_embeds, self._torch)
-                similarities = audio_embeds @ text_embeds.T
+                similarities = audio_embeds @ text_embeds.T  # [batch, prompts]
 
-            for window, score in zip(batch, similarities.squeeze(dim=1).tolist(), strict=True):
-                scores[window.path] = float(score)
+            for window, row in zip(batch, similarities.tolist(), strict=True):
+                scores[window.path] = [float(value) for value in row]
 
         return scores
 

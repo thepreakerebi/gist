@@ -61,6 +61,7 @@ sota = [
 ]
 audio = [
   "faster-whisper>=1.1.0",
+  "sentence-transformers>=3.0.0",
 ]
 sound = [
   "numpy>=1.26.0",
