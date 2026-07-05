@@ -55,11 +55,12 @@ class HuggingFaceClapAudioScorer:
 
         scores: dict[Path, list[float]] = {}
         for batch in _chunks(windows, self.batch_size):
-            audio_arrays = [self._read_wav(window.path) for window in batch]
+            # CLAP (htsat) expects 48 kHz; windows are 16 kHz (for Whisper), so resample.
+            audio_arrays = [self._resample_48k(self._read_wav(window.path)) for window in batch]
             inputs = self._processor(
                 text=list(prompts),
-                audios=audio_arrays,
-                sampling_rate=16000,
+                audio=audio_arrays,
+                sampling_rate=48000,
                 return_tensors="pt",
                 padding=True,
             )
@@ -96,6 +97,15 @@ class HuggingFaceClapAudioScorer:
         self._processor = ClapProcessor.from_pretrained(self.model_name)
         self._model = ClapModel.from_pretrained(self.model_name).to(selected_device)
         self._model.eval()
+
+    def _resample_48k(self, audio: Any, orig_sr: int = 16000) -> Any:
+        if orig_sr == 48000 or len(audio) == 0:
+            return audio
+        np = self._numpy
+        n_out = int(round(len(audio) * 48000 / orig_sr))
+        x_old = np.linspace(0.0, 1.0, num=len(audio), endpoint=False)
+        x_new = np.linspace(0.0, 1.0, num=n_out, endpoint=False)
+        return np.interp(x_new, x_old, audio).astype(np.float32)
 
     def _read_wav(self, path: Path) -> Any:
         if self._numpy is None:
