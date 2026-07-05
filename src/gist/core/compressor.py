@@ -109,6 +109,7 @@ class GistCompressor:
                     scored,
                     request.query,
                     request.query_intent if request.task_aware_selection else None,
+                    coverage_heuristics=request.coverage_heuristics,
                 ),
                 None,
             )
@@ -118,6 +119,7 @@ class GistCompressor:
             scored,
             request.query,
             request.query_intent if request.task_aware_selection else None,
+            coverage_heuristics=request.coverage_heuristics,
         )
         should_expand, reason = self._should_expand_budget(aggressive)
         if not should_expand:
@@ -135,6 +137,7 @@ class GistCompressor:
                 scored,
                 request.query,
                 request.query_intent if request.task_aware_selection else None,
+                coverage_heuristics=request.coverage_heuristics,
             ),
             reason,
         )
@@ -145,6 +148,7 @@ class GistCompressor:
         scored: list[ScoredCandidate],
         query: str,
         query_intent: QueryIntent | None,
+        coverage_heuristics: bool = True,
     ) -> list[Selection]:
         config = PRESETS[preset]
         all_scored = scored
@@ -165,18 +169,10 @@ class GistCompressor:
             relevance_weight=config.relevance_weight,
             temporal_sigma_seconds=config.temporal_sigma_seconds,
         )
-        if query_intent == QueryIntent.COUNTING_COMPARISON:
-            selections = self._ensure_counting_visual_neighbors(
-                selections=selections,
-                candidates=scored,
-                max_items=config.max_items,
-            )
+        # Structurally-justified coverage (opening frame + temporal before/after
+        # pair) always runs; the intent-specific post-processors below are the
+        # overfitting-prone heuristics and are gated so they can be A/B-measured.
         if query_intent == QueryIntent.VISUAL_OBJECT_ACTION:
-            selections = self._ensure_visual_query_coverage(
-                selections=selections,
-                candidates=scored,
-                max_items=config.max_items,
-            )
             selections = self._ensure_opening_visual_coverage(
                 selections=selections,
                 candidates=scored,
@@ -189,24 +185,37 @@ class GistCompressor:
                 candidates=scored,
                 max_items=config.max_items,
             )
-        if query_intent == QueryIntent.MIXED_AV:
-            selections = self._ensure_mixed_av_coverage(
-                selections=selections,
-                candidates=scored,
-                max_items=config.max_items,
-            )
-        if query_intent == QueryIntent.GLOBAL_SUMMARY:
-            selections = self._ensure_global_audio_coverage(
-                selections=selections,
-                candidates=scored,
-                max_items=config.max_items,
-            )
-        if query_intent == QueryIntent.NEGATIVE_EVIDENCE:
-            selections = self._ensure_negative_audio_coverage(
-                selections=selections,
-                candidates=scored,
-                max_items=config.max_items,
-            )
+        if coverage_heuristics:
+            if query_intent == QueryIntent.COUNTING_COMPARISON:
+                selections = self._ensure_counting_visual_neighbors(
+                    selections=selections,
+                    candidates=scored,
+                    max_items=config.max_items,
+                )
+            if query_intent == QueryIntent.VISUAL_OBJECT_ACTION:
+                selections = self._ensure_visual_query_coverage(
+                    selections=selections,
+                    candidates=scored,
+                    max_items=config.max_items,
+                )
+            if query_intent == QueryIntent.MIXED_AV:
+                selections = self._ensure_mixed_av_coverage(
+                    selections=selections,
+                    candidates=scored,
+                    max_items=config.max_items,
+                )
+            if query_intent == QueryIntent.GLOBAL_SUMMARY:
+                selections = self._ensure_global_audio_coverage(
+                    selections=selections,
+                    candidates=scored,
+                    max_items=config.max_items,
+                )
+            if query_intent == QueryIntent.NEGATIVE_EVIDENCE:
+                selections = self._ensure_negative_audio_coverage(
+                    selections=selections,
+                    candidates=scored,
+                    max_items=config.max_items,
+                )
         return selections
 
     def _preserve_opening_visual_candidate(

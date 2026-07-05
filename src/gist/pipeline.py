@@ -63,6 +63,7 @@ class LocalCompressionPipeline:
         decompose_query: bool = False,
         token_estimator: TokenEstimatorProfile = TokenEstimatorProfile.GENERIC,
         task_aware_selection: bool = False,
+        coverage_heuristics: bool = True,
         visual_ocr: bool = True,
         transcript_quality: TranscriptQuality = TranscriptQuality.BALANCED,
         whisper_model_size: str | None = None,
@@ -117,6 +118,7 @@ class LocalCompressionPipeline:
                 decompose_query=decompose_query,
                 token_estimator=token_estimator,
                 task_aware_selection=task_aware_selection,
+                coverage_heuristics=coverage_heuristics,
                 visual_candidates=candidates.visual,
                 audio_candidates=candidates.audio,
             )
