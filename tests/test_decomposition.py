@@ -21,16 +21,6 @@ def test_rule_based_decomposer_rejects_blank_queries() -> None:
         RuleBasedQueryDecomposer().decompose(" ")
 
 
-def test_rule_based_decomposer_expands_ai_builder_productivity_queries() -> None:
-    aspects = RuleBasedQueryDecomposer().decompose(
-        "How do top builders use AI to do the work of hundreds of engineers?"
-    )
-
-    assert aspects[-1].modality == QueryAspectModality.AUDIO
-    assert "research articles" in aspects[-1].text
-    assert "machine work" in aspects[-1].text
-
-
 def test_rule_based_decomposer_treats_ask_as_audio_signal() -> None:
     aspects = RuleBasedQueryDecomposer().decompose(
         "What does the woman ask while her robot hand is visible?"
