@@ -1,5 +1,6 @@
 import inspect
 import re
+from collections.abc import Callable
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -72,6 +73,7 @@ class LocalCompressionPipeline:
         whisper_beam_size: int | None = None,
         whisper_max_windows: int | None = None,
         progress: ProgressCallback | None = None,
+        on_candidates: Callable[[CandidateSet], None] | None = None,
     ) -> tuple[IngestedVideo, CompressionResponse]:
         if progress is not None:
             progress("preparing candidates")
@@ -92,6 +94,8 @@ class LocalCompressionPipeline:
             whisper_max_windows=whisper_max_windows,
             progress=progress,
         )
+        if on_candidates is not None:
+            on_candidates(candidates)
         resolved_audio_scorer = resolve_audio_scorer(
             requested=audio_scorer,
             query=query,
