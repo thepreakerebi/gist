@@ -100,6 +100,15 @@ def _run_worker(request: DemoRunRequest, emit) -> None:
         def progress(message: str) -> None:
             emit("progress", {"stage": "pipeline", "message": message})
 
+        def on_candidates(candidate_set) -> None:
+            emit(
+                "scored",
+                {
+                    "visual": [_candidate_point(c) for c in candidate_set.visual],
+                    "audio": [_candidate_point(c) for c in candidate_set.audio],
+                },
+            )
+
         ingestion, compression = LocalCompressionPipeline(
             output_root=request.output_root
         ).run(
@@ -115,6 +124,7 @@ def _run_worker(request: DemoRunRequest, emit) -> None:
             decompose_query=request.decompose_query,
             token_estimator=request.token_estimator,
             progress=progress,
+            on_candidates=on_candidates,
         )
 
         answer = compression.answer
@@ -153,6 +163,14 @@ def _run_worker(request: DemoRunRequest, emit) -> None:
         if tmp_dir is not None:
             tmp_dir.cleanup()
         emit("__end__", {})
+
+
+def _candidate_point(candidate: Any) -> dict[str, Any]:
+    return {
+        "timestamp_seconds": candidate.timestamp_seconds,
+        "score": candidate.saliency_score if candidate.saliency_score is not None else 0.0,
+        "text": (candidate.text or "")[:160],
+    }
 
 
 def _sse(event: str, data: dict[str, Any]) -> str:
