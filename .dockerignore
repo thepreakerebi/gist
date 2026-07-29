@@ -1,0 +1,18 @@
+# Keep the Space image small: never ship local data, caches, or the frontend.
+.gist/
+web/
+node_modules/
+.git/
+tests/
+scripts/
+docs/
+notebooks/
+**/__pycache__/
+*.pyc
+.venv/
+.browser-use-env/
+.pytest_cache/
+.ruff_cache/
+*.mp4
+*.webm
+*.png

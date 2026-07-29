@@ -1,0 +1,8 @@
+[
+  {
+    "slug": "sample-5s",
+    "label": "Sample clip (5s)",
+    "query": "What is shown in this video?",
+    "provider": "extractive"
+  }
+]

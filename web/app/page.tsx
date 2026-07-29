@@ -12,20 +12,28 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { runDemo } from "@/lib/api";
+import { loadCachedRun, replayCachedRun } from "@/lib/cached";
 import type { Answerer, DoneEvent, ScoredEvent } from "@/lib/types";
 
 type Phase = "idle" | "running" | "done" | "error";
 
-const PRESETS: { label: string; path: string; query: string }[] = [
+const PRESETS: {
+  label: string;
+  path: string;
+  query: string;
+  cachedSlug?: string;
+}[] = [
   {
     label: "Sample clip (5s)",
     path: ".gist/videos/sample_5s.mp4",
     query: "What is shown in this video?",
+    cachedSlug: "sample-5s",
   },
   {
     label: "Paul Graham talk",
     path: ".gist/videos/youtube/paul-graham-y-combinator.mp4",
     query: "How do founders get startup ideas unconsciously?",
+    cachedSlug: "paul-graham",
   },
 ];
 
@@ -41,9 +49,25 @@ export default function Home() {
   const [done, setDone] = useState<DoneEvent | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const running = phase === "running";
+
+  const handlers = {
+    onProgress: (stage: string, message: string) =>
+      setLog((l) => [...l, `${stage ? stage + ": " : ""}${message}`]),
+    onScored: (s: ScoredEvent) => setScored(s),
+    onDone: (d: DoneEvent) => {
+      setDone(d);
+      setPhase("done");
+      setTimeout(() => setRevealed(true), 700);
+    },
+    onError: (message: string) => {
+      setError(message);
+      setPhase("error");
+    },
+  };
 
   async function start() {
     abortRef.current?.abort();
@@ -56,8 +80,9 @@ export default function Home() {
     setDone(null);
     setRevealed(false);
     setError(null);
+    setOffline(false);
 
-    await runDemo(
+    const reached = await runDemo(
       {
         query,
         answerer,
@@ -71,22 +96,27 @@ export default function Home() {
         max_frames: 8,
         output_root: ".gist/demo-web",
       },
-      {
-        onProgress: (stage, message) =>
-          setLog((l) => [...l, `${stage ? stage + ": " : ""}${message}`]),
-        onScored: (s) => setScored(s),
-        onDone: (d) => {
-          setDone(d);
-          setPhase("done");
-          setTimeout(() => setRevealed(true), 700);
-        },
-        onError: (message) => {
-          setError(message);
-          setPhase("error");
-        },
-      },
+      handlers,
       controller.signal,
     );
+
+    if (controller.signal.aborted || reached) return;
+
+    // The live API was unreachable (sleeping Space / dead WiFi / hiccup). Fall
+    // back to a pre-baked run for this preset so the demo never breaks on stage.
+    const preset = PRESETS.find((p) => p.path === videoPath);
+    const slug = videoUrl.trim() ? undefined : preset?.cachedSlug;
+    const cached = slug ? await loadCachedRun(slug) : null;
+    if (!cached) {
+      setError(
+        "The live API is unreachable and no cached run is available for this input. " +
+          "Start the API (uvicorn) or pick a preset with a cached run.",
+      );
+      setPhase("error");
+      return;
+    }
+    setOffline(true);
+    await replayCachedRun(cached, handlers);
   }
 
   return (
@@ -170,8 +200,13 @@ export default function Home() {
       {(running || scored || done) && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">
+            <CardTitle className="flex flex-wrap items-center gap-2 text-base">
               2 · Scoring &amp; selection
+              {offline && (
+                <Badge variant="outline" className="border-amber-500 text-amber-600">
+                  cached run (offline)
+                </Badge>
+              )}
               {done && (
                 <span className="text-muted-foreground ml-2 text-sm font-normal">
                   {done.compression.metrics.raw_input_candidates ??

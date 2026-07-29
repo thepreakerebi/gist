@@ -6,23 +6,23 @@ import type {
   DoneEvent,
   RunRequest,
   ScoredEvent,
+  StreamHandlers,
 } from "@/lib/types";
+
+export type { StreamHandlers } from "@/lib/types";
 
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "http://localhost:8000";
 
-export interface StreamHandlers {
-  onProgress?: (stage: string, message: string) => void;
-  onScored?: (scored: ScoredEvent) => void;
-  onDone?: (done: DoneEvent) => void;
-  onError?: (message: string) => void;
-}
-
+// Resolves to `true` if the live API was reached and streamed a response, or
+// `false` if the API was unreachable (network error / bad status). The caller
+// uses `false` to trigger the cached-run fallback rather than surfacing an
+// error. Stream-level errors after a successful connection go through onError.
 export async function runDemo(
   request: RunRequest,
   handlers: StreamHandlers,
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<boolean> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE}/v1/demo/run`, {
@@ -31,16 +31,12 @@ export async function runDemo(
       body: JSON.stringify(request),
       signal,
     });
-  } catch (err) {
-    handlers.onError?.(
-      `Could not reach the Gist API at ${API_BASE}. ${(err as Error).message}`,
-    );
-    return;
+  } catch {
+    return false;
   }
 
   if (!response.ok || !response.body) {
-    handlers.onError?.(`API returned ${response.status}`);
-    return;
+    return false;
   }
 
   const reader = response.body.getReader();
@@ -59,6 +55,7 @@ export async function runDemo(
       dispatch(frame, handlers);
     }
   }
+  return true;
 }
 
 function dispatch(frame: string, handlers: StreamHandlers): void {

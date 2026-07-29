@@ -64,6 +64,13 @@ export interface DoneEvent {
   video: VideoMeta;
 }
 
+export interface StreamHandlers {
+  onProgress?: (stage: string, message: string) => void;
+  onScored?: (scored: ScoredEvent) => void;
+  onDone?: (done: DoneEvent) => void;
+  onError?: (message: string) => void;
+}
+
 export interface RunRequest {
   video_path?: string;
   video_url?: string;
