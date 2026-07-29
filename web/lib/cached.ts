@@ -1,8 +1,8 @@
 // Cached-run fallback. Flagship runs are pre-baked (see
 // scripts/bake_cached_run.py) into public/cached-runs/ as the exact `scored` +
-// `done` payloads the live stream emits. When the API is unreachable — a cold/
-// sleeping HF Space, dead WiFi, an API hiccup — the same UI replays a known-good
-// run identically, so a live demo can never break on stage.
+// `done` payloads the live stream emits. When the API is unreachable — no host
+// running, dead WiFi, an API hiccup — the same UI replays a known-good run
+// identically, so a live demo can never break on stage.
 
 import type { DoneEvent, ScoredEvent, StreamHandlers } from "@/lib/types";
 

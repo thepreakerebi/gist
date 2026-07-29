@@ -30,20 +30,15 @@ For the OpenAI/Claude answerers, provide keys via env (`OPENAI_API_KEY`, `ANTHRO
 
 ### Cached-run safety net
 
-`scripts/bake_cached_run.py` captures the exact `scored` + `done` payloads a live run emits into `web/public/cached-runs/`. When the API is down (a sleeping HF Space, dead WiFi, an API hiccup), the same UI replays a known-good run identically.
+`scripts/bake_cached_run.py` captures the exact `scored` + `done` payloads a live run emits into `web/public/cached-runs/`. When the API is unreachable (dead WiFi, an API hiccup, no host running), the same UI replays a known-good run identically.
 
 ```bash
 uv run python scripts/bake_cached_run.py \
-  --slug paul-graham --label "Paul Graham talk" \
-  --video .gist/videos/youtube/paul-graham-y-combinator.mp4 \
+  --slug paul-graham --label "Paul Graham talk (3 min)" \
+  --video .gist/videos/demo-trims/paul-graham-3min.mp4 \
   --query "How do founders get startup ideas unconsciously?" \
   --answerer extractive   # use openai|claude once keys are set for a real LLM answer
 ```
-
-### Deploy (all free)
-
-- **API → Hugging Face Space (Docker SDK, free CPU Basic).** The repo `Dockerfile` runs `uvicorn gist.api.app:app` on port 7860 with the `vision,audio,sound` extras + yt-dlp. Set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` (and optionally `GIST_CORS_ORIGINS`) as Space secrets. Note the 16 GB RAM ceiling and 48 h idle sleep — warm it with a `GET /v1/health` before presenting.
-- **Frontend → Vercel.** Set `NEXT_PUBLIC_API_BASE` to the Space URL.
 
 ## Structured Extraction
 
