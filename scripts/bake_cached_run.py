@@ -1,10 +1,10 @@
 """Pre-bake a flagship Gist run into the web frontend's cached-runs directory.
 
-The live demo depends on a free HF Space (which sleeps after 48h idle and cold-
-starts slowly) plus the OpenAI/Anthropic API and venue WiFi. Any of those can
-stall mid-presentation. A cached run is the safety net: it captures the exact
-`scored` + `done` SSE payloads the live stream would emit, so the same UI can
-replay a known-good result identically when the API is unreachable.
+The live demo depends on a running API host plus the OpenAI/Anthropic API and
+venue WiFi. Any of those can stall mid-presentation. A cached run is the safety
+net: it captures the exact `scored` + `done` SSE payloads the live stream would
+emit, so the same UI can replay a known-good result identically when the API is
+unreachable.
 
 The captured JSON is byte-identical in shape to the live stream because it
 reuses `_candidate_point` and the same payload construction as
