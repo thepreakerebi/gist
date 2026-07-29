@@ -28,8 +28,9 @@ from gist.pipeline import LocalCompressionPipeline
 demo_router = APIRouter(prefix="/v1/demo", tags=["demo"])
 
 # Live-safety guardrail: reject clips longer than this so an arbitrary upload
-# cannot blow latency/RAM on the free 16 GB Space.
-DEMO_MAX_DURATION_SECONDS = 240.0
+# cannot blow latency/RAM. Override with GIST_DEMO_MAX_DURATION_SECONDS. Note
+# CPU Whisper is slow, so large caps mean minutes-long URL runs.
+DEMO_MAX_DURATION_SECONDS = float(os.getenv("GIST_DEMO_MAX_DURATION_SECONDS", "1800"))
 _KEY_FILES = {
     "OPENAI_API_KEY": Path(".gist/.openai_key"),
     "ANTHROPIC_API_KEY": Path(".gist/.anthropic_key"),
