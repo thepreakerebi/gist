@@ -1,0 +1,828 @@
+{
+  "slug": "paul-graham",
+  "label": "Paul Graham talk (3 min)",
+  "query": "How do founders get startup ideas unconsciously?",
+  "scored": {
+    "visual": [
+      {
+        "timestamp_seconds": 0.0,
+        "score": 0.22606481611728668,
+        "text": "on-screen text near 0.00 seconds: \u2014 f | AM"
+      },
+      {
+        "timestamp_seconds": 2.81510925,
+        "score": 0.22553281486034393,
+        "text": "on-screen text near 2.82 seconds: \u2014 f | AM"
+      },
+      {
+        "timestamp_seconds": 5.6302185,
+        "score": 0.23363590240478516,
+        "text": "on-screen text near 5.63 seconds: moousHors"
+      },
+      {
+        "timestamp_seconds": 8.44532775,
+        "score": 0.23363590240478516,
+        "text": "on-screen text near 8.45 seconds: moousHors"
+      },
+      {
+        "timestamp_seconds": 11.260437,
+        "score": 0.22770611941814423,
+        "text": "on-screen text near 11.26 seconds: MOONSHOTS \\ at ent ei"
+      },
+      {
+        "timestamp_seconds": 14.075546249999999,
+        "score": 0.22770611941814423,
+        "text": "on-screen text near 14.08 seconds: MOONSHOTS \\ at ent ei"
+      },
+      {
+        "timestamp_seconds": 16.8906555,
+        "score": 0.22770611941814423,
+        "text": "on-screen text near 16.89 seconds: MOONSHOTS \\ at ent ei"
+      },
+      {
+        "timestamp_seconds": 19.70576475,
+        "score": 0.22770611941814423,
+        "text": "on-screen text near 19.71 seconds: MOONSHOTS \\ at ent ei"
+      },
+      {
+        "timestamp_seconds": 22.520874,
+        "score": 0.22680535912513733,
+        "text": "on-screen text near 22.52 seconds: \\ j Pi AM \u2014"
+      },
+      {
+        "timestamp_seconds": 25.335983249999998,
+        "score": 0.2267693430185318,
+        "text": "on-screen text near 25.34 seconds: \\ j Pi AM \u2014"
+      },
+      {
+        "timestamp_seconds": 28.151092499999997,
+        "score": 0.22680535912513733,
+        "text": "on-screen text near 28.15 seconds: \\ j Pi AM \u2014"
+      },
+      {
+        "timestamp_seconds": 30.96620175,
+        "score": 0.22698569297790527,
+        "text": "on-screen text near 30.97 seconds: MOONSHOTS a"
+      },
+      {
+        "timestamp_seconds": 33.781311,
+        "score": 0.2273607701063156,
+        "text": "on-screen text near 33.78 seconds: MOONSHOTS a"
+      },
+      {
+        "timestamp_seconds": 36.59642025,
+        "score": 0.22498247027397156,
+        "text": "on-screen text near 36.60 seconds: 4 Cae ax \u00a5 iON,"
+      },
+      {
+        "timestamp_seconds": 39.4115295,
+        "score": 0.22498247027397156,
+        "text": "on-screen text near 39.41 seconds: 4 Cae ax \u00a5 iON,"
+      },
+      {
+        "timestamp_seconds": 42.22663875,
+        "score": 0.2259775698184967,
+        "text": "on-screen text near 42.23 seconds: ta aes )"
+      },
+      {
+        "timestamp_seconds": 45.041748,
+        "score": 0.2259775698184967,
+        "text": "on-screen text near 45.04 seconds: ta aes )"
+      },
+      {
+        "timestamp_seconds": 47.85685725,
+        "score": 0.22775812447071075,
+        "text": "on-screen text near 47.86 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 50.671966499999996,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 50.67 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 53.487075749999995,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 53.49 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 56.302184999999994,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 56.30 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 59.11729425,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 59.12 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 61.9324035,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 61.93 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 64.74751275,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 64.75 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 67.562622,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 67.56 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 70.37773125,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 70.38 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 73.1928405,
+        "score": 0.22461354732513428,
+        "text": "on-screen text near 73.19 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 76.00794975,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 76.01 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 78.823059,
+        "score": 0.22760610282421112,
+        "text": "on-screen text near 78.82 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 81.63816824999999,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 81.64 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 84.4532775,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 84.45 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 87.26838674999999,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 87.27 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 90.083496,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 90.08 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 92.89860525,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 92.90 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 95.7137145,
+        "score": 0.22775812447071075,
+        "text": "on-screen text near 95.71 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 98.52882375,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 98.53 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 101.34393299999999,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 101.34 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 104.15904225,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 104.16 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 106.97415149999999,
+        "score": 0.22775812447071075,
+        "text": "on-screen text near 106.97 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 109.78926075,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 109.79 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 112.60436999999999,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 112.60 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 115.41947925,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 115.42 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 118.2345885,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 118.23 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 121.04969774999999,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 121.05 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 123.864807,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 123.86 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 126.67991624999999,
+        "score": 0.2248184233903885,
+        "text": "on-screen text near 126.68 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 129.4950255,
+        "score": 0.22446225583553314,
+        "text": "on-screen text near 129.50 seconds: \\ j oem AM \u2014"
+      },
+      {
+        "timestamp_seconds": 132.31013475,
+        "score": 0.22283771634101868,
+        "text": "on-screen text near 132.31 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 135.125244,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 135.13 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 137.94035325,
+        "score": 0.22785711288452148,
+        "text": "on-screen text near 137.94 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 140.7554625,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 140.76 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 143.57057175,
+        "score": 0.22343628108501434,
+        "text": "on-screen text near 143.57 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 146.385681,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 146.39 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 149.20079024999998,
+        "score": 0.2232520878314972,
+        "text": "on-screen text near 149.20 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 152.0158995,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 152.02 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 154.83100875,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 154.83 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 157.646118,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 157.65 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 160.46122725,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 160.46 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 163.27633649999999,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 163.28 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 166.09144575,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 166.09 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 168.906555,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 168.91 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 171.72166425,
+        "score": 0.2278638780117035,
+        "text": "on-screen text near 171.72 seconds: MOON \u00a2 a )"
+      },
+      {
+        "timestamp_seconds": 174.53677349999998,
+        "score": 0.2232474386692047,
+        "text": "on-screen text near 174.54 seconds: \\ / eae AM \u2014"
+      },
+      {
+        "timestamp_seconds": 177.35188275,
+        "score": 0.2230374664068222,
+        "text": "on-screen text near 177.35 seconds: \\ / eae AM \u2014"
+      }
+    ],
+    "audio": []
+  },
+  "done": {
+    "answer": null,
+    "provider": "extractive",
+    "compression": {
+      "video_id": "6e70ce38e49a61f9",
+      "query": "How do founders get startup ideas unconsciously?",
+      "answer": null,
+      "answer_provider": null,
+      "preset": "balanced",
+      "query_intent": "speech_semantic",
+      "routing_reason": "conceptual question terms favor transcript-first retrieval",
+      "audio_scorer_used": "baseline",
+      "transcript_metadata": null,
+      "query_aspects": [
+        {
+          "text": "How do founders get startup ideas unconsciously",
+          "modality": "both"
+        }
+      ],
+      "selected": [
+        {
+          "id": "6e70ce38e49a61f9:visual:2",
+          "modality": "visual",
+          "timestamp_seconds": 5.6302185,
+          "text": "on-screen text near 5.63 seconds: moousHors",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0002.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 1,
+          "relevance_score": 0.23363590240478516,
+          "normalized_score": 3.418336280320788,
+          "mmr_score": 3.418336280320788,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected first because it had the strongest normalized visual relevance signal for aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:3",
+          "modality": "visual",
+          "timestamp_seconds": 8.44532775,
+          "text": "on-screen text near 8.45 seconds: moousHors",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0003.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 2,
+          "relevance_score": 0.23363590240478516,
+          "normalized_score": 3.418336280320788,
+          "mmr_score": 2.192297501472075,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 2.82s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:7",
+          "modality": "visual",
+          "timestamp_seconds": 19.70576475,
+          "text": "on-screen text near 19.71 seconds: MOONSHOTS \\ at ent ei",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0007.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 12,
+          "relevance_score": 0.22770611941814423,
+          "normalized_score": 0.817292411616325,
+          "mmr_score": 0.44182765147144876,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 11.26s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:18",
+          "modality": "visual",
+          "timestamp_seconds": 50.671966499999996,
+          "text": "on-screen text near 50.67 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0018.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 5,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.6382427074713951,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 42.23s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:24",
+          "modality": "visual",
+          "timestamp_seconds": 67.562622,
+          "text": "on-screen text near 67.56 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0024.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 7,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.5729600345382928,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 16.89s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:29",
+          "modality": "visual",
+          "timestamp_seconds": 81.63816824999999,
+          "text": "on-screen text near 81.64 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0029.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 10,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.5363764783683627,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 14.08s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:35",
+          "modality": "visual",
+          "timestamp_seconds": 98.52882375,
+          "text": "on-screen text near 98.53 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0035.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 3,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.6382740555169485,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 90.08s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:39",
+          "modality": "visual",
+          "timestamp_seconds": 109.78926075,
+          "text": "on-screen text near 109.79 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0039.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 11,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.4916511706246432,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 11.26s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:44",
+          "modality": "visual",
+          "timestamp_seconds": 123.864807,
+          "text": "on-screen text near 123.86 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0044.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 8,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.5729600345382926,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 16.89s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:50",
+          "modality": "visual",
+          "timestamp_seconds": 140.7554625,
+          "text": "on-screen text near 140.76 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0050.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 6,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.6361730546517399,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 30.97s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:55",
+          "modality": "visual",
+          "timestamp_seconds": 154.83100875,
+          "text": "on-screen text near 154.83 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0055.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 9,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.5363764783683629,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 14.08s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        },
+        {
+          "id": "6e70ce38e49a61f9:visual:61",
+          "modality": "visual",
+          "timestamp_seconds": 171.72166425,
+          "text": "on-screen text near 171.72 seconds: MOON \u00a2 a )",
+          "asset_path": ".gist/demo-web/6e70ce38e49a61f9/mode-short-frames-64-audio-1_0s/frames/frame_0061.jpg",
+          "clip_path": null,
+          "clip_start_seconds": null,
+          "clip_end_seconds": null,
+          "segment_id": "scene-0",
+          "scene_start_seconds": 0.0,
+          "scene_end_seconds": 177.35188275,
+          "spatial_mask_path": null,
+          "spatial_mask_preview_path": null,
+          "spatial_mask_overlay_path": null,
+          "audio_anchor_timestamp_seconds": null,
+          "audio_anchor_score": 0.0,
+          "temporal_anchor_score": null,
+          "temporal_target_score": null,
+          "temporal_direction": null,
+          "selection_rank": 4,
+          "relevance_score": 0.2278638780117035,
+          "normalized_score": 0.8864917437735397,
+          "mmr_score": 0.6382740555165711,
+          "answer_support_score": null,
+          "query_support_score": null,
+          "evidence_support_score": null,
+          "audio_support_score": null,
+          "ocr_support_score": null,
+          "visual_support_score": null,
+          "cross_modal_support_score": null,
+          "support_label": null,
+          "grounding_label": null,
+          "grounding_reason": null,
+          "source_score_type": "model_saliency",
+          "reason": "Selected for query relevance while preserving temporal diversity; nearest selected evidence is 73.19s away; matched aspect 'How do founders get startup ideas unconsciously'."
+        }
+      ],
+      "metrics": {
+        "input_candidates": 64,
+        "selected_candidates": 12,
+        "visual_selected": 12,
+        "audio_selected": 0,
+        "raw_input_candidates": 245,
+        "fused_input_candidates": 64,
+        "estimated_candidate_reduction_ratio": 0.04897959183673469,
+        "estimated_candidate_reduction_percent": 95.10204081632652,
+        "dropped_candidates": 233,
+        "budget_mode": "adaptive",
+        "budget_preset_used": "balanced",
+        "budget_expanded": true,
+        "expansion_reason": "aggressive budget selected only one modality",
+        "estimated_baseline_tokens": 22304,
+        "estimated_raw_baseline_tokens": 22304,
+        "estimated_compressed_tokens": 3096,
+        "estimated_saved_tokens": 19208,
+        "estimated_token_reduction_ratio": 0.13880918220946914,
+        "estimated_token_reduction_percent": 86.11908177905309,
+        "token_estimator": "generic",
+        "estimated_spatial_visual_tokens": 0,
+        "estimated_retained_spatial_visual_tokens": 0,
+        "estimated_spatial_token_reduction_percent": 0.0
+      },
+      "quality_warnings": []
+    },
+    "video": {
+      "duration_seconds": 180.166992,
+      "frame_count": 64,
+      "audio_window_count": 181
+    }
+  }
+}

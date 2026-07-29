@@ -44,7 +44,15 @@ export function AnswerPanel({ done }: { done: DoneEvent }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm leading-relaxed">{done.answer}</p>
+          {done.answer ? (
+            <p className="text-sm leading-relaxed">{done.answer}</p>
+          ) : (
+            <p className="text-muted-foreground text-sm italic leading-relaxed">
+              No answer text for this run. The extractive answerer only summarizes
+              evidence when a matching modality is present — re-bake with{" "}
+              <code>--answerer openai</code> or <code>claude</code> for a full answer.
+            </p>
+          )}
         </CardContent>
       </Card>
 

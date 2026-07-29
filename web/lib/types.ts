@@ -58,7 +58,7 @@ export interface VideoMeta {
 }
 
 export interface DoneEvent {
-  answer: string;
+  answer: string | null;
   provider: string;
   compression: CompressionResponse;
   video: VideoMeta;

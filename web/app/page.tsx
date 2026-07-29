@@ -30,8 +30,8 @@ const PRESETS: {
     cachedSlug: "sample-5s",
   },
   {
-    label: "Paul Graham talk",
-    path: ".gist/videos/youtube/paul-graham-y-combinator.mp4",
+    label: "Paul Graham talk (3 min)",
+    path: ".gist/videos/demo-trims/paul-graham-3min.mp4",
     query: "How do founders get startup ideas unconsciously?",
     cachedSlug: "paul-graham",
   },
