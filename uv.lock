@@ -292,6 +292,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "python-dotenv" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "yt-dlp" },
 ]
 
 [package.optional-dependencies]
@@ -349,6 +350,7 @@ requires-dist = [
     { name = "transformers", marker = "extra == 'sound'", specifier = ">=4.44.0" },
     { name = "transformers", marker = "extra == 'vision'", specifier = ">=4.44.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30.0" },
+    { name = "yt-dlp", specifier = ">=2025.1.0" },
     { name = "yt-dlp", marker = "extra == 'sota'", specifier = ">=2025.1.0" },
 ]
 provides-extras = ["dev", "vision", "sota", "audio", "sound"]
