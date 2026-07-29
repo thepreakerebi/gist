@@ -140,6 +140,10 @@ def _run_worker(request: DemoRunRequest, emit) -> None:
                 model=request.answerer_model,
                 api_key=_load_api_key(request.answerer),
                 max_frames=request.max_frames,
+                # Intent-aware prompt: forbids outside knowledge (answer must be
+                # grounded in Gist's selected evidence, not the model's priors)
+                # and prioritizes transcript for speech-semantic queries.
+                prompt_strategy="intent",
             )
             answer = gateway_response.answer
             provider = gateway_response.provider

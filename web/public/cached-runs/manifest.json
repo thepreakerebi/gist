@@ -3,12 +3,12 @@
     "slug": "paul-graham",
     "label": "Paul Graham talk (3 min)",
     "query": "How do founders get startup ideas unconsciously?",
-    "provider": "extractive"
+    "provider": "openai:gpt-4.1-mini"
   },
   {
     "slug": "sample-5s",
     "label": "Sample clip (5s)",
     "query": "What is shown in this video?",
-    "provider": "extractive"
+    "provider": "openai:gpt-4.1-mini"
   }
 ]
