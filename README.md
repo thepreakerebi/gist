@@ -26,7 +26,7 @@ uvicorn gist.api.app:app --port 8000
 cd web && bun install && bun dev   # http://localhost:3000
 ```
 
-For the OpenAI/Claude answerers, provide keys via env (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) or gitignored files (`.gist/.openai_key`, `.gist/.anthropic_key`). The **Extractive** answerer needs no key. If the API is unreachable, the frontend transparently replays a pre-baked cached run (see below) so a live demo never breaks.
+For the OpenAI/Claude answerers, copy `.env.example` to `.env` (gitignored) and fill in `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`; the API loads it at startup via python-dotenv, and real environment variables take precedence. (Legacy `.gist/.openai_key` / `.gist/.anthropic_key` files are still honored as a fallback.) The **Extractive** answerer needs no key. If the API is unreachable, the frontend transparently replays a pre-baked cached run (see below) so a live demo never breaks.
 
 ### Cached-run safety net
 

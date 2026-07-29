@@ -1,10 +1,16 @@
 import os
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from gist.api.demo import demo_router
 from gist.api.routes import router
+
+# Load a repo-root .env if present. Real environment variables take precedence
+# (load_dotenv does not override already-set vars), so shell/systemd config wins
+# over the file in deployment.
+load_dotenv()
 
 
 def create_app() -> FastAPI:
