@@ -1,5 +1,11 @@
 [
   {
+    "slug": "paul-graham",
+    "label": "Paul Graham talk (3 min)",
+    "query": "How do founders get startup ideas unconsciously?",
+    "provider": "extractive"
+  },
+  {
     "slug": "sample-5s",
     "label": "Sample clip (5s)",
     "query": "What is shown in this video?",
