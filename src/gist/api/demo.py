@@ -18,7 +18,7 @@ from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from gist.api.schemas import LocalVideoCompressionRequest
 from gist.gateway.hosted_answerer import answer_with_hosted_llm
@@ -39,10 +39,18 @@ _KEY_FILES = {
 class DemoRunRequest(LocalVideoCompressionRequest):
     """A demo run: either a local video_path or a video_url to download."""
 
+    # Optional here (the base requires it): a URL run supplies video_url instead.
+    video_path: Path | None = None  # type: ignore[assignment]
     video_url: str | None = None
     answerer: Literal["openai", "claude", "extractive"] = "openai"
     answerer_model: str | None = None
     max_frames: Annotated[int, Field(gt=0, le=16)] = 8
+
+    @model_validator(mode="after")
+    def _require_a_source(self) -> "DemoRunRequest":
+        if not self.video_path and not self.video_url:
+            raise ValueError("provide either video_path or video_url")
+        return self
 
 
 @demo_router.post("/run")
@@ -78,21 +86,19 @@ def _run_worker(request: DemoRunRequest, emit) -> None:
     try:
         video_path = request.video_path
         if request.video_url:
+            # Probe the URL's duration BEFORE downloading so an over-cap video is
+            # rejected instantly instead of after a slow full download.
+            url_duration = _probe_url_duration_seconds(request.video_url)
+            if url_duration is not None and url_duration > DEMO_MAX_DURATION_SECONDS:
+                emit("error", {"message": _too_long_message(url_duration)})
+                return
             emit("progress", {"stage": "downloading", "message": "downloading video"})
             tmp_dir = tempfile.TemporaryDirectory(prefix="gist-demo-dl-")
             video_path = _download_video(request.video_url, Path(tmp_dir.name))
 
         duration = _probe_duration_seconds(video_path)
         if duration is not None and duration > DEMO_MAX_DURATION_SECONDS:
-            emit(
-                "error",
-                {
-                    "message": (
-                        f"video is {duration:.0f}s; the live demo is capped at "
-                        f"{DEMO_MAX_DURATION_SECONDS:.0f}s. Use a shorter clip."
-                    )
-                },
-            )
+            emit("error", {"message": _too_long_message(duration)})
             return
 
         emit("progress", {"stage": "starting", "message": "preparing pipeline"})
@@ -190,6 +196,33 @@ def _load_api_key(answerer: str) -> str | None:
     if key_file and key_file.exists():
         return key_file.read_text().strip() or None
     return None
+
+
+def _too_long_message(duration: float) -> str:
+    return (
+        f"This video is {duration / 60:.1f} min ({duration:.0f}s); the live demo "
+        f"is capped at {DEMO_MAX_DURATION_SECONDS / 60:.0f} min so scoring stays "
+        "fast on CPU. Try a shorter clip or a preset."
+    )
+
+
+def _probe_url_duration_seconds(url: str) -> float | None:
+    """Fetch a remote video's duration via yt-dlp without downloading it."""
+    try:
+        completed = subprocess.run(
+            ["yt-dlp", "--no-warnings", "--skip-download", "--print", "%(duration)s", url],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+    try:
+        return float(completed.stdout.strip().splitlines()[0])
+    except (ValueError, IndexError):
+        return None
 
 
 def _download_video(url: str, output_dir: Path) -> Path:

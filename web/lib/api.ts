@@ -14,10 +14,10 @@ export type { StreamHandlers } from "@/lib/types";
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE?.replace(/\/$/, "") ?? "http://localhost:8000";
 
-// Resolves to `true` if the live API was reached and streamed a response, or
-// `false` if the API was unreachable (network error / bad status). The caller
-// uses `false` to trigger the cached-run fallback rather than surfacing an
-// error. Stream-level errors after a successful connection go through onError.
+// Resolves to `true` if the live API was reached (whether it streamed a result
+// or returned an HTTP error, which is surfaced via onError), or `false` only if
+// the API was truly unreachable (network error). The caller uses `false` to
+// trigger the cached-run fallback. Stream-level errors go through onError too.
 export async function runDemo(
   request: RunRequest,
   handlers: StreamHandlers,
@@ -32,11 +32,15 @@ export async function runDemo(
       signal,
     });
   } catch {
-    return false;
+    return false; // network-level failure: fall back to a cached run
   }
 
+  // The API responded but with an error status (e.g. 422 bad request, 500).
+  // This is a real server error, not an unreachable API — surface it directly
+  // instead of the misleading cached-fallback path.
   if (!response.ok || !response.body) {
-    return false;
+    handlers.onError?.(await describeHttpError(response));
+    return true;
   }
 
   const reader = response.body.getReader();
@@ -56,6 +60,27 @@ export async function runDemo(
     }
   }
   return true;
+}
+
+// Turn a non-OK response into a readable message. FastAPI validation errors come
+// back as {detail: [{loc, msg}, ...]}; other errors as {detail: "..."} or text.
+async function describeHttpError(response: Response): Promise<string> {
+  let detail = "";
+  try {
+    const body = await response.json();
+    if (typeof body?.detail === "string") {
+      detail = body.detail;
+    } else if (Array.isArray(body?.detail)) {
+      detail = body.detail
+        .map((e: { loc?: unknown[]; msg?: string }) =>
+          [Array.isArray(e.loc) ? e.loc.join(".") : "", e.msg].filter(Boolean).join(": "),
+        )
+        .join("; ");
+    }
+  } catch {
+    // non-JSON body; fall through to the status line
+  }
+  return `API returned ${response.status}${detail ? `: ${detail}` : ""}`;
 }
 
 function dispatch(frame: string, handlers: StreamHandlers): void {
