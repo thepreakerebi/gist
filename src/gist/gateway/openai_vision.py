@@ -1,14 +1,13 @@
 import base64
 import json
 import os
-from pathlib import Path
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import Any
 from urllib import error, request
 
 from gist.gateway.prompt import build_video_answer_prompt
-
 
 OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses"
 DEFAULT_MODEL = "gpt-4.1-mini"
@@ -138,6 +137,8 @@ def create_responses_payload(
             }
         ],
         "max_output_tokens": 256,
+        # Deterministic answers: identical evidence -> identical answer across runs.
+        "temperature": 0,
     }
 
 
@@ -237,7 +238,8 @@ def _evidence_clips(evidence: list[Any]) -> list[dict[str, Any]]:
         clip_start = _number(item.get("clip_start_seconds"))
         clip_end = _number(item.get("clip_end_seconds"))
         timestamp = _number(item.get("timestamp_seconds"))
-        duration = max(0.2, (clip_end - clip_start) if clip_start is not None and clip_end is not None else 1.0)
+        has_span = clip_start is not None and clip_end is not None
+        duration = max(0.2, (clip_end - clip_start) if has_span else 1.0)
         anchor = (
             timestamp - clip_start
             if timestamp is not None and clip_start is not None

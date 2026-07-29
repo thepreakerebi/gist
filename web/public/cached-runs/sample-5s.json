@@ -323,8 +323,8 @@
     "audio": []
   },
   "done": {
-    "answer": "Visual evidence shows this from 0.00s to 5.58s.",
-    "provider": "extractive",
+    "answer": "The video shows on-screen text with various fragmented and unclear words and phrases, likely from a distorted or corrupted text display.",
+    "provider": "openai:gpt-4.1-mini",
     "compression": {
       "video_id": "55dd28e3ca83d3e8",
       "query": "What is shown in this video?",
@@ -333,7 +333,7 @@
       "preset": "balanced",
       "query_intent": "speech_semantic",
       "routing_reason": "conceptual question terms favor transcript-first retrieval",
-      "audio_scorer_used": "baseline",
+      "audio_scorer_used": "dispatcher",
       "transcript_metadata": null,
       "query_aspects": [
         {

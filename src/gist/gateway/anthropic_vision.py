@@ -87,6 +87,9 @@ def create_messages_payload(
     return {
         "model": model,
         "max_tokens": 256,
+        # No temperature: claude-sonnet-5 deprecates the parameter (API 400s on
+        # it). The grounded intent-aware prompt + fixed evidence keep answers
+        # consistent without it.
         "messages": [
             {
                 "role": "user",

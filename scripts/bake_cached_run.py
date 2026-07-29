@@ -72,6 +72,8 @@ def bake(args: argparse.Namespace) -> dict[str, Any]:
             model=args.answerer_model,
             api_key=_load_api_key(args.answerer),
             max_frames=args.max_frames,
+            # Mirror the live demo: grounded, transcript-prioritizing prompt.
+            prompt_strategy="intent",
         )
         answer = gateway_response.answer
         provider = gateway_response.provider
@@ -109,7 +111,9 @@ def main() -> None:
     )
     parser.add_argument("--answerer-model", default=None)
     parser.add_argument("--visual-scorer", default="clip_scene")
-    parser.add_argument("--audio-scorer", default="auto")
+    # dispatcher (not auto): auto only scores transcripts on >=10min videos, so
+    # short demo clips need the dispatcher to select any audio. Mirrors the demo.
+    parser.add_argument("--audio-scorer", default="dispatcher")
     parser.add_argument("--sample-count", type=int, default=64)
     parser.add_argument("--max-frames", type=int, default=8)
     parser.add_argument("--output-root", default=".gist/demo-web")

@@ -89,7 +89,10 @@ export default function Home() {
         video_url: videoUrl.trim() || undefined,
         video_path: videoUrl.trim() ? undefined : videoPath,
         visual_scorer: "clip_scene",
-        audio_scorer: "auto",
+        // Explicit dispatcher (not "auto"): auto only runs transcript scoring on
+        // videos >=10min, so short demo clips would otherwise fall back to
+        // baseline and select zero audio, leaving the LLM with only slide frames.
+        audio_scorer: "dispatcher",
         adaptive_budget: true,
         decompose_query: true,
         sample_count: 64,
