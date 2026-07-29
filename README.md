@@ -10,6 +10,41 @@ Gist is an audio-visual context compression layer for video LLMs. The first impl
 
 The current code does not pretend to run CLIP, CLAP, Whisper, or an Omni-LLM yet. Those are model adapters that will plug into the candidate-generation layer. This keeps the compression logic independently testable before expensive model integration.
 
+## Live Web Demo
+
+A presentation-facing web app (`web/`, Next.js + shadcn) streams the pipeline live: type a query on any short video, watch CLIP/CLAP/Whisper score every frame and audio window against it, see the set collapse to the salient few (MMR + temporal kernel), and get an answer from the compressed evidence.
+
+**Integrity boundary (important):** the live demo's answer is produced by a hosted multimodal LLM (OpenAI `gpt-4.1-mini` or Claude), selectable in the UI, **for demo reliability only**. The capstone paper's measured efficiency/FLOP claims come from **Qwen2.5-Omni-7B run offline** — a closed API cannot measure encoder FLOPs, so no efficiency number in the paper comes from this API. The demo *shows the mechanism*; the paper *measures the claim*. The token figures in the demo UI are estimated from the compressed evidence, and the UI states this.
+
+### Run locally
+
+```bash
+# API (CPU; all scoring falls back to CPU automatically)
+uvicorn gist.api.app:app --port 8000
+
+# Frontend (Bun)
+cd web && bun install && bun dev   # http://localhost:3000
+```
+
+For the OpenAI/Claude answerers, provide keys via env (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) or gitignored files (`.gist/.openai_key`, `.gist/.anthropic_key`). The **Extractive** answerer needs no key. If the API is unreachable, the frontend transparently replays a pre-baked cached run (see below) so a live demo never breaks.
+
+### Cached-run safety net
+
+`scripts/bake_cached_run.py` captures the exact `scored` + `done` payloads a live run emits into `web/public/cached-runs/`. When the API is down (a sleeping HF Space, dead WiFi, an API hiccup), the same UI replays a known-good run identically.
+
+```bash
+uv run python scripts/bake_cached_run.py \
+  --slug paul-graham --label "Paul Graham talk" \
+  --video .gist/videos/youtube/paul-graham-y-combinator.mp4 \
+  --query "How do founders get startup ideas unconsciously?" \
+  --answerer extractive   # use openai|claude once keys are set for a real LLM answer
+```
+
+### Deploy (all free)
+
+- **API → Hugging Face Space (Docker SDK, free CPU Basic).** The repo `Dockerfile` runs `uvicorn gist.api.app:app` on port 7860 with the `vision,audio,sound` extras + yt-dlp. Set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` (and optionally `GIST_CORS_ORIGINS`) as Space secrets. Note the 16 GB RAM ceiling and 48 h idle sleep — warm it with a `GET /v1/health` before presenting.
+- **Frontend → Vercel.** Set `NEXT_PUBLIC_API_BASE` to the Space URL.
+
 ## Structured Extraction
 
 Gist can turn selected evidence into timestamped structured records. This is useful
