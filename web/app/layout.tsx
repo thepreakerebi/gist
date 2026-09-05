@@ -31,7 +31,15 @@ export default function RootLayout({
       // longer flips the page.
       className={`light ${instrumentSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      {/* Extensions (ColorZilla, Grammarly, password managers) stamp attributes
+          like cz-shortcut-listen onto <body> before React hydrates, which React
+          reports as a mismatch. suppressHydrationWarning applies one level deep
+          only, so this silences that specific noise without masking a real
+          mismatch inside the tree. */}
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col bg-background text-foreground"
+      >
         {children}
       </body>
     </html>
