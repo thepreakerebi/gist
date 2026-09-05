@@ -43,6 +43,10 @@ gist-sota-benchmark = "gist.eval.sota:main"
 gist-structured-extract = "gist.gateway.structured:main"
 gist-structured-schemas = "gist.gateway.structured:schemas_main"
 
+# NOTE: a bare `uv sync` PRUNES every extra below, silently removing
+# torch/transformers and breaking all CLIP/CLAP/Whisper paths. uv's
+# `default-extras` is not honoured here (checked on uv 0.10.12), so always sync
+# through `./scripts/sync-dev.sh`, which passes them explicitly.
 [project.optional-dependencies]
 dev = [
   "pytest>=8.2.0",
@@ -91,3 +95,5 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 markers = [
   "slow: tests that download or execute model dependencies",
 ]
+
+[tool.uv]

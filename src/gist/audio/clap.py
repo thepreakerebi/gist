@@ -1,9 +1,44 @@
 import wave
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 from gist.audio.errors import AudioTranscriptionError
 from gist.media.models import AudioWindow
+
+
+# ClapFeatureExtractor for the *unfused* checkpoint defaults to
+# truncation="rand_trunc": any window longer than 10 s is reduced to a RANDOM
+# 10 s excerpt, drawn from numpy's global RNG. Two identical calls therefore
+# return different features (observed embedding cosine 0.89-0.97 between
+# consecutive runs on the same 30 s window), which makes CLAP scores
+# irreproducible run to run. "fusion" is not an alternative here — it emits
+# 4-channel features the unfused model cannot consume.
+#
+# Seeding around feature extraction restores exact reproducibility (cosine
+# 1.0). The excerpt chosen is still arbitrary, but it is now the *same*
+# arbitrary excerpt every time, which is what determinism requires.
+CLAP_TRUNCATION_SEED = 0
+
+
+@contextmanager
+def _deterministic_truncation(numpy: Any, torch: Any) -> Iterator[None]:
+    """Seed the RNGs CLAP's random truncation draws from, then restore them.
+
+    State is saved and restored so seeding never leaks into a caller that is
+    relying on its own RNG stream.
+    """
+
+    numpy_state = numpy.random.get_state()
+    torch_state = torch.get_rng_state()
+    try:
+        numpy.random.seed(CLAP_TRUNCATION_SEED)
+        torch.manual_seed(CLAP_TRUNCATION_SEED)
+        yield
+    finally:
+        numpy.random.set_state(numpy_state)
+        torch.set_rng_state(torch_state)
 
 
 class HuggingFaceClapAudioScorer:
@@ -57,13 +92,14 @@ class HuggingFaceClapAudioScorer:
         for batch in _chunks(windows, self.batch_size):
             # CLAP (htsat) expects 48 kHz; windows are 16 kHz (for Whisper), so resample.
             audio_arrays = [self._resample_48k(self._read_wav(window.path)) for window in batch]
-            inputs = self._processor(
-                text=list(prompts),
-                audio=audio_arrays,
-                sampling_rate=48000,
-                return_tensors="pt",
-                padding=True,
-            )
+            with _deterministic_truncation(self._numpy, self._torch):
+                inputs = self._processor(
+                    text=list(prompts),
+                    audio=audio_arrays,
+                    sampling_rate=48000,
+                    return_tensors="pt",
+                    padding=True,
+                )
             inputs = {key: value.to(self._model.device) for key, value in inputs.items()}
 
             with self._torch.no_grad():
@@ -76,6 +112,72 @@ class HuggingFaceClapAudioScorer:
                 scores[window.path] = [float(value) for value in row]
 
         return scores
+
+    def embed_windows(self, windows: list[AudioWindow]) -> dict[Path, list[float]]:
+        """Embed audio windows without a query — the query-independent tower.
+
+        Splitting the audio tower out is what lets ingestion run once and be
+        persisted: encoding a window is expensive and does not depend on what
+        anyone will later ask, while comparing that encoding to a query is a
+        dot product. Mirrors ``HuggingFaceClipFrameScorer.embed_frames``.
+        """
+
+        if not windows:
+            return {}
+
+        self._load()
+        assert self._model is not None
+        assert self._processor is not None
+        assert self._torch is not None
+
+        embeddings: dict[Path, list[float]] = {}
+        for batch in _chunks(windows, self.batch_size):
+            # CLAP (htsat) expects 48 kHz; windows are 16 kHz (for Whisper), so resample.
+            audio_arrays = [self._resample_48k(self._read_wav(window.path)) for window in batch]
+            with _deterministic_truncation(self._numpy, self._torch):
+                inputs = self._processor(
+                    audio=audio_arrays,
+                    sampling_rate=48000,
+                    return_tensors="pt",
+                    padding=True,
+                )
+            inputs = {key: value.to(self._model.device) for key, value in inputs.items()}
+
+            with self._torch.no_grad():
+                audio_embeds = _normalize(
+                    _feature_tensor(self._model.get_audio_features(**inputs)),
+                    self._torch,
+                )
+
+            for window, vector in zip(batch, audio_embeds.tolist(), strict=True):
+                embeddings[window.path] = [float(value) for value in vector]
+
+        return embeddings
+
+    def embed_text(self, text: str) -> list[float]:
+        """Embed a query into CLAP's shared space, for comparison with stored windows."""
+
+        if not text.strip():
+            raise ValueError("text must not be blank")
+
+        self._load()
+        assert self._model is not None
+        assert self._processor is not None
+        assert self._torch is not None
+
+        # Same prompt template score_windows uses, so a stored-embedding score is
+        # numerically comparable with a live one.
+        prompt = f"the sound of: {text.strip()}"
+        inputs = self._processor(text=[prompt], return_tensors="pt", padding=True)
+        inputs = {key: value.to(self._model.device) for key, value in inputs.items()}
+
+        with self._torch.no_grad():
+            text_embeds = _normalize(
+                _feature_tensor(self._model.get_text_features(**inputs)),
+                self._torch,
+            )
+
+        return [float(value) for value in text_embeds[0].tolist()]
 
     def _load(self) -> None:
         if self._model is not None and self._processor is not None and self._torch is not None:
@@ -129,6 +231,25 @@ class HuggingFaceClapAudioScorer:
             return audio / 2147483648.0
 
         raise AudioTranscriptionError(f"unsupported WAV sample width: {sample_width}")
+
+
+def _feature_tensor(output: Any) -> Any:
+    """Unwrap a features call that may return a tensor or an output object.
+
+    Recent transformers wraps projected features in ``BaseModelOutputWithPooling``
+    rather than returning a bare tensor. Audio and text must be unwrapped the
+    same way or their embeddings land in different spaces.
+    """
+
+    if hasattr(output, "norm"):
+        return output
+    for attribute in ("audio_embeds", "text_embeds", "pooler_output", "last_hidden_state"):
+        tensor = getattr(output, attribute, None)
+        if tensor is not None:
+            return tensor[:, 0] if attribute == "last_hidden_state" else tensor
+    if isinstance(output, tuple) and output:
+        return output[0]
+    raise AudioTranscriptionError("CLAP feature output did not contain a tensor")
 
 
 def _normalize(tensor: Any, torch: Any) -> Any:
