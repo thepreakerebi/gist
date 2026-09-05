@@ -4,6 +4,10 @@ Compares full Gist audio-visual retrieval against three baselines while holding
 the candidate pool fixed, so the only thing that varies is the selection input:
 
 - ``full_gist``       -- the real compressor over visual + audio candidates.
+- ``full_gist_no_heuristics`` -- identical, but with the per-intent ``_ensure_*``
+                          coverage post-processors disabled, isolating how much of
+                          the result comes from the scoring+MMR method itself
+                          versus the hand-tuned coverage rules.
 - ``visual_only``     -- the real compressor with audio candidates removed.
 - ``transcript_only`` -- the real compressor with visual candidates removed.
 - ``uniform``         -- query-agnostic uniform temporal sampling at the same
@@ -52,10 +56,18 @@ from gist.audio.whisper import TranscriptQuality
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline, _with_raw_reduction_metrics
 
-MODES = ("full_gist", "visual_only", "transcript_only", "score_topk", "uniform")
+MODES = (
+    "full_gist",
+    "full_gist_no_heuristics",
+    "visual_only",
+    "transcript_only",
+    "score_topk",
+    "uniform",
+)
 
 MODE_LABELS = {
     "full_gist": "Full Gist (audio+visual)",
+    "full_gist_no_heuristics": "Full Gist, coverage heuristics OFF",
     "visual_only": "Visual-only retrieval",
     "transcript_only": "Transcript-only retrieval",
     "score_topk": "Score top-k (relevance only)",
@@ -415,6 +427,15 @@ def run_ablation_case(
     responses["full_gist"] = _compress_mode(
         compressor,
         request_template,
+        candidates.visual,
+        candidates.audio,
+        raw_candidate_count,
+        raw_visual_count,
+        raw_audio_count,
+    )
+    responses["full_gist_no_heuristics"] = _compress_mode(
+        compressor,
+        request_template.model_copy(update={"coverage_heuristics": False}),
         candidates.visual,
         candidates.audio,
         raw_candidate_count,
