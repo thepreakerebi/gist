@@ -12,6 +12,7 @@ export default function LibraryPage() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offline, setOffline] = useState(false);
   const watching = useRef(new Set<string>());
 
   const upsert = useCallback((video: Video) => {
@@ -45,10 +46,14 @@ export default function LibraryPage() {
   useEffect(() => {
     let cancelled = false;
     listVideos()
-      .then((items) => {
+      .then(({ data, cached }) => {
         if (cancelled) return;
-        setVideos(items);
-        items
+        setVideos(data);
+        setOffline(cached);
+        // Nothing is still ingesting in a snapshot, and there is no API to
+        // stream progress from, so skip the watchers entirely when cached.
+        if (cached) return;
+        data
           .filter((item) => item.status === "ingesting" || item.status === "pending")
           .forEach((item) => watch(item.id));
       })
@@ -91,6 +96,14 @@ export default function LibraryPage() {
         >
           Library
         </h2>
+
+        {offline && (
+          <p className="mt-4 rounded-md border border-border bg-secondary/60 px-4 py-2.5 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Offline.</span>{" "}
+            Showing a pre-recorded snapshot of real runs — the API isn&rsquo;t
+            reachable.
+          </p>
+        )}
 
         {error && (
           <p className="mt-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">

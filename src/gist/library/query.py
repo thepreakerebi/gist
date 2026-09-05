@@ -122,10 +122,10 @@ def cut_evidence_clips(
 ) -> list[dict[str, Any]]:
     """Cut a short clip around each selected evidence timestamp.
 
-    Stream-copy (``-c copy``) rather than re-encode: cutting is near-instant and
-    costs no quality. The trade-off is that ffmpeg can only cut on keyframes, so
-    a clip may start slightly before the requested point — which is harmless
-    here, and preferable to making the user wait for a transcode.
+    Re-encoded to H.264/AAC rather than stream-copied. Copying is faster, but
+    yt-dlp routinely returns AV1 video with Opus audio, and an AV1-in-MP4 clip
+    plays as a black box in Chrome — the clip existing but not playing is worse
+    than a second of transcode. At 360p over a few seconds the cost is trivial.
     """
 
     clips: list[dict[str, Any]] = []
@@ -175,8 +175,16 @@ def _cut(source_path: Path, output_path: Path, span: Any) -> bool:
             str(source_path),
             "-t",
             f"{duration:.3f}",
-            "-c",
-            "copy",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "26",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
             "-movflags",
             "+faststart",
             str(output_path),

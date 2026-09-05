@@ -14,7 +14,7 @@ import type {
   SelectedEvidence,
   VideoDetail,
 } from "@/lib/library";
-import { formatDuration, streamQuery } from "@/lib/library";
+import { formatDuration, getVideo, streamQuery } from "@/lib/library";
 import { cn } from "@/lib/utils";
 
 type Turn = {
@@ -29,6 +29,7 @@ type Turn = {
   stage: string | null;
   error: string | null;
   elapsedMs: number | null;
+  cached: boolean;
 };
 
 /** Rebuild past turns from persisted messages so history survives a reload. */
@@ -48,6 +49,7 @@ function turnsFromMessages(messages: Message[]): Turn[] {
         stage: null,
         error: null,
         elapsedMs: null,
+        cached: false,
       });
       continue;
     }
@@ -62,14 +64,29 @@ function turnsFromMessages(messages: Message[]): Turn[] {
   return turns;
 }
 
-export function VideoWorkspace({ initial }: { initial: VideoDetail }) {
-  const { video } = initial;
-  const [turns, setTurns] = useState<Turn[]>(() => turnsFromMessages(initial.messages));
+export function VideoWorkspace({ videoId }: { videoId: string }) {
+  const [detail, setDetail] = useState<VideoDetail | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getVideo(videoId)
+      .then((loaded) => {
+        if (cancelled) return;
+        setDetail(loaded);
+        setTurns(turnsFromMessages(loaded.messages));
+      })
+      .catch(() => !cancelled && setLoadError("Could not load this video."));
+    return () => {
+      cancelled = true;
+    };
+  }, [videoId]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -102,6 +119,7 @@ export function VideoWorkspace({ initial }: { initial: VideoDetail }) {
           stage: "Scoring stored evidence",
           error: null,
           elapsedMs: null,
+          cached: false,
         },
       ]);
       setDraft("");
@@ -112,11 +130,12 @@ export function VideoWorkspace({ initial }: { initial: VideoDetail }) {
 
       try {
         await streamQuery(
-          video.id,
+          videoId,
           trimmed,
           { answerer: "twelvelabs" },
           {
-            onStage: (_stage, label) => patch(id, { stage: label }),
+            onStage: (_stage, label) =>
+              patch(id, { stage: label, cached: label.includes("(cached)") }),
             onScored: (candidates) => patch(id, { candidates }),
             onSelected: (selected, metrics) => patch(id, { selected, metrics }),
             onClips: (clips) => patch(id, { clips }),
@@ -148,8 +167,29 @@ export function VideoWorkspace({ initial }: { initial: VideoDetail }) {
         abort.current = null;
       }
     },
-    [busy, patch, video.id],
+    [busy, patch, videoId],
   );
+
+  if (loadError) {
+    return (
+      <main className="mx-auto w-full max-w-3xl px-6 py-24">
+        <p className="text-sm text-muted-foreground">{loadError}</p>
+        <Link href="/" className="mt-3 inline-block text-sm underline underline-offset-4">
+          Back to library
+        </Link>
+      </main>
+    );
+  }
+
+  if (!detail) {
+    return (
+      <main className="mx-auto w-full max-w-3xl px-6 py-24" aria-busy>
+        <div className="h-4 w-56 animate-pulse rounded bg-muted" />
+      </main>
+    );
+  }
+
+  const { video } = detail;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-6">
@@ -320,8 +360,12 @@ function TurnView({ turn, duration }: { turn: Turn; duration: number }) {
                 {turn.answer}
               </p>
               <p className="tabular text-[11px] text-muted-foreground">
-                {turn.provider && <>answered by {turn.provider}</>}
-                {turn.elapsedMs !== null && (
+                {turn.cached ? (
+                  <span className="text-signal">replayed from a cached run</span>
+                ) : (
+                  turn.provider && <>answered by {turn.provider}</>
+                )}
+                {turn.elapsedMs !== null && !turn.cached && (
                   <> · {(turn.elapsedMs / 1000).toFixed(1)}s</>
                 )}
               </p>

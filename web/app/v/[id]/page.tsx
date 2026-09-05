@@ -1,7 +1,4 @@
-import { notFound } from "next/navigation";
-
 import { VideoWorkspace } from "@/components/video-workspace";
-import { getVideo } from "@/lib/library";
 
 export default async function VideoPage({
   params,
@@ -11,10 +8,9 @@ export default async function VideoPage({
 }) {
   const { id } = await params;
 
-  try {
-    const detail = await getVideo(id);
-    return <VideoWorkspace initial={detail} />;
-  } catch {
-    notFound();
-  }
+  // Loading happens in the client, not here. The offline fallback reads a
+  // static manifest under /cached-runs/, and a relative fetch does not resolve
+  // server-side — rendering this on the server 404'd the page precisely when
+  // the API was down, which is the one moment the fallback exists for.
+  return <VideoWorkspace videoId={id} />;
 }
