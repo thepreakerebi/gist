@@ -1,0 +1,86 @@
+{
+  "created": "2026-09-05",
+  "dataset": "data/eval/long-video-quality.jsonl",
+  "policy": "Grouped by source video: no recording appears in both splits. Frozen once; the held-out split is to be executed a single time, after development against the dev split is complete.",
+  "corpus_fingerprint": "4d93c75742221068",
+  "held_out_fingerprint": "6568af1cd5cfc5d1",
+  "held_out": {
+    "cases": 12,
+    "videos": [
+      "microsoft-kinect-keynote-art-code-2011",
+      "nasa-sts115-postflight-briefing-2006",
+      "night-of-the-living-dead-1968",
+      "paul-graham-y-combinator",
+      "yt-arthistory-high-renaissance",
+      "yt-history-augustus-rome"
+    ],
+    "categories": {
+      "global_summary": 1,
+      "mixed_av": 1,
+      "speech_semantic": 8,
+      "temporal_before_after": 1,
+      "visual_object_action": 1
+    },
+    "case_ids": [
+      "art-history-high-renaissance-big-three",
+      "history-augustus-birthplace-palatine",
+      "kinect-opening-title",
+      "kinect-person-demo",
+      "kinect-post-interface-title",
+      "nasa-sts115-p3p4-truss-newest-element",
+      "nasa-sts115-solar-wing-dimensions",
+      "night-of-the-living-dead-killings-locations",
+      "night-of-the-living-dead-nasa-conference",
+      "paul-graham-startup-ideas-unconsciously",
+      "paul-graham-startup-killer",
+      "paul-graham-yc-support"
+    ]
+  },
+  "dev": {
+    "cases": 27,
+    "videos": [
+      "bio-inspired-motor-control-lecture-01",
+      "bio-inspired-motor-control-lecture-02",
+      "tears-of-steel-61min",
+      "yale-financial-markets-shiller",
+      "yt-medicine-human-anatomy",
+      "yt-technology-manufacturing"
+    ],
+    "categories": {
+      "global_summary": 2,
+      "mixed_av": 2,
+      "speech_semantic": 5,
+      "temporal_before_after": 3,
+      "visual_object_action": 15
+    },
+    "case_ids": [
+      "bio-motor-control-lecture-01-behavior-based-robotics-title",
+      "bio-motor-control-lecture-01-biology-robotics-loop-title",
+      "bio-motor-control-lecture-01-chapter-1-title",
+      "bio-motor-control-lecture-01-course-evaluation-title",
+      "bio-motor-control-lecture-01-course-overview-title",
+      "bio-motor-control-lecture-01-global-summary",
+      "bio-motor-control-lecture-01-objectives-title",
+      "bio-motor-control-lecture-01-opening-title",
+      "bio-motor-control-lecture-01-sense-think-act-title",
+      "bio-motor-control-lecture-02-after-opening-title",
+      "bio-motor-control-lecture-02-agenda-after-title",
+      "bio-motor-control-lecture-02-characterization-modelling-title",
+      "bio-motor-control-lecture-02-conceptual-models-legged-locomotion-title",
+      "bio-motor-control-lecture-02-conceptual-models-title",
+      "bio-motor-control-lecture-02-equations-motion-title",
+      "bio-motor-control-lecture-02-further-reading-title",
+      "bio-motor-control-lecture-02-global-summary",
+      "bio-motor-control-lecture-02-legged-locomotion-nature-title",
+      "bio-motor-control-lecture-02-next-week",
+      "bio-motor-control-lecture-02-opening-title",
+      "manufacturing-crayon-packing",
+      "medicine-anatomy-peripheral-nervous-system",
+      "tears-of-steel-robot-hand-fear",
+      "tears-of-steel-robot-hand-visible-question",
+      "tears-of-steel-robotics-space",
+      "tears-of-steel-robotics-space-robot-hand",
+      "yale-financial-markets-behavioral-finance"
+    ]
+  }
+}
