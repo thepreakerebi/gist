@@ -8,7 +8,8 @@
  */
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_GIST_API?.replace(/\/$/, "") ?? "http://127.0.0.1:8000";
+  process.env.NEXT_PUBLIC_GIST_API?.replace(/\/$/, "") ??
+  "http://127.0.0.1:8000";
 
 export type VideoStatus = "pending" | "ingesting" | "ready" | "failed";
 
@@ -92,6 +93,9 @@ export type VideoDetail = {
   messages: Message[];
 };
 
+/** True when the last read fell back to the pre-baked snapshot. */
+export type Sourced<T> = { data: T; cached: boolean };
+
 export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
@@ -101,7 +105,8 @@ async function jsonOrThrow<T>(response: Response): Promise<T> {
     let detail = `${response.status} ${response.statusText}`;
     try {
       const body = await response.json();
-      if (body?.detail) detail = typeof body.detail === "string" ? body.detail : detail;
+      if (body?.detail)
+        detail = typeof body.detail === "string" ? body.detail : detail;
     } catch {
       // Non-JSON error body; the status line is the best we have.
     }
@@ -110,18 +115,40 @@ async function jsonOrThrow<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function listVideos(): Promise<Video[]> {
-  const response = await fetch(apiUrl("/v1/library/videos"), { cache: "no-store" });
-  const body = await jsonOrThrow<{ videos: Video[] }>(response);
-  return body.videos;
+export async function listVideos(): Promise<Sourced<Video[]>> {
+  try {
+    const response = await fetch(apiUrl("/v1/library/videos"), {
+      cache: "no-store",
+    });
+    const body = await jsonOrThrow<{ videos: Video[] }>(response);
+    return { data: body.videos, cached: false };
+  } catch (error) {
+    // The API being down is the case the snapshot exists for. Only fall back
+    // when there is actually something baked; otherwise surface the failure.
+    const { cachedVideos } = await import("@/lib/cached");
+    const fallback = await cachedVideos();
+    if (fallback.length > 0) return { data: fallback, cached: true };
+    throw error;
+  }
 }
 
 export async function getVideo(id: string): Promise<VideoDetail> {
-  const response = await fetch(apiUrl(`/v1/library/videos/${id}`), { cache: "no-store" });
-  return jsonOrThrow<VideoDetail>(response);
+  try {
+    const response = await fetch(apiUrl(`/v1/library/videos/${id}`), {
+      cache: "no-store",
+    });
+    return await jsonOrThrow<VideoDetail>(response);
+  } catch (error) {
+    const { cachedVideoDetail } = await import("@/lib/cached");
+    const fallback = await cachedVideoDetail(id);
+    if (fallback) return fallback;
+    throw error;
+  }
 }
 
-export async function addVideo(url: string): Promise<{ video: Video; started: boolean }> {
+export async function addVideo(
+  url: string,
+): Promise<{ video: Video; started: boolean }> {
   const response = await fetch(apiUrl("/v1/library/videos"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -131,7 +158,9 @@ export async function addVideo(url: string): Promise<{ video: Video; started: bo
 }
 
 export async function deleteVideo(id: string): Promise<void> {
-  const response = await fetch(apiUrl(`/v1/library/videos/${id}`), { method: "DELETE" });
+  const response = await fetch(apiUrl(`/v1/library/videos/${id}`), {
+    method: "DELETE",
+  });
   if (!response.ok && response.status !== 404) {
     throw new Error(`could not remove video (${response.status})`);
   }
@@ -167,7 +196,8 @@ async function* readEvents(
         const dataLines: string[] = [];
         for (const line of frame.split("\n")) {
           if (line.startsWith("event:")) event = line.slice(6).trim();
-          else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+          else if (line.startsWith("data:"))
+            dataLines.push(line.slice(5).trim());
         }
         if (dataLines.length === 0) continue;
         try {
@@ -193,11 +223,14 @@ export async function streamIngestion(
   handlers: IngestionHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(apiUrl(`/v1/library/videos/${id}/events`), { signal });
+  const response = await fetch(apiUrl(`/v1/library/videos/${id}/events`), {
+    signal,
+  });
   for await (const { event, data } of readEvents(response, signal)) {
     if (event === "progress") handlers.onProgress?.(data as Video);
     else if (event === "done") handlers.onDone?.(data as Video);
-    else if (event === "error") handlers.onError?.((data as { message: string }).message);
+    else if (event === "error")
+      handlers.onError?.((data as { message: string }).message);
   }
 }
 
@@ -215,6 +248,18 @@ export type QueryHandlers = {
   onError?: (message: string) => void;
 };
 
+async function replayFromCache(
+  id: string,
+  query: string,
+  handlers: QueryHandlers,
+): Promise<boolean> {
+  const { cachedRun, replayCachedRun } = await import("@/lib/cached");
+  const run = await cachedRun(id, query);
+  if (!run) return false;
+  await replayCachedRun(run, handlers);
+  return true;
+}
+
 export async function streamQuery(
   id: string,
   query: string,
@@ -222,16 +267,23 @@ export async function streamQuery(
   handlers: QueryHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(apiUrl(`/v1/library/videos/${id}/query`), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query,
-      answerer: options.answerer ?? "twelvelabs",
-      tail_merging: options.tailMerging ?? false,
-    }),
-    signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(`/v1/library/videos/${id}/query`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        answerer: options.answerer ?? "twelvelabs",
+        tail_merging: options.tailMerging ?? false,
+      }),
+      signal,
+    });
+  } catch (error) {
+    if (signal?.aborted) return;
+    if (await replayFromCache(id, query, handlers)) return;
+    throw error;
+  }
 
   if (!response.ok) {
     let detail = `request failed (${response.status})`;
@@ -241,6 +293,7 @@ export async function streamQuery(
     } catch {
       // keep the status-line message
     }
+    if (await replayFromCache(id, query, handlers)) return;
     handlers.onError?.(detail);
     return;
   }
@@ -253,10 +306,15 @@ export async function streamQuery(
         break;
       }
       case "scored":
-        handlers.onScored?.((data as { candidates: ScoredCandidate[] }).candidates);
+        handlers.onScored?.(
+          (data as { candidates: ScoredCandidate[] }).candidates,
+        );
         break;
       case "selected": {
-        const payload = data as { selected: SelectedEvidence[]; metrics: Metrics };
+        const payload = data as {
+          selected: SelectedEvidence[];
+          metrics: Metrics;
+        };
         handlers.onSelected?.(payload.selected, payload.metrics);
         break;
       }
@@ -281,7 +339,9 @@ export async function streamQuery(
 }
 
 export function formatDuration(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds <= 0) return "—";
+  // 0 is a legitimate timestamp — a clip that starts at the very beginning of
+  // the video rendered as "—" before this.
+  if (!Number.isFinite(seconds) || seconds < 0) return "—";
   const total = Math.round(seconds);
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);

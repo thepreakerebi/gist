@@ -72,6 +72,10 @@ def download(url: str, output_dir: Path, *, max_height: int = 360) -> Path:
     Capped at 360p deliberately: frames are resized to 224x224 for CLIP anyway,
     so a higher-resolution source costs download time and disk for no gain in
     scoring quality. It is still enough to look right in the clip player.
+
+    H.264 + AAC is preferred over yt-dlp's default, which is frequently AV1 with
+    Opus. Those play fine in a full browser tab but not as short MP4 clips in a
+    <video> element, and the evidence clips are the point of the interface.
     """
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -82,7 +86,12 @@ def download(url: str, output_dir: Path, *, max_height: int = 360) -> Path:
             "yt-dlp",
             "--no-playlist",
             "-f",
-            f"bv*[height<={max_height}]+ba/b[height<={max_height}]/best[height<={max_height}]/best",
+            (
+                f"bv*[height<={max_height}][vcodec^=avc1]+ba[acodec^=mp4a]/"
+                f"bv*[height<={max_height}][vcodec^=avc1]+ba/"
+                f"b[height<={max_height}][vcodec^=avc1]/"
+                f"bv*[height<={max_height}]+ba/b[height<={max_height}]/best"
+            ),
             "--merge-output-format",
             "mp4",
             "-o",

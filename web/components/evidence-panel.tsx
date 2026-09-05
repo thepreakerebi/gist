@@ -63,6 +63,17 @@ function Savings({ metrics }: { metrics: Metrics }) {
   );
 }
 
+/**
+ * A frame with no speech and no on-screen text still needs a readable label.
+ * Left blank the row looks broken, when in fact the frame itself is the
+ * evidence — so say that, and let the clip below carry the content.
+ */
+function describeEvidence(item: SelectedEvidence): string {
+  return item.modality === "audio"
+    ? "Audio with no transcribed speech"
+    : "Frame selected on visual match — no on-screen text";
+}
+
 function EvidenceItem({ item, clip }: { item: SelectedEvidence; clip?: Clip }) {
   const [open, setOpen] = useState(false);
 
@@ -95,11 +106,9 @@ function EvidenceItem({ item, clip }: { item: SelectedEvidence; clip?: Clip }) {
               </span>
             )}
           </span>
-          {item.text && (
-            <span className="mt-1 line-clamp-2 block text-[13px] leading-relaxed text-muted-foreground">
-              {item.text}
-            </span>
-          )}
+          <span className="mt-1 line-clamp-2 block text-[13px] leading-relaxed text-muted-foreground">
+            {item.text || describeEvidence(item)}
+          </span>
         </span>
       </button>
 
@@ -115,7 +124,9 @@ function EvidenceItem({ item, clip }: { item: SelectedEvidence; clip?: Clip }) {
               <>
                 <video
                   key={clip.url}
-                  src={apiUrl(clip.url)}
+                  // Cached clips are static files served by Next under
+                  // /cached-runs/; only live clips go through the API host.
+                  src={clip.url.startsWith("/cached-runs/") ? clip.url : apiUrl(clip.url)}
                   controls
                   preload="metadata"
                   playsInline
