@@ -112,6 +112,15 @@ def main(argv: list[str] | None = None) -> int:
         help="Transcript quality preset used by --auto-transcript-retry.",
     )
     parser.add_argument("--adaptive-budget", action="store_true")
+    parser.add_argument(
+        "--tail-merging",
+        action="store_true",
+        help="Fold the redundant unselected tail into bounded merged representatives "
+        "(ToMe-style bipartite soft matching, applied pre-encoder).",
+    )
+    parser.add_argument("--tail-merge-ratio", type=float, default=0.5)
+    parser.add_argument("--tail-merge-max-items", type=int, default=2)
+    parser.add_argument("--tail-merge-min-similarity", type=float, default=0.35)
     parser.add_argument("--decompose-query", action="store_true")
     parser.add_argument(
         "--no-visual-ocr",
@@ -324,6 +333,10 @@ def _run_pipeline_pass(
         whisper_beam_size=args.whisper_beam_size,
         whisper_max_windows=args.whisper_max_windows,
         adaptive_budget=args.adaptive_budget,
+        tail_merging=args.tail_merging,
+        tail_merge_ratio=args.tail_merge_ratio,
+        tail_merge_max_items=args.tail_merge_max_items,
+        tail_merge_min_similarity=args.tail_merge_min_similarity,
         decompose_query=args.decompose_query,
         task_aware_selection=True,
         visual_ocr=not args.no_visual_ocr,

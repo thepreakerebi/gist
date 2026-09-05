@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from gist.core.decomposition import (
     QueryAspect,
@@ -22,6 +22,7 @@ from gist.core.scoring import (
     unique_token_count,
     z_scores,
 )
+from gist.core.tail_merging import TailMergeGroup, merge_tail
 from gist.core.temporal_query import parse_temporal_query, rank_temporal_pairs
 from gist.core.token_estimation import estimate_tokens
 
@@ -54,6 +55,8 @@ class ScoredCandidate:
     temporal_anchor_score: float | None
     temporal_target_score: float | None
     temporal_direction: str | None
+    merged_from_ids: tuple[str, ...] = ()
+    merge_similarity: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -84,7 +87,13 @@ class GistCompressor:
 
         query_aspects = self._query_aspects_for(request)
         scored = self._score_candidates(request, query_aspects)
-        preset, selections, expansion_reason = self._select_for_budget(request, scored)
+        (
+            preset,
+            selections,
+            expansion_reason,
+            budget_stages_used,
+            budget_stage_reasons,
+        ) = self._select_for_budget(request, scored)
 
         return self._build_response(
             request=request,
@@ -94,52 +103,69 @@ class GistCompressor:
             budget_mode="adaptive" if request.adaptive_budget else "fixed",
             budget_expanded=expansion_reason is not None,
             expansion_reason=expansion_reason,
+            budget_stages_used=budget_stages_used,
+            budget_stage_reasons=budget_stage_reasons,
         )
+
+    # Confidence-routed budget ladder. Escalation is bounded to three stages so
+    # that worst-case cost stays finite while the amortized cost stays close to
+    # the aggressive preset — most queries never leave stage 1.
+    BUDGET_LADDER: tuple[CompressionPreset, ...] = (
+        CompressionPreset.AGGRESSIVE,
+        CompressionPreset.BALANCED,
+        CompressionPreset.CONSERVATIVE,
+    )
 
     def _select_for_budget(
         self,
         request: CompressionRequest,
         scored: list[ScoredCandidate],
-    ) -> tuple[CompressionPreset, list[Selection], str | None]:
-        if not request.adaptive_budget:
-            return (
-                request.preset,
-                self._select_with_preset(
-                    request.preset,
-                    scored,
-                    request.query,
-                    request.query_intent if request.task_aware_selection else None,
-                    coverage_heuristics=request.coverage_heuristics,
-                ),
-                None,
-            )
-
-        aggressive = self._select_with_preset(
-            CompressionPreset.AGGRESSIVE,
-            scored,
-            request.query,
-            request.query_intent if request.task_aware_selection else None,
-            coverage_heuristics=request.coverage_heuristics,
-        )
-        should_expand, reason = self._should_expand_budget(aggressive)
-        if not should_expand:
-            return CompressionPreset.AGGRESSIVE, aggressive, None
-
-        expanded_preset = (
-            CompressionPreset.CONSERVATIVE
-            if request.preset == CompressionPreset.CONSERVATIVE
-            else CompressionPreset.BALANCED
-        )
-        return (
-            expanded_preset,
-            self._select_with_preset(
-                expanded_preset,
+    ) -> tuple[CompressionPreset, list[Selection], str | None, int, list[str]]:
+        def select(preset: CompressionPreset) -> list[Selection]:
+            return self._select_with_preset(
+                preset,
                 scored,
                 request.query,
                 request.query_intent if request.task_aware_selection else None,
                 coverage_heuristics=request.coverage_heuristics,
-            ),
-            reason,
+                tail_merging=request.tail_merging,
+                tail_merge_ratio=request.tail_merge_ratio,
+                tail_merge_max_items=request.tail_merge_max_items,
+                tail_merge_min_similarity=request.tail_merge_min_similarity,
+            )
+
+        if not request.adaptive_budget:
+            return request.preset, select(request.preset), None, 1, []
+
+        # The caller's preset is the ceiling: adaptive routing may spend up to it,
+        # never past it, so an explicit budget request is still an upper bound.
+        ceiling = self.BUDGET_LADDER.index(request.preset)
+        ladder = self.BUDGET_LADDER[: ceiling + 1] or (request.preset,)
+
+        # ``expansion_reason`` stays the bare trigger for the last escalation, so
+        # existing consumers keep reading it unchanged; the staged list carries
+        # the full escalation trail for the three-stage ladder.
+        raw_reasons: list[str] = []
+        staged_reasons: list[str] = []
+        preset = ladder[0]
+        selections = select(preset)
+        for stage, next_preset in enumerate(ladder[1:], start=2):
+            should_expand, reason = self._should_expand_budget(selections)
+            if not should_expand:
+                break
+            if reason is not None:
+                raw_reasons.append(reason)
+                staged_reasons.append(f"stage {stage}: {reason}")
+            preset = next_preset
+            selections = select(preset)
+
+        stages_used = ladder.index(preset) + 1
+        return (
+            preset,
+            selections,
+            raw_reasons[-1] if raw_reasons else None,
+            stages_used,
+            staged_reasons,
         )
 
     def _select_with_preset(
@@ -149,6 +175,10 @@ class GistCompressor:
         query: str,
         query_intent: QueryIntent | None,
         coverage_heuristics: bool = True,
+        tail_merging: bool = False,
+        tail_merge_ratio: float = 0.5,
+        tail_merge_max_items: int = 2,
+        tail_merge_min_similarity: float = 0.35,
     ) -> list[Selection]:
         config = PRESETS[preset]
         all_scored = scored
@@ -216,7 +246,82 @@ class GistCompressor:
                     candidates=scored,
                     max_items=config.max_items,
                 )
+        if tail_merging:
+            selections = self._append_tail_merges(
+                selections=selections,
+                candidates=scored,
+                temporal_sigma_seconds=config.temporal_sigma_seconds,
+                merge_ratio=tail_merge_ratio,
+                max_groups=tail_merge_max_items,
+                min_similarity=tail_merge_min_similarity,
+            )
         return selections
+
+    def _append_tail_merges(
+        self,
+        selections: list[Selection],
+        candidates: list[ScoredCandidate],
+        temporal_sigma_seconds: float,
+        merge_ratio: float,
+        max_groups: int,
+        min_similarity: float,
+    ) -> list[Selection]:
+        """Fold the redundant unselected tail into bounded merged representatives.
+
+        The MMR head is never touched — merging what the selector already judged
+        most relevant is precisely the failure mode ToMe warns against. Only the
+        tail (everything MMR passed over) is eligible, and the merged groups are
+        appended under their own hard ceiling so merging can never inflate the
+        evidence budget it exists to protect.
+        """
+
+        selected_ids = {selection.candidate.id for selection in selections}
+        tail = [candidate for candidate in candidates if candidate.id not in selected_ids]
+        if len(tail) < 2:
+            return selections
+
+        groups = merge_tail(
+            tail,
+            merge_ratio=merge_ratio,
+            max_groups=max_groups,
+            min_similarity=min_similarity,
+            temporal_sigma_seconds=temporal_sigma_seconds,
+        )
+        if not groups:
+            return selections
+
+        by_id = {candidate.id: candidate for candidate in tail}
+        merged: list[Selection] = []
+        for offset, group in enumerate(groups, start=1):
+            representative = by_id[group.representative_id]
+            merged.append(
+                Selection(
+                    candidate=self._as_merged_candidate(representative, group),
+                    selection_rank=len(selections) + offset,
+                    # A merged group is a summary of the tail, not an MMR winner;
+                    # scoring it as one would corrupt the reranking order.
+                    mmr_score=representative.normalized_score,
+                    reason=(
+                        f"tail-merged {group.size} redundant "
+                        f"{group.modality.value} candidates "
+                        f"(mean similarity {group.similarity:.2f})"
+                    ),
+                )
+            )
+        return [*selections, *merged]
+
+    def _as_merged_candidate(
+        self,
+        representative: ScoredCandidate,
+        group: TailMergeGroup,
+    ) -> ScoredCandidate:
+        return replace(
+            representative,
+            timestamp_seconds=group.timestamp_seconds,
+            text=group.text,
+            merged_from_ids=group.merged_ids,
+            merge_similarity=group.similarity,
+        )
 
     def _preserve_opening_visual_candidate(
         self,
@@ -362,6 +467,8 @@ class GistCompressor:
         budget_mode: str,
         budget_expanded: bool,
         expansion_reason: str | None,
+        budget_stages_used: int = 1,
+        budget_stage_reasons: list[str] | None = None,
     ) -> CompressionResponse:
         input_count = len(request.visual_candidates) + len(request.audio_candidates)
         selected_count = len(selections)
@@ -402,6 +509,9 @@ class GistCompressor:
                     relevance_score=selection.candidate.relevance_score,
                     normalized_score=selection.candidate.normalized_score,
                     mmr_score=selection.mmr_score,
+                    merged_from_ids=list(selection.candidate.merged_from_ids),
+                    merged_from_count=len(selection.candidate.merged_from_ids),
+                    merge_similarity=selection.candidate.merge_similarity,
                     source_score_type=selection.candidate.source_score_type,
                     reason=selection.reason,
                 )
@@ -426,6 +536,14 @@ class GistCompressor:
                 budget_preset_used=preset,
                 budget_expanded=budget_expanded,
                 expansion_reason=expansion_reason,
+                budget_stages_used=budget_stages_used,
+                budget_stage_reasons=list(budget_stage_reasons or []),
+                tail_merged_groups=sum(
+                    bool(item.candidate.merged_from_ids) for item in selections
+                ),
+                tail_merged_candidates=sum(
+                    len(item.candidate.merged_from_ids) for item in selections
+                ),
                 estimated_baseline_tokens=token_estimate.baseline_tokens,
                 estimated_compressed_tokens=token_estimate.compressed_tokens,
                 estimated_saved_tokens=token_estimate.saved_tokens,

@@ -67,6 +67,9 @@ class SelectedCandidate(BaseModel):
     support_label: str | None = None
     grounding_label: str | None = None
     grounding_reason: str | None = None
+    merged_from_ids: list[str] = Field(default_factory=list)
+    merged_from_count: int = 0
+    merge_similarity: float | None = None
     source_score_type: str
     reason: str
 
@@ -84,6 +87,14 @@ class CompressionRequest(BaseModel):
     # structurally-justified opening + temporal-pair preservation. On by default to
     # preserve behaviour; set False to A/B whether they carry signal or just overfit.
     coverage_heuristics: bool = True
+    # ToMe-style tail merging (Bolya et al., 2023) adapted pre-encoder: hard-keep
+    # the MMR head untouched, then fold the redundant tail into a bounded number
+    # of merged representatives instead of discarding it. Off by default so it is
+    # independently ablatable.
+    tail_merging: bool = False
+    tail_merge_ratio: Annotated[float, Field(ge=0.0, le=1.0)] = 0.5
+    tail_merge_max_items: Annotated[int, Field(ge=0)] = 2
+    tail_merge_min_similarity: Annotated[float, Field(ge=0.0, le=1.0)] = 0.35
     query_intent: QueryIntent | None = None
     routing_reason: str | None = None
     visual_candidates: list[Candidate] = Field(default_factory=list)
@@ -112,6 +123,11 @@ class CompressionMetrics(BaseModel):
     budget_preset_used: CompressionPreset
     budget_expanded: bool = False
     expansion_reason: str | None = None
+    # Confidence-routed budget ladder: 1 = aggressive only, 3 = fully escalated.
+    budget_stages_used: int = 1
+    budget_stage_reasons: list[str] = Field(default_factory=list)
+    tail_merged_groups: int = 0
+    tail_merged_candidates: int = 0
     estimated_baseline_tokens: int = 0
     estimated_raw_baseline_tokens: int | None = None
     estimated_compressed_tokens: int = 0
