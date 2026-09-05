@@ -26,6 +26,7 @@ from gist.db import connection as db
 from gist.db import repository as repo
 from gist.api.demo import _load_api_key
 from gist.gateway.hosted_answerer import answer_with_hosted_llm
+from gist.gateway.twelvelabs import ClipSource, answer_with_twelvelabs
 from gist.gateway.schemas import GatewayRequest
 from gist.library import ingest as ingest_service
 from gist.library import media
@@ -53,7 +54,7 @@ class AddVideoRequest(BaseModel):
 
 class QueryRequest(BaseModel):
     query: str = Field(min_length=1)
-    answerer: str = "openai"
+    answerer: str = "twelvelabs"
     preset: CompressionPreset = CompressionPreset.BALANCED
     adaptive_budget: bool = True
     decompose_query: bool = True
@@ -316,10 +317,11 @@ def _query_worker(
                 source_path=Path(record.source_path),
                 duration_seconds=record.duration_seconds,
             )
-            emit("clips", {"clips": [_clip_payload(record.id, clip) for clip in clips]})
+            clips = [_clip_payload(record.id, clip) for clip in clips]
+            emit("clips", {"clips": [_public_clip(clip) for clip in clips]})
 
         emit("stage", {"stage": "answering", "label": "Answering from the evidence"})
-        answer, provider = _answer(request, compression)
+        answer, provider = _answer(request, compression, clips)
 
         repo.append_message(
             conversation_id,
@@ -328,7 +330,7 @@ def _query_worker(
             answer_provider=provider,
             selected_evidence=[item.model_dump(mode="json") for item in compression.selected],
             metrics=compression.metrics.model_dump(mode="json"),
-            clips=[_clip_payload(record.id, clip) for clip in clips],
+            clips=[_public_clip(clip) for clip in clips],
         )
 
         emit(
@@ -337,7 +339,7 @@ def _query_worker(
                 "answer": answer,
                 "answer_provider": provider,
                 "metrics": compression.metrics.model_dump(mode="json"),
-                "clips": [_clip_payload(record.id, clip) for clip in clips],
+                "clips": [_public_clip(clip) for clip in clips],
             },
         )
     except Exception as exc:  # noqa: BLE001 - reported to the client
@@ -346,7 +348,32 @@ def _query_worker(
         emit("__end__", {})
 
 
-def _answer(request: QueryRequest, compression: Any) -> tuple[str | None, str | None]:
+def _answer(
+    request: QueryRequest,
+    compression: Any,
+    clips: list[dict[str, Any]],
+) -> tuple[str | None, str | None]:
+    if request.answerer == "twelvelabs":
+        # Pegasus is video-native, so it receives Gist's selected spans as an
+        # actual video rather than a montage of stills — the audio the selector
+        # chose survives the hand-off. It never sees the full recording.
+        try:
+            response = answer_with_twelvelabs(
+                GatewayRequest(query=compression.query, compression=compression),
+                clips=[
+                    ClipSource(
+                        path=Path(clip["_path"]),
+                        start_seconds=clip["start_seconds"],
+                        end_seconds=clip["end_seconds"],
+                    )
+                    for clip in clips
+                    if clip.get("_path")
+                ],
+            )
+            return response.answer, response.provider
+        except Exception as exc:  # noqa: BLE001
+            return f"(TwelveLabs unavailable: {exc})", None
+
     if request.answerer not in {"openai", "claude"}:
         # Extractive: the compressor already produced an answer from the
         # selected evidence, with no hosted model involved.
@@ -379,10 +406,20 @@ def _candidate_point(candidate: Any, modality: str) -> dict[str, Any]:
 
 
 def _clip_payload(video_id: str, clip: dict[str, Any]) -> dict[str, Any]:
+    """Shape a clip for the client, keeping its local path for the answerer.
+
+    ``_path`` is stripped before anything is persisted or streamed; it exists
+    only so the TwelveLabs gateway can read the files it must upload.
+    """
+
     payload = dict(clip)
     payload["url"] = f"/v1/library/videos/{video_id}/clips/{Path(clip['path']).name}"
-    payload.pop("path", None)
+    payload["_path"] = payload.pop("path", None)
     return payload
+
+
+def _public_clip(clip: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in clip.items() if not key.startswith("_")}
 
 
 @library_router.get("/videos/{video_id}/clips/{name}")
