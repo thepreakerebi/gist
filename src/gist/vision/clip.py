@@ -97,6 +97,44 @@ class HuggingFaceClipFrameScorer:
 
         return embeddings
 
+    def embed_text(self, text: str) -> list[float]:
+        """Embed a query into CLIP's shared space, for comparison with stored frames.
+
+        The counterpart to :meth:`embed_frames`: ingestion persists the image
+        tower's output once, and each later query only pays for this.
+        """
+
+        if not text.strip():
+            raise ValueError("text must not be blank")
+
+        self._load()
+        assert self._model is not None
+        assert self._processor is not None
+        assert self._torch is not None
+
+        # Must match score_frames' prompt template exactly. CLIP is highly
+        # sensitive to phrasing, and a stored-embedding score has to be
+        # numerically identical to the live path or the two disagree on ranking.
+        inputs = self._processor(
+            text=[f"a video frame showing: {text.strip()}"],
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        )
+        inputs = {key: value.to(self._model.device) for key, value in inputs.items()}
+
+        with self._torch.no_grad():
+            # _feature_tensor for the same reason embed_frames uses it: recent
+            # transformers wraps the projected features in an output object, and
+            # both towers must be unwrapped identically or the stored frame
+            # vectors and the query vector land in different spaces.
+            text_embeds = _normalize(
+                _feature_tensor(self._model.get_text_features(**inputs)),
+                self._torch,
+            )
+
+        return [float(value) for value in text_embeds[0].tolist()]
+
     def _load(self) -> None:
         if self._model is not None and self._processor is not None and self._torch is not None:
             return
