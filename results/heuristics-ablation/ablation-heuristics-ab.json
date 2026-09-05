@@ -1,0 +1,4582 @@
+{
+  "cases": 39,
+  "summaries": {
+    "full_gist": {
+      "mode": "full_gist",
+      "label": "Full Gist (audio+visual)",
+      "cases": 39,
+      "passed": 27,
+      "pass_rate": 0.6923076923076923,
+      "avg_answer_term_recall": 0.811965811965812,
+      "avg_evidence_term_coverage": 0.82991452991453,
+      "avg_evidence_relevance_rate": 0.8632478632478632,
+      "avg_timestamp_hit_rate": 0.8205128205128205,
+      "avg_grounded_evidence_rate": 0.9038461538461539,
+      "avg_token_reduction_percent": 99.83754510407987,
+      "avg_selected_evidence": 1.3076923076923077
+    },
+    "full_gist_no_heuristics": {
+      "mode": "full_gist_no_heuristics",
+      "label": "Full Gist, coverage heuristics OFF",
+      "cases": 39,
+      "passed": 26,
+      "pass_rate": 0.6666666666666666,
+      "avg_answer_term_recall": 0.7863247863247863,
+      "avg_evidence_term_coverage": 0.8042735042735043,
+      "avg_evidence_relevance_rate": 0.8589743589743589,
+      "avg_timestamp_hit_rate": 0.7948717948717948,
+      "avg_grounded_evidence_rate": 0.9166666666666666,
+      "avg_token_reduction_percent": 99.8381761556386,
+      "avg_selected_evidence": 1.2820512820512822
+    },
+    "visual_only": {
+      "mode": "visual_only",
+      "label": "Visual-only retrieval",
+      "cases": 39,
+      "passed": 16,
+      "pass_rate": 0.41025641025641024,
+      "avg_answer_term_recall": 0.4957264957264957,
+      "avg_evidence_term_coverage": 0.5136752136752137,
+      "avg_evidence_relevance_rate": 0.5876068376068376,
+      "avg_timestamp_hit_rate": 0.5384615384615384,
+      "avg_grounded_evidence_rate": 0.6666666666666666,
+      "avg_token_reduction_percent": 99.51911576793786,
+      "avg_selected_evidence": 2.41025641025641
+    },
+    "transcript_only": {
+      "mode": "transcript_only",
+      "label": "Transcript-only retrieval",
+      "cases": 39,
+      "passed": 10,
+      "pass_rate": 0.2564102564102564,
+      "avg_answer_term_recall": 0.37435897435897436,
+      "avg_evidence_term_coverage": 0.38290598290598293,
+      "avg_evidence_relevance_rate": 0.40170940170940167,
+      "avg_timestamp_hit_rate": 0.3333333333333333,
+      "avg_grounded_evidence_rate": 0.4700854700854701,
+      "avg_token_reduction_percent": 99.98406411331335,
+      "avg_selected_evidence": 0.6410256410256411
+    },
+    "score_topk": {
+      "mode": "score_topk",
+      "label": "Score top-k (relevance only)",
+      "cases": 39,
+      "passed": 10,
+      "pass_rate": 0.2564102564102564,
+      "avg_answer_term_recall": 0.3888888888888889,
+      "avg_evidence_term_coverage": 0.41025641025641024,
+      "avg_evidence_relevance_rate": 0.47863247863247865,
+      "avg_timestamp_hit_rate": 0.38461538461538464,
+      "avg_grounded_evidence_rate": 0.9743589743589743,
+      "avg_token_reduction_percent": 99.75473193731472,
+      "avg_selected_evidence": 1.3076923076923077
+    },
+    "uniform": {
+      "mode": "uniform",
+      "label": "Uniform sampling",
+      "cases": 39,
+      "passed": 6,
+      "pass_rate": 0.15384615384615385,
+      "avg_answer_term_recall": 0.3004273504273504,
+      "avg_evidence_term_coverage": 0.3388888888888889,
+      "avg_evidence_relevance_rate": 0.5192307692307693,
+      "avg_timestamp_hit_rate": 0.2692307692307692,
+      "avg_grounded_evidence_rate": 0.9230769230769231,
+      "avg_token_reduction_percent": 99.79302240650428,
+      "avg_selected_evidence": 1.3076923076923077
+    }
+  },
+  "results": [
+    {
+      "case_id": "paul-graham-startup-killer",
+      "query_category": "speech_semantic",
+      "domain": "startup education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Startups fail when they make something that users don't like.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "paul-graham-yc-support",
+      "query_category": "global_summary",
+      "domain": "startup education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 0.66"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 0.66"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 0.66"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.3333333333333333,
+          "evidence_term_coverage": 0.3333333333333333,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Founders that have been through their program is well in excess of 4,000 people the valuation of their portfolio of startups is a massive 100 billion dollar portfolio which includes Reddit stripe drop box on one of my favorites Airbnb have all Spend their formative early days with Paul Graham at white combinator I mean, you know, I think chat.",
+          "failures": [
+            "answer term recall 0.33 below required 1.00",
+            "evidence term coverage 0.33 below required 1.00",
+            "timestamp hit rate 0.00 below required 0.75"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "tears-of-steel-robot-hand-fear",
+      "query_category": "speech_semantic",
+      "domain": "narrative film",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.6666666666666666,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.6666666666666666,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.76329099035522,
+          "selected_evidence": 3,
+          "visual_evidence": 2,
+          "audio_evidence": 2,
+          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
+          "failures": [
+            "answer term recall 0.67 below required 1.00",
+            "evidence relevance rate 0.67 below required 1.00",
+            "selected evidence 3 exceeds limit 1"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.6666666666666666,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95295224653023,
+          "selected_evidence": 2,
+          "visual_evidence": 1,
+          "audio_evidence": 2,
+          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
+          "failures": [
+            "answer term recall 0.67 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81033874382497,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.6666666666666666,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95295224653023,
+          "selected_evidence": 2,
+          "visual_evidence": 1,
+          "audio_evidence": 2,
+          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
+          "failures": [
+            "answer term recall 0.67 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.6666666666666666,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.6666666666666666,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.76329099035522,
+          "selected_evidence": 3,
+          "visual_evidence": 1,
+          "audio_evidence": 2,
+          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
+          "failures": [
+            "answer term recall 0.67 below required 1.00",
+            "evidence relevance rate 0.67 below required 1.00",
+            "selected evidence 3 exceeds limit 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.6666666666666666,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.92942836979535,
+          "selected_evidence": 3,
+          "visual_evidence": 1,
+          "audio_evidence": 3,
+          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
+          "failures": [
+            "answer term recall 0.67 below required 1.00",
+            "selected evidence 3 exceeds limit 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "tears-of-steel-robotics-space",
+      "query_category": "speech_semantic",
+      "domain": "narrative film",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.62067748764997,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81033874382497,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "You have your robotics, and I just want to be awesome in space.",
+          "failures": []
+        }
+      }
+    },
+    {
+      "case_id": "kinect-opening-title",
+      "query_category": "visual_object_action",
+      "domain": "developer technology",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 8.15 seconds: Y) KINECT 4 Ds) | Oo QO = a 9 Amer be 4",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 8.15 seconds: Y) KINECT 4 Ds) | Oo QO = a 9 Amer be 4",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 8.15 seconds: Y) KINECT 4 Ds) | Oo QO = a 9 Amer be 4",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2705.96 seconds: XS - re —alf",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "visual frame sampled at 0.00 seconds",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "kinect-person-demo",
+      "query_category": "mixed_av",
+      "domain": "developer technology",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97656982193065,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "I think the companies like Nintendo were starting to think about the ergonomics of the controller a little.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97656982193065,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "I think the companies like Nintendo were starting to think about the ergonomics of the controller a little.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.05547094657919,
+          "selected_evidence": 5,
+          "visual_evidence": 5,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "selected evidence 5 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97656982193065,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "I think the companies like Nintendo were starting to think about the ergonomics of the controller a little.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "Visual evidence shows does presenter say about demonstration showing person skeleton from 2950.47s to 2974.92s.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97656982193065,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "I think the companies like Nintendo were starting to think about the ergonomics of the controller a little.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "kinect-post-interface-title",
+      "query_category": "temporal_before_after",
+      "domain": "developer technology",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.62218837863168,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2355.49 seconds: Pacts TE Smee a) o SIGGRAPH Talks 2011 KinectFusion: ' & hee Real-Time Dynamic 3D Surface Shahram lai 1, Richard Newcombe 2, avié Kim 1.3, Oma Milige David Mclynesus 1.4 Pushmeet Keil 1.",
+          "failures": [
+            "evidence relevance rate 0.50 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.62218837863168,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2355.49 seconds: Pacts TE Smee a) o SIGGRAPH Talks 2011 KinectFusion: ' & hee Real-Time Dynamic 3D Surface Shahram lai 1, Richard Newcombe 2, avié Kim 1.3, Oma Milige David Mclynesus 1.4 Pushmeet Keil 1.",
+          "failures": [
+            "evidence relevance rate 0.50 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.62218837863168,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2355.49 seconds: Pacts TE Smee a) o SIGGRAPH Talks 2011 KinectFusion: ' & hee Real-Time Dynamic 3D Surface Shahram lai 1, Richard Newcombe 2, avié Kim 1.3, Oma Milige David Mclynesus 1.4 Pushmeet Keil 1.",
+          "failures": [
+            "evidence relevance rate 0.50 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.62218837863168,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "visual frame sampled at 1344.83 seconds",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.62218837863168,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 423.82 seconds: Shs : =",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-opening-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal stitute of Technology Zurich Blo-nsored Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 1 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal stitute of Technology Zurich Blo-nsored Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 1 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal stitute of Technology Zurich Blo-nsored Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 1 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 914.49 seconds: Course Evaluation = — Course ‘ 8.15 10am Lecture wnat *10 diam Cxercise ' at ut +e",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal stitute of Technology Zurich Blo-nsored Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 1 Lecturer: Fumiya lida",
+          "failures": []
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-opening-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-next-week",
+      "query_category": "temporal_before_after",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4748.27 seconds: SBIRU— Next Week 5",
+          "failures": [
+            "evidence relevance rate 0.50 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4748.27 seconds: SBIRU— Next Week 5",
+          "failures": [
+            "evidence relevance rate 0.50 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4748.27 seconds: SBIRU— Next Week 5",
+          "failures": [
+            "evidence relevance rate 0.50 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 739.07 seconds: ed Locomotion in Nature Coun 1m dl Dominant fc gravity ‘ t Numt rs",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "selected evidence 2 exceeds limit 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-after-opening-title",
+      "query_category": "temporal_before_after",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.2,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 111.37 seconds: ™ aoe EBIRL —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.20 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.2,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 111.37 seconds: ™ aoe EBIRL —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.20 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.2,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 111.37 seconds: ™ aoe EBIRL —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.20 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 0.50",
+            "visual evidence 0 below required 2"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 3685.23 seconds: Sprig mt",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.2,
+          "evidence_term_coverage": 0.2,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": [
+            "answer term recall 0.20 below required 1.00",
+            "evidence term coverage 0.20 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-global-summary",
+      "query_category": "global_summary",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.5,
+          "token_reduction_percent": 99.74146996961906,
+          "selected_evidence": 4,
+          "visual_evidence": 3,
+          "audio_evidence": 3,
+          "answer": "The video covers: sensors and control; power.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.57641972423463,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 2,
+          "answer": "20 of the lecture.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.3333333333333333,
+          "evidence_term_coverage": 0.3333333333333333,
+          "evidence_relevance_rate": 0.25,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.24631923346577,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 0,
+          "answer": "The video covers: control; biology, legged locomotion, and bio-inspired robotics.",
+          "failures": [
+            "answer term recall 0.33 below required 1.00",
+            "evidence term coverage 0.33 below required 1.00",
+            "evidence relevance rate 0.25 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 2"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.6666666666666666,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.3333333333333333,
+          "token_reduction_percent": 99.92989016125263,
+          "selected_evidence": 3,
+          "visual_evidence": 2,
+          "audio_evidence": 3,
+          "answer": "The video covers: sensors and control; power.",
+          "failures": [
+            "grounded evidence rate 0.33 below required 0.50"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.24631923346577,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 2"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.6666666666666666,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.5,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.24631923346577,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.67 below required 1.00",
+            "timestamp hit rate 0.50 below required 1.00",
+            "audio evidence 0 below required 2"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-global-summary",
+      "query_category": "global_summary",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.75,
+          "token_reduction_percent": 99.57858637526157,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 2,
+          "answer": "The video covers: Legged Locomotion and Conceptual Models; Legged Locomotion in Nature; Characterization of Locomotion.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.75,
+          "token_reduction_percent": 99.57858637526157,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 2,
+          "answer": "The video covers: Legged Locomotion and Conceptual Models; Legged Locomotion in Nature; Characterization of Locomotion.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.25017437805161,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 0,
+          "answer": "The video covers: Legged Locomotion and Conceptual Models; Legged Locomotion in Nature; Characterization of Locomotion.",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.93024877935363,
+          "selected_evidence": 3,
+          "visual_evidence": 3,
+          "audio_evidence": 3,
+          "answer": "The video covers: been talking details over year relation going; models, systems, and biology; you interested you can see your you.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.25",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.25017437805161,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.75,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.25017437805161,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "tears-of-steel-robotics-space-robot-hand",
+      "query_category": "mixed_av",
+      "domain": "narrative film",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "...be tender to her.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "...be tender to her.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.86203246294988,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.86% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "...be tender to her.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81033874382497,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81033874382497,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "tears-of-steel-robot-hand-visible-question",
+      "query_category": "mixed_av",
+      "domain": "narrative film",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647612326512,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.86203246294988,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.86% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95295224653023,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 2,
+          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
+          "failures": [
+            "selected evidence 2 exceeds limit 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.5,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81033874382497,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "Visual evidence shows does woman ask while her robot hand visible near 1103.98 seconds.",
+          "failures": [
+            "answer term recall 0.50 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.5,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81033874382497,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "Visual evidence shows does woman ask while her robot hand visible near 50.18 seconds.",
+          "failures": [
+            "answer term recall 0.50 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "paul-graham-startup-ideas-unconsciously",
+      "query_category": "speech_semantic",
+      "domain": "startup education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "One, learn a lot about things that matter. Two, work on problems that interest you. Three, with people you like and respect.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-chapter-1-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2347.76 seconds: Chapter 1: Why Bio-Inspired Motor Control?",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2347.76 seconds: Chapter 1: Why Bio-Inspired Motor Control?",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2347.76 seconds: Chapter 1: Why Bio-Inspired Motor Control?",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1222.24 seconds: Chapter 1 Why Bio-Inspired Motor Control?",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.75,
+          "evidence_term_coverage": 0.75,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal stitute of Technology Zurich Blo-nsored Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 1 Lecturer: Fumiya lida",
+          "failures": [
+            "answer term recall 0.75 below required 1.00",
+            "evidence term coverage 0.75 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-conceptual-models-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1609.76 seconds: Conceptual Models of Legged Locomotion",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1609.76 seconds: Conceptual Models of Legged Locomotion",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1609.76 seconds: Conceptual Models of Legged Locomotion",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.5,
+          "evidence_term_coverage": 0.5,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 121.49 seconds: Biology-Robotics Loop on Legged Locomotion Studies Bio: Inspirathon, Biological Modols Biology Robotics Biological Tat Robotics dé Understanding v Technologic ™\\ ™~ t synthe tole ti",
+          "failures": [
+            "answer term recall 0.50 below required 1.00",
+            "evidence term coverage 0.50 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-agenda-after-title",
+      "query_category": "temporal_before_after",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.16666666666666666,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 111.37 seconds: ™ aoe EBIRL —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.17 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.16666666666666666,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 111.37 seconds: ™ aoe EBIRL —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.17 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.16666666666666666,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 111.37 seconds: ™ aoe EBIRL —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.17 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 0.50",
+            "visual evidence 0 below required 2"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 3685.23 seconds: Sprig mt",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.16666666666666666,
+          "evidence_term_coverage": 0.16666666666666666,
+          "evidence_relevance_rate": 0.5,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.6250871890258,
+          "selected_evidence": 2,
+          "visual_evidence": 2,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": [
+            "answer term recall 0.17 below required 1.00",
+            "evidence term coverage 0.17 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-characterization-modelling-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.5,
+          "evidence_term_coverage": 0.5,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 222.73 seconds: Today: Lecture 2 Legged Locomotion and Cont eptual Models * Legged Locomotion in Nature * Characterization of Locomotion * Model ' I Walking ° Mode for Runnit",
+          "failures": [
+            "answer term recall 0.50 below required 1.00",
+            "evidence term coverage 0.50 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-further-reading-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 283.48 seconds: a F f",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-legged-locomotion-nature-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 303.73 seconds: Legged Locomotion in Nature",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 303.73 seconds: Legged Locomotion in Nature",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 303.73 seconds: Legged Locomotion in Nature",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 222.73 seconds: Today: Lecture 2 Legged Locomotion and Cont eptual Models * Legged Locomotion in Nature * Characterization of Locomotion * Model ' I Walking ° Mode for Runnit",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.6666666666666666,
+          "evidence_term_coverage": 0.6666666666666666,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 121.49 seconds: Biology-Robotics Loop on Legged Locomotion Studies Bio: Inspirathon, Biological Modols Biology Robotics Biological Tat Robotics dé Understanding v Technologic ™\\ ™~ t synthe tole ti",
+          "failures": [
+            "answer term recall 0.67 below required 1.00",
+            "evidence term coverage 0.67 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-equations-motion-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2055.22 seconds: How To Make Equations of Motion",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2055.22 seconds: How To Make Equations of Motion",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2055.22 seconds: How To Make Equations of Motion",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2055.22 seconds: How To Make Equations of Motion",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 941.56 seconds: Chara }",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-sense-think-act-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 8.79 seconds: 151-0653-00L Bio-Inspired Motor Control tue ‘ < j ' —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-behavior-based-robotics-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.3333333333333333,
+          "evidence_term_coverage": 0.3333333333333333,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal stitute of Technology Zurich Blo-nsored Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 1 Lecturer: Fumiya lida",
+          "failures": [
+            "answer term recall 0.33 below required 1.00",
+            "evidence term coverage 0.33 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-biology-robotics-loop-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2400.52 seconds: Biology-Robotics Loop Biology Robotics ie!",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2400.52 seconds: Biology-Robotics Loop Biology Robotics ie!",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2400.52 seconds: Biology-Robotics Loop Biology Robotics ie!",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2400.52 seconds: Biology-Robotics Loop Biology Robotics ie!",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.3333333333333333,
+          "evidence_term_coverage": 0.3333333333333333,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal stitute of Technology Zurich Blo-nsored Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 1 Lecturer: Fumiya lida",
+          "failures": [
+            "answer term recall 0.33 below required 1.00",
+            "evidence term coverage 0.33 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-02-conceptual-models-legged-locomotion-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1609.76 seconds: Conceptual Models of Legged Locomotion",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1609.76 seconds: Conceptual Models of Legged Locomotion",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1609.76 seconds: Conceptual Models of Legged Locomotion",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.5,
+          "evidence_term_coverage": 0.5,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 121.49 seconds: Biology-Robotics Loop on Legged Locomotion Studies Bio: Inspirathon, Biological Modols Biology Robotics Biological Tat Robotics dé Understanding v Technologic ™\\ ™~ t synthe tole ti",
+          "failures": [
+            "answer term recall 0.50 below required 1.00",
+            "evidence term coverage 0.50 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-course-overview-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 483.62 seconds: Course Overview —— —— ct ——",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 483.62 seconds: Course Overview —— —— ct ——",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 483.62 seconds: Course Overview —— —— ct ——",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 483.62 seconds: Course Overview —— —— ct ——",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 8.79 seconds: 151-0653-00L Bio-Inspired Motor Control tue ‘ < j ' —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-objectives-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 8.79 seconds: 151-0653-00L Bio-Inspired Motor Control tue ‘ < j ' —",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "bio-motor-control-lecture-01-course-evaluation-title",
+      "query_category": "visual_object_action",
+      "domain": "robotics education",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 791.38 seconds: Course Evaluation",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 791.38 seconds: Course Evaluation",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 791.38 seconds: Course Evaluation",
+          "failures": []
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 100.0,
+          "selected_evidence": 0,
+          "visual_evidence": 0,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "visual evidence 0 below required 1"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 791.38 seconds: Course Evaluation",
+          "failures": []
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 43.97 seconds: Ce 151-0653-001t Bio-Inspired Motor Control alll =",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "night-of-the-living-dead-nasa-conference",
+      "query_category": "speech_semantic",
+      "domain": "narrative film",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "now tells us that the emergency presidential conference, which we've just mentioned, will include high-ranking scientists from the National Aeronautics and Space Administration.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "now tells us that the emergency presidential conference, which we've just mentioned, will include high-ranking scientists from the National Aeronautics and Space Administration.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.66867005701957,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "now tells us that the emergency presidential conference, which we've just mentioned, will include high-ranking scientists from the National Aeronautics and Space Administration.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.66867005701957,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.66867005701957,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "night-of-the-living-dead-killings-locations",
+      "query_category": "speech_semantic",
+      "domain": "narrative film",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The murders are taking place in villages, cities, rural homes, and suburbs with no apparent pattern or reason for the slaying.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The murders are taking place in villages, cities, rural homes, and suburbs with no apparent pattern or reason for the slaying.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.01202034211744,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.01% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The murders are taking place in villages, cities, rural homes, and suburbs with no apparent pattern or reason for the slaying.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.66867005701957,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.66867005701957,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "nasa-sts115-p3p4-truss-newest-element",
+      "query_category": "speech_semantic",
+      "domain": "space mission briefing",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Finishing up their work on the newest element of the International Space Station, the P3 and P4 Trust segments.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Finishing up their work on the newest element of the International Space Station, the P3 and P4 Trust segments.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.16666666666666666,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.86149682278183,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.17 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.86% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": false,
+          "answer_term_recall": 0.6,
+          "evidence_term_coverage": 0.6,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The International Space Station flying high above the west",
+          "failures": [
+            "answer term recall 0.60 below required 1.00",
+            "evidence term coverage 0.60 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81024947046365,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.6,
+          "evidence_term_coverage": 0.6,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "relation to that of the International Space Station.",
+          "failures": [
+            "answer term recall 0.60 below required 1.00",
+            "evidence term coverage 0.60 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "nasa-sts115-solar-wing-dimensions",
+      "query_category": "speech_semantic",
+      "domain": "space mission briefing",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "each solar wing measures 38 feet wide and a hundred seven feet long.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "each solar wing measures 38 feet wide and a hundred seven feet long.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.86149682278183,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.86% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "each solar wing measures 38 feet wide and a hundred seven feet long.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81024947046365,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81024947046365,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "yale-financial-markets-behavioral-finance",
+      "query_category": "speech_semantic",
+      "domain": "finance lecture",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765203099319,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Today's lecture is about behavioral finance, and this is a term that emerged in the public consciousness around the mid 1990s before that it was unknown.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765203099319,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Today's lecture is about behavioral finance, and this is a term that emerged in the public consciousness around the mid 1990s before that it was unknown.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.86416999295609,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.86% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765203099319,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Today's lecture is about behavioral finance, and this is a term that emerged in the public consciousness around the mid 1990s before that it was unknown.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81069499882601,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765203099319,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Today's lecture is about behavioral finance, and this is a term that emerged in the public consciousness around the mid 1990s before that it was unknown.",
+          "failures": []
+        }
+      }
+    },
+    {
+      "case_id": "history-augustus-birthplace-palatine",
+      "query_category": "speech_semantic",
+      "domain": "history documentary",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The man known to history, as Caesar Augustus, was born on the 23rd of September 63 BC, on the Palatine Hill, in the city of Rome, the capital of the Ben Roman Republic.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The man known to history, as Caesar Augustus, was born on the 23rd of September 63 BC, on the Palatine Hill, in the city of Rome, the capital of the Ben Roman Republic.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 99.81029411764706,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The man known to history, as Caesar Augustus, was born on the 23rd of September 63 BC, on the Palatine Hill, in the city of Rome, the capital of the Ben Roman Republic.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81029411764706,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The man known to history, as Caesar Augustus, was born on the 23rd of September 63 BC, on the Palatine Hill, in the city of Rome, the capital of the Ben Roman Republic.",
+          "failures": []
+        }
+      }
+    },
+    {
+      "case_id": "medicine-anatomy-peripheral-nervous-system",
+      "query_category": "speech_semantic",
+      "domain": "medicine",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The peripheral nervous system can be divided into the somatic nervous system and the autonomic nervous system.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The peripheral nervous system can be divided into the somatic nervous system and the autonomic nervous system.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.86176470588235,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.86% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The peripheral nervous system can be divided into the somatic nervous system and the autonomic nervous system.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81029411764706,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Here are some of the major systems of the human body, skeletal system, muscular system, cardiovascular system, nervous system, respiratory system.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "manufacturing-crayon-packing",
+      "query_category": "speech_semantic",
+      "domain": "manufacturing",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97655883731834,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The factory programs the machine to collect a certain number of crayons in specific colors, according to the type of pack in production.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97655883731834,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The factory programs the machine to collect a certain number of crayons in specific colors, according to the type of pack in production.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 0.0,
+          "token_reduction_percent": 98.86603375527426,
+          "selected_evidence": 6,
+          "visual_evidence": 6,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "grounded evidence rate 0.00 below required 1.00",
+            "token reduction 98.87% below required 99.00%",
+            "selected evidence 6 exceeds limit 1",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97655883731834,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The factory programs the machine to collect a certain number of crayons in specific colors, according to the type of pack in production.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81100562587905,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97655883731834,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "They classify the steel balls according to size.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "art-history-high-renaissance-big-three",
+      "query_category": "speech_semantic",
+      "domain": "art history",
+      "outcomes": {
+        "full_gist": {
+          "mode": "full_gist",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765478424015,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "proper or the chink-de-chenta with a discussion of the big three Leonardo Miguel Angelo and Raphael and their contemporaries at the dawn of the high renaissance.",
+          "failures": []
+        },
+        "full_gist_no_heuristics": {
+          "mode": "full_gist_no_heuristics",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765478424015,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "proper or the chink-de-chenta with a discussion of the big three Leonardo Miguel Angelo and Raphael and their contemporaries at the dawn of the high renaissance.",
+          "failures": []
+        },
+        "visual_only": {
+          "mode": "visual_only",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.3333333333333333,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81091697936209,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.33 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "transcript_only": {
+          "mode": "transcript_only",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765478424015,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "proper or the chink-de-chenta with a discussion of the big three Leonardo Miguel Angelo and Raphael and their contemporaries at the dawn of the high renaissance.",
+          "failures": []
+        },
+        "score_topk": {
+          "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81091697936209,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "uniform": {
+          "mode": "uniform",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765478424015,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "proper or the chink-de-chenta with a discussion of the big three Leonardo Miguel Angelo and Raphael and their contemporaries at the dawn of the high renaissance.",
+          "failures": []
+        }
+      }
+    }
+  ]
+}
