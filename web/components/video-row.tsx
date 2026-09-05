@@ -4,6 +4,7 @@ import { AlertCircle, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
+import { VideoPlayerModal } from "@/components/video-player-modal";
 import type { Video } from "@/lib/library";
 import { deleteVideo, formatDuration } from "@/lib/library";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,11 @@ import { cn } from "@/lib/utils";
  * A list rather than a grid of identical cards: rows scan faster, keep the
  * thumbnail at a consistent size, and leave the page's visual weight with the
  * heading and the add field instead of scattering it across tiles.
+ *
+ * The row has two distinct targets — the thumbnail plays the source video, the
+ * text opens the chat. They are siblings rather than nested, because an
+ * interactive element inside a link is invalid HTML and behaves unpredictably
+ * with keyboard and middle-click.
  */
 export function VideoRow({
   video,
@@ -23,12 +29,11 @@ export function VideoRow({
   onRemoved?: (id: string) => void;
 }) {
   const [removing, setRemoving] = useState(false);
+  const [playing, setPlaying] = useState(false);
   const ready = video.status === "ready";
   const failed = video.status === "failed";
 
-  async function remove(event: React.MouseEvent) {
-    event.preventDefault();
-    event.stopPropagation();
+  async function remove() {
     if (removing) return;
     setRemoving(true);
     try {
@@ -39,19 +44,49 @@ export function VideoRow({
     }
   }
 
-  const body = (
-    <>
-      <Thumbnail video={video} />
+  return (
+    <li
+      className={cn(
+        "group/row flex items-center gap-4 py-3.5 transition-opacity",
+        removing && "pointer-events-none opacity-40",
+      )}
+    >
+      {ready ? (
+        <button
+          type="button"
+          onClick={() => setPlaying(true)}
+          aria-label={`Play ${video.title}`}
+          className="group/play relative shrink-0 overflow-hidden rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <Thumbnail video={video} />
+          <span
+            className="absolute inset-0 grid place-items-center bg-black/0 transition-colors group-hover/play:bg-black/45"
+            aria-hidden
+          >
+            <Play className="size-6 fill-white text-white opacity-0 transition-opacity group-hover/play:opacity-100" />
+          </span>
+        </button>
+      ) : (
+        <div className="shrink-0">
+          <Thumbnail video={video} />
+        </div>
+      )}
 
       <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            "truncate text-[15px] font-medium leading-snug",
-            !ready && "text-muted-foreground",
-          )}
-        >
-          {video.title}
-        </p>
+        {ready ? (
+          <Link
+            href={`/v/${video.id}`}
+            className="rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            <p className="truncate text-[15px] font-medium leading-snug hover:underline underline-offset-4">
+              {video.title}
+            </p>
+          </Link>
+        ) : (
+          <p className="truncate text-[15px] font-medium leading-snug text-muted-foreground">
+            {video.title}
+          </p>
+        )}
 
         {ready ? (
           <p className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
@@ -71,56 +106,39 @@ export function VideoRow({
         )}
       </div>
 
-      {ready && (
-        <Play
-          className="size-4 shrink-0 text-muted-foreground/60 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground"
-          aria-hidden
-        />
-      )}
-    </>
-  );
-
-  const shell = cn(
-    "group flex items-center gap-4 py-3.5 transition-opacity",
-    removing && "pointer-events-none opacity-40",
-  );
-
-  return (
-    <li className="relative">
-      {ready ? (
-        <Link
-          href={`/v/${video.id}`}
-          className={cn(
-            shell,
-            "rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-          )}
-        >
-          {body}
-        </Link>
-      ) : (
-        <div className={shell}>{body}</div>
-      )}
-
       {onRemoved && (
         <button
           type="button"
           onClick={remove}
           aria-label={`Remove ${video.title}`}
           className={cn(
-            "absolute right-7 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground/0 transition-colors",
-            "group-hover:text-muted-foreground hover:!text-destructive",
+            "shrink-0 rounded p-1.5 text-transparent transition-colors",
+            "group-hover/row:text-muted-foreground hover:!text-destructive",
             "focus-visible:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
           )}
         >
           <Trash2 className="size-3.5" aria-hidden />
         </button>
       )}
+
+      {ready && (
+        <VideoPlayerModal
+          videoId={video.id}
+          title={video.title}
+          open={playing}
+          onClose={() => setPlaying(false)}
+        />
+      )}
     </li>
   );
 }
 
 function Dot() {
-  return <span className="text-border" aria-hidden>·</span>;
+  return (
+    <span className="text-border" aria-hidden>
+      ·
+    </span>
+  );
 }
 
 function Thumbnail({ video }: { video: Video }) {
@@ -128,7 +146,7 @@ function Thumbnail({ video }: { video: Video }) {
   return (
     <div
       className={cn(
-        "relative aspect-video w-24 shrink-0 overflow-hidden rounded bg-muted sm:w-28",
+        "relative aspect-video w-24 overflow-hidden rounded bg-muted sm:w-28",
         !ready && "opacity-60",
       )}
     >

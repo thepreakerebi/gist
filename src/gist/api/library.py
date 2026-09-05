@@ -440,6 +440,23 @@ def get_clip(video_id: str, name: str) -> FileResponse:
     return FileResponse(path, media_type="video/mp4")
 
 
+@library_router.get("/videos/{video_id}/source")
+def get_source(video_id: str) -> FileResponse:
+    """Serve the retained source video for in-library playback.
+
+    FileResponse handles range requests, which is what lets the player scrub a
+    long recording instead of downloading it whole before it can start.
+    """
+
+    _require_db()
+    record = repo.get_video(video_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="video not found")
+    if not record.source_path or not Path(record.source_path).exists():
+        raise HTTPException(status_code=404, detail="source video is no longer on disk")
+    return FileResponse(record.source_path, media_type="video/mp4")
+
+
 @library_router.get("/videos/{video_id}/frames/{name}")
 def get_frame(video_id: str, name: str) -> FileResponse:
     """Serve a sampled frame image referenced by selected evidence."""
