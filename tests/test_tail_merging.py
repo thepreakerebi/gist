@@ -174,3 +174,55 @@ def test_tail_merging_leaves_the_hard_kept_head_intact() -> None:
 
     head = {item.id for item in baseline.selected}
     assert head <= {item.id for item in merged.selected}, "merging must not evict the MMR head"
+
+
+# --- OCR plausibility gate (library ingestion) -------------------------------
+
+
+@pytest.mark.parametrize(
+    "noise",
+    [
+        '| _"! el ae Ey " Se (a* 268 Coal bss se a =e \'o~ - 7 4 ey ae) a #',
+        '~~ Hep (me ae --- A --) " =~ = -" - & ae 2',
+        "_-- + ys all <= alia au se = --- -",
+        # Tesseract noise is *alphabetic*, which is why an "is it letters?" gate
+        # let all of these through; what separates them is token shape.
+        "Te: ast sexy ss >",
+        "se cle tall ol Seay 7 a aoe a ae",
+        "z Te dou wa tpt Pen = a=",
+        "Ppa tee ase i Beer a i Ele oe",
+        "Kt ie & a cater ead - -- Nae",
+        "a",
+        "",
+    ],
+)
+def test_ocr_noise_is_discarded(noise: str) -> None:
+    """Tesseract on a frame with no text returns confident-looking garbage.
+
+    Left in, it shows up as evidence text in the UI and pollutes the lexical
+    fallback the selector uses when an encoder is unavailable.
+    """
+
+    from gist.library.ingest import _plausible_ocr_text
+
+    assert _plausible_ocr_text(noise) is None
+
+
+@pytest.mark.parametrize(
+    "real",
+    [
+        "Behavior-Based Robotics",
+        "Sense Think Act Control Scheme",
+        "Chapter 1: Why Bio-Inspired Motor Control?",
+        "Further reading materials",
+        # Short function words are legitimate in real titles and must not count
+        # against the short-token share.
+        "Legged Locomotion in Nature",
+        "How to make equations of motion",
+        "Conceptual Models of Legged Locomotion",
+    ],
+)
+def test_real_slide_text_survives(real: str) -> None:
+    from gist.library.ingest import _plausible_ocr_text
+
+    assert _plausible_ocr_text(real) == real

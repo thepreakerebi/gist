@@ -39,6 +39,11 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-signal-soft: var(--signal-soft);
+  --color-signal-line: var(--signal-line);
+  --color-dropped: var(--dropped);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,73 +54,136 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  color-scheme: light;
+  /* Neutrals are tinted toward a cool slate (hue 255) rather than achromatic.
+     Pure grey reads as "unfinished template"; a shared hue across every
+     surface is what makes an interface feel like one designed object. */
+  --background: oklch(0.988 0.0025 255);
+  --foreground: oklch(0.205 0.014 258);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.205 0.014 258);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.205 0.014 258);
+  --primary: oklch(0.245 0.018 258);
+  --primary-foreground: oklch(0.985 0.003 255);
+  --secondary: oklch(0.962 0.004 255);
+  --secondary-foreground: oklch(0.285 0.016 258);
+  --muted: oklch(0.965 0.004 255);
+  --muted-foreground: oklch(0.523 0.014 258);
+  --accent: oklch(0.955 0.006 255);
+  --accent-foreground: oklch(0.245 0.018 258);
+  --destructive: oklch(0.545 0.2 25);
+  --border: oklch(0.912 0.005 255);
+  --input: oklch(0.906 0.005 255);
+  --ring: oklch(0.63 0.17 47);
+
+  /* The signal colour. Reserved exclusively for evidence that SURVIVED
+     selection — never for chrome, never decorative. Warm against the cool
+     neutral field so the survivors read instantly at a glance. */
+  --signal: oklch(0.63 0.17 47);
+  --signal-foreground: oklch(0.99 0.004 60);
+  --signal-soft: oklch(0.93 0.045 60);
+  --signal-line: oklch(0.78 0.11 52);
+
+  /* Candidates that were scored and then dropped. Deliberately close to the
+     background: after the collapse they should be present but recede. */
+  --dropped: oklch(0.855 0.006 255);
+
+  --radius: 0.5rem;
+  --sidebar: oklch(0.972 0.004 255);
+  --sidebar-foreground: oklch(0.205 0.014 258);
+  --sidebar-primary: oklch(0.245 0.018 258);
+  --sidebar-primary-foreground: oklch(0.985 0.003 255);
+  --sidebar-accent: oklch(0.955 0.006 255);
+  --sidebar-accent-foreground: oklch(0.245 0.018 258);
+  --sidebar-border: oklch(0.912 0.005 255);
+  --sidebar-ring: oklch(0.63 0.17 47);
 }
 
+
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark is a system-preference fallback, not the intended look: same hues,
+     inverted lightness, and the signal colour lifted just enough to stay
+     legible without glowing. */
+  --background: oklch(0.178 0.011 258);
+  --foreground: oklch(0.945 0.004 255);
+  --card: oklch(0.212 0.013 258);
+  --card-foreground: oklch(0.945 0.004 255);
+  --popover: oklch(0.212 0.013 258);
+  --popover-foreground: oklch(0.945 0.004 255);
+  --primary: oklch(0.925 0.005 255);
+  --primary-foreground: oklch(0.212 0.013 258);
+  --secondary: oklch(0.262 0.014 258);
+  --secondary-foreground: oklch(0.945 0.004 255);
+  --muted: oklch(0.258 0.013 258);
+  --muted-foreground: oklch(0.685 0.012 258);
+  --accent: oklch(0.272 0.015 258);
+  --accent-foreground: oklch(0.945 0.004 255);
+  --destructive: oklch(0.65 0.18 25);
+  --border: oklch(0.985 0.004 255 / 12%);
+  --input: oklch(0.985 0.004 255 / 16%);
+  --ring: oklch(0.7 0.15 52);
+
+  --signal: oklch(0.72 0.15 52);
+  --signal-foreground: oklch(0.18 0.02 50);
+  --signal-soft: oklch(0.33 0.06 50);
+  --signal-line: oklch(0.6 0.12 50);
+  --dropped: oklch(0.33 0.011 258);
+
+  --sidebar: oklch(0.196 0.012 258);
+  --sidebar-foreground: oklch(0.945 0.004 255);
+  --sidebar-primary: oklch(0.925 0.005 255);
+  --sidebar-primary-foreground: oklch(0.212 0.013 258);
+  --sidebar-accent: oklch(0.272 0.015 258);
+  --sidebar-accent-foreground: oklch(0.945 0.004 255);
+  --sidebar-border: oklch(0.985 0.004 255 / 12%);
+  --sidebar-ring: oklch(0.7 0.15 52);
 }
+
+/* Same tokens from the system preference, so the page matches the OS on a
+   projector with no toggle. An explicit .light class still wins. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    /* Dark is a system-preference fallback, not the intended look: same hues,
+       inverted lightness, and the signal colour lifted just enough to stay
+       legible without glowing. */
+    --background: oklch(0.178 0.011 258);
+    --foreground: oklch(0.945 0.004 255);
+    --card: oklch(0.212 0.013 258);
+    --card-foreground: oklch(0.945 0.004 255);
+    --popover: oklch(0.212 0.013 258);
+    --popover-foreground: oklch(0.945 0.004 255);
+    --primary: oklch(0.925 0.005 255);
+    --primary-foreground: oklch(0.212 0.013 258);
+    --secondary: oklch(0.262 0.014 258);
+    --secondary-foreground: oklch(0.945 0.004 255);
+    --muted: oklch(0.258 0.013 258);
+    --muted-foreground: oklch(0.685 0.012 258);
+    --accent: oklch(0.272 0.015 258);
+    --accent-foreground: oklch(0.945 0.004 255);
+    --destructive: oklch(0.65 0.18 25);
+    --border: oklch(0.985 0.004 255 / 12%);
+    --input: oklch(0.985 0.004 255 / 16%);
+    --ring: oklch(0.7 0.15 52);
+
+    --signal: oklch(0.72 0.15 52);
+    --signal-foreground: oklch(0.18 0.02 50);
+    --signal-soft: oklch(0.33 0.06 50);
+    --signal-line: oklch(0.6 0.12 50);
+    --dropped: oklch(0.33 0.011 258);
+
+    --sidebar: oklch(0.196 0.012 258);
+    --sidebar-foreground: oklch(0.945 0.004 255);
+    --sidebar-primary: oklch(0.925 0.005 255);
+    --sidebar-primary-foreground: oklch(0.212 0.013 258);
+    --sidebar-accent: oklch(0.272 0.015 258);
+    --sidebar-accent-foreground: oklch(0.945 0.004 255);
+    --sidebar-border: oklch(0.985 0.004 255 / 12%);
+    --sidebar-ring: oklch(0.7 0.15 52);
+    color-scheme: dark;
+  }
+}
+
 
 @layer base {
   * {
@@ -126,5 +194,32 @@
   }
   html {
     @apply font-sans;
+  }
+}
+@layer base {
+  /* Timestamps, scores and counts sit in columns all over this interface;
+     proportional figures make them jitter as values change. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+}
+
+@layer utilities {
+  /* Exponential deceleration. Real objects slow down like this; bounce and
+     elastic easings read as decorative. */
+  .ease-out-expo {
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

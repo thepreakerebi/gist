@@ -1,21 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Instrument_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
+// Instrument Sans: a grotesque with slightly narrow, geometric forms and a
+// genuinely good tabular figure set — which matters here, because half the
+// interface is timestamps and scores that need to align in columns.
+const instrumentSans = Instrument_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Gist — training-free audio-visual compression",
+  title: "Gist",
   description:
-    "Watch Gist score every frame and audio window against your query and keep only a small salient set before the encoders run.",
+    "Ask questions about hours of video. Gist scores every frame and audio window against your question and keeps only the few that answer it.",
 };
 
 export default function RootLayout({
@@ -27,9 +26,14 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
+      // Light is the intended look. The .light class wins over the
+      // prefers-color-scheme block in globals.css, so a dark OS setting no
+      // longer flips the page.
+      className={`light ${instrumentSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        {children}
+      </body>
     </html>
   );
 }
