@@ -10,6 +10,10 @@ the candidate pool fixed, so the only thing that varies is the selection input:
                           versus the hand-tuned coverage rules.
 - ``visual_only``     -- the real compressor with audio candidates removed.
 - ``transcript_only`` -- the real compressor with visual candidates removed.
+- ``split_even`` / ``split_intent`` -- allocate an explicit per-modality budget
+                          FIRST and rank within each modality, which is the shape
+                          OmniScope, Macer and OmniDelta use. Isolates Gist's
+                          standardise-then-pool choice against split-then-rank.
 - ``uniform``         -- query-agnostic uniform temporal sampling at the same
                           budget the full Gist run selected for that case.
 
@@ -36,10 +40,12 @@ from gist.core.evidence_pruning import (
     prune_weakly_grounded_evidence,
 )
 from gist.core.modes import AudioScoringMode, VisualScoringMode
+from gist.core.query_intent import QueryIntent, route_query_intent
 from gist.core.quality_gate import apply_quality_gate
-from gist.core.presets import CompressionPreset
+from gist.core.presets import PRESETS, CompressionPreset
 from gist.core.schemas import (
     Candidate,
+    Modality,
     CompressionMetrics,
     CompressionRequest,
     CompressionResponse,
@@ -62,6 +68,9 @@ MODES = (
     "visual_only",
     "transcript_only",
     "score_topk",
+    "split_even",
+    "split_intent",
+    "split_intent_sep",
     "uniform",
 )
 
@@ -71,6 +80,9 @@ MODE_LABELS = {
     "visual_only": "Visual-only retrieval",
     "transcript_only": "Transcript-only retrieval",
     "score_topk": "Score top-k (relevance only)",
+    "split_even": "Split budget first, even halves",
+    "split_intent": "Split budget first, intent-aware",
+    "split_intent_sep": "Split budget + separate scoring (diagnostic)",
     "uniform": "Uniform sampling",
 }
 
@@ -362,6 +374,144 @@ def _score_topk_mode(
     return _extractive_answer(response)
 
 
+# --- Split-budget allocation (the OmniScope / Macer / OmniDelta shape) ------
+#
+# Gist standardises both modalities against their own distributions and then
+# runs ONE pooled competition for the whole budget. Several 2026 omni-modal
+# methods do the opposite: they allocate an explicit per-modality budget first
+# and then rank within each modality. These two modes implement that shape so
+# the choice can be measured rather than argued.
+#
+# Everything else is held identical -- same candidate pool, same scoring, same
+# z-scores, same MMR, same coverage heuristics, same total budget. The ONLY
+# thing that varies is whether the two modalities compete with each other or
+# are ranked separately inside pre-assigned shares. Neither rule is trained;
+# both are fixed policies, which is the point.
+
+_AUDIO_LEANING_INTENTS = {QueryIntent.SPEECH_SEMANTIC, QueryIntent.SOUND_EVENT}
+_VISUAL_LEANING_INTENTS = {
+    QueryIntent.VISUAL_OBJECT_ACTION,
+    QueryIntent.COUNTING_COMPARISON,
+}
+
+
+def _allocate_split(budget: int, query: str, rule: str) -> tuple[int, int]:
+    """Return (visual_budget, audio_budget) summing to ``budget``.
+
+    ``even``   -- the naive bento box: halve the budget.
+    ``intent`` -- intent-aware allocation, the OmniDelta shape: lean the split
+                  toward whichever modality the question is asking about.
+
+    Both guarantee at least one slot per modality when the budget allows it;
+    that guaranteed representation is the whole reason to split.
+    """
+    budget = max(budget, 1)
+    if budget == 1:
+        if rule == "intent":
+            intent, _ = route_query_intent(query)
+            if intent in _AUDIO_LEANING_INTENTS:
+                return 0, 1
+        return 1, 0
+
+    if rule == "even":
+        visual = budget // 2
+    else:
+        intent, _ = route_query_intent(query)
+        if intent in _AUDIO_LEANING_INTENTS:
+            visual = max(1, round(budget / 3))
+        elif intent in _VISUAL_LEANING_INTENTS:
+            visual = min(budget - 1, round(2 * budget / 3))
+        else:
+            visual = budget // 2
+    visual = max(1, min(visual, budget - 1))
+    return visual, budget - visual
+
+
+def _split_budget_mode(
+    compressor: GistCompressor,
+    request_template: CompressionRequest,
+    visual: list[Candidate],
+    audio: list[Candidate],
+    budget: int,
+    rule: str,
+    preset: CompressionPreset,
+    raw_candidate_count: int,
+    raw_visual_count: int,
+    raw_audio_count: int,
+    separate_scoring: bool = False,
+) -> CompressionResponse:
+    """Allocate the budget per modality first, then rank within each.
+
+    ``separate_scoring=False`` (the headline comparison) scores the FULL pool
+    once, so z-scores and cross-modal audio-visual anchoring are identical to
+    full Gist, and only the *selection* is split into two per-modality
+    competitions. That isolates allocation as the single variable.
+
+    ``separate_scoring=True`` additionally scores each modality in isolation,
+    which is a fuller architectural separation but conflates allocation with
+    the loss of cross-modal anchoring. Kept as a diagnostic, not as the answer.
+    """
+    visual_budget, audio_budget = _allocate_split(budget, request_template.query, rule)
+    request = request_template.model_copy(
+        update={"visual_candidates": visual, "audio_candidates": audio}
+    )
+    config = PRESETS[preset]
+
+    def rank_within(pool: list, max_items: int) -> list:
+        if max_items <= 0 or not pool:
+            return []
+        return compressor._select_with_mmr(
+            candidates=pool,
+            max_items=max_items,
+            relevance_weight=config.relevance_weight,
+            temporal_sigma_seconds=config.temporal_sigma_seconds,
+        )
+
+    selections: list = []
+    if separate_scoring:
+        for modality_visual, modality_audio, share in (
+            (visual, [], visual_budget),
+            ([], audio, audio_budget),
+        ):
+            if share <= 0 or not (modality_visual or modality_audio):
+                continue
+            sub_request = request.model_copy(
+                update={"visual_candidates": modality_visual, "audio_candidates": modality_audio}
+            )
+            scored = compressor._score_candidates(
+                sub_request, compressor._query_aspects_for(sub_request)
+            )
+            selections.extend(rank_within(scored, share))
+    else:
+        scored = compressor._score_candidates(request, compressor._query_aspects_for(request))
+        visual_pool = [item for item in scored if item.modality == Modality.VISUAL]
+        audio_pool = [item for item in scored if item.modality == Modality.AUDIO]
+        selections.extend(rank_within(visual_pool, visual_budget))
+        selections.extend(rank_within(audio_pool, audio_budget))
+
+    selections.sort(key=lambda sel: (sel.candidate.timestamp_seconds, sel.candidate.id))
+    response = compressor._build_response(
+        request=request,
+        preset=preset,
+        query_aspects=compressor._query_aspects_for(request),
+        selections=selections,
+        budget_mode=f"split_{rule}" + ("_sep" if separate_scoring else ""),
+        budget_expanded=False,
+        expansion_reason=None,
+        budget_stages_used=1,
+        budget_stage_reasons=[],
+    )
+    response = _with_raw_reduction_metrics(
+        compression=response,
+        raw_candidate_count=raw_candidate_count,
+        raw_visual_count=raw_visual_count,
+        raw_audio_count=raw_audio_count,
+    )
+    # Finalised exactly like full Gist: these are Gist selections, just allocated
+    # differently, so withholding the same answer pipeline would confound the test.
+    return _finalize_gist(response)
+
+
 def _mode_outcome(mode: str, result: QualityResult) -> ModeOutcome:
     return ModeOutcome(
         mode=mode,
@@ -469,6 +619,33 @@ def run_ablation_case(
         raw_candidate_count,
         raw_visual_count,
         raw_audio_count,
+    )
+    _split_preset = responses["full_gist"].metrics.budget_preset_used
+    for _rule in ("even", "intent"):
+        responses[f"split_{_rule}"] = _split_budget_mode(
+            compressor,
+            request_template,
+            candidates.visual,
+            candidates.audio,
+            shared_budget,
+            _rule,
+            _split_preset,
+            raw_candidate_count,
+            raw_visual_count,
+            raw_audio_count,
+        )
+    responses["split_intent_sep"] = _split_budget_mode(
+        compressor,
+        request_template,
+        candidates.visual,
+        candidates.audio,
+        shared_budget,
+        "intent",
+        _split_preset,
+        raw_candidate_count,
+        raw_visual_count,
+        raw_audio_count,
+        separate_scoring=True,
     )
     responses["uniform"] = _uniform_mode(
         request_template,
