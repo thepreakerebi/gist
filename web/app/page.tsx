@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AddVideo } from "@/components/add-video";
 import { VideoRow } from "@/components/video-row";
 import type { Video } from "@/lib/library";
-import { listVideos, streamIngestion } from "@/lib/library";
+import { addVideo, deleteVideo, listVideos, streamIngestion } from "@/lib/library";
 
 export default function LibraryPage() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -41,6 +41,25 @@ export default function LibraryPage() {
       }).catch(() => watching.current.delete(id));
     },
     [upsert],
+  );
+
+  const drop = useCallback((id: string) => {
+    setVideos((current) => current.filter((item) => item.id !== id));
+  }, []);
+
+  // Retry re-adds the same URL after discarding the failed record, rather than
+  // mutating it in place: ingestion state, artifacts and the conversation all
+  // hang off the row, and a clean record is easier to reason about than a
+  // half-populated one that failed partway through.
+  const retry = useCallback(
+    async (video: Video) => {
+      await deleteVideo(video.id);
+      drop(video.id);
+      const { video: fresh } = await addVideo(video.url);
+      upsert(fresh);
+      watch(fresh.id);
+    },
+    [drop, upsert, watch],
   );
 
   useEffect(() => {
@@ -138,7 +157,12 @@ export default function LibraryPage() {
         {working.length > 0 && (
           <ul className="mt-4 divide-y divide-border/70">
             {working.map((video) => (
-              <VideoRow key={video.id} video={video} />
+              <VideoRow
+                key={video.id}
+                video={video}
+                onRemoved={drop}
+                onRetry={retry}
+              />
             ))}
           </ul>
         )}
@@ -146,13 +170,7 @@ export default function LibraryPage() {
         {ready.length > 0 && (
           <ul className="mt-4 divide-y divide-border/70">
             {ready.map((video) => (
-              <VideoRow
-                key={video.id}
-                video={video}
-                onRemoved={(id) =>
-                  setVideos((current) => current.filter((item) => item.id !== id))
-                }
-              />
+              <VideoRow key={video.id} video={video} onRemoved={drop} />
             ))}
           </ul>
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Play, Trash2 } from "lucide-react";
+import { AlertCircle, Play, RotateCcw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -24,17 +24,37 @@ import { cn } from "@/lib/utils";
 export function VideoRow({
   video,
   onRemoved,
+  onRetry,
 }: {
   video: Video;
   onRemoved?: (id: string) => void;
+  onRetry?: (video: Video) => Promise<void>;
 }) {
   const [removing, setRemoving] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [playing, setPlaying] = useState(false);
   const ready = video.status === "ready";
   const failed = video.status === "failed";
 
+  // A failed row is the one case where the actions must be visible without
+  // hovering: the row is a dead end until the user acts on it, and an affordance
+  // that only appears on hover is one a person may never find. Ingestion most
+  // often fails because yt-dlp has gone stale against YouTube, which a retry
+  // fixes outright once it is updated.
+  const busy = removing || retrying;
+
+  async function retry() {
+    if (busy || !onRetry) return;
+    setRetrying(true);
+    try {
+      await onRetry(video);
+    } catch {
+      setRetrying(false);
+    }
+  }
+
   async function remove() {
-    if (removing) return;
+    if (busy) return;
     setRemoving(true);
     try {
       await deleteVideo(video.id);
@@ -48,7 +68,7 @@ export function VideoRow({
     <li
       className={cn(
         "group/row flex items-center gap-4 py-3.5 transition-opacity",
-        removing && "pointer-events-none opacity-40",
+        busy && "pointer-events-none opacity-40",
       )}
     >
       {ready ? (
@@ -106,19 +126,42 @@ export function VideoRow({
         )}
       </div>
 
-      {onRemoved && (
-        <button
-          type="button"
-          onClick={remove}
-          aria-label={`Remove ${video.title}`}
-          className={cn(
-            "shrink-0 rounded p-1.5 text-transparent transition-colors",
-            "group-hover/row:text-muted-foreground hover:!text-destructive",
-            "focus-visible:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+      {(onRetry || onRemoved) && (
+        <div className="flex shrink-0 items-center gap-0.5">
+          {failed && onRetry && (
+            <button
+              type="button"
+              onClick={retry}
+              disabled={busy}
+              aria-label={`Retry ${video.title}`}
+              title="Try again"
+              className={cn(
+                "rounded p-1.5 text-muted-foreground transition-colors hover:text-foreground",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              )}
+            >
+              <RotateCcw className={cn("size-3.5", retrying && "animate-spin")} aria-hidden />
+            </button>
           )}
-        >
-          <Trash2 className="size-3.5" aria-hidden />
-        </button>
+          {onRemoved && (
+            <button
+              type="button"
+              onClick={remove}
+              disabled={busy}
+              aria-label={`Remove ${video.title}`}
+              title="Remove"
+              className={cn(
+                "rounded p-1.5 transition-colors hover:!text-destructive",
+                "focus-visible:text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                failed
+                  ? "text-muted-foreground"
+                  : "text-transparent group-hover/row:text-muted-foreground",
+              )}
+            >
+              <Trash2 className="size-3.5" aria-hidden />
+            </button>
+          )}
+        </div>
       )}
 
       {ready && (
