@@ -54,12 +54,11 @@ the case by roughly 29 points, which is why two rules were run.
 
 | Budget full Gist settled on | Cases |
 | :--- | ---: |
-| 1 item | 32 |
+| 1 item | 29 |
 | 2 items | 4 |
-| 3 items | 1 |
 | 4 items | 2 |
 
-**82% of cases select a single item.** At a budget of one, "splitting the budget"
+**83% of cases select a single item.** At a budget of one, "splitting the budget"
 degenerates into *committing to one modality before looking at the evidence*. That
 is the worst possible regime for split-then-rank and the best possible one for
 pooling, and it explains the mechanism directly: an even split at budget 1 always
