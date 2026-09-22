@@ -62,34 +62,52 @@ audio-visual benchmark reaches. Manifest: `data/eval/long-video-sources.json`.
 | The Quiet One (1948) documentary | 63.9 min | **unverified** |
 | NASA STS-115 post-flight briefing (2006) | 60.1 min | Public domain (US Gov) |
 
-### Tears of Steel is synthetic, and its smoke-test number is not a long-video result
+### Removed: the Tears of Steel loop
 
-`tears_of_steel_61min.webm` is **not a 61-minute recording**. It is the 12.2-minute
-Blender open movie concatenated exactly five times. Verified 2026-09-22:
-5 x 734.07 s = 3670.38 s, and the frames at t=734.07 and t=1468.15 are
-byte-identical, with t=0 matching the genuine 720p original.
+`tears_of_steel_61min.webm` was never a 61-minute recording. It was the
+12.2-minute Blender open movie concatenated exactly five times: 5 x 734.07 s =
+3670.38 s, with byte-identical frames at t=734.07 and t=1468.15. Verified and
+removed on 2026-09-22, along with its run artifacts and every evaluation case that
+ran against it.
 
-That makes the Tears of Steel smoke test -- 61.17 minutes, 99.98% token reduction,
-all gates passed -- **not usable as evidence about hour-long video**, and it should
-not be quoted as the project's longest end-to-end run. Four fifths of the content
-is literally duplicated, which is the most favourable possible input for any
-selector that removes redundancy. It is also the exact case Pillar 3's temporal
-gate exists to handle, so a high reduction figure there is close to what the
-design predicts rather than a finding.
+It was removed rather than relabelled because a looped video is the most
+favourable possible input for a selector that removes redundancy -- four fifths of
+the content is literally duplicated -- and because it is the exact case Pillar 3's
+temporal gate exists to handle. Any figure computed on it measures the loop, not
+long video.
 
-Keep the file. It is a legitimate and useful **duplication stress test**, and it is
-labelled `synthetic: true` with `counts_as_hour_plus: false` in the manifest. Just
-never count it as a recording.
+Two consequences:
 
-**A scoring hazard follows from the loop.** Several acceptance cases run against
-`.gist/runs/tears-of-steel-61min/`. One of them, `tears-robot-hand-entity`,
-annotates recurrences correctly -- its relevant ranges at 37, 340, 1090, 1510 and
-2560 seconds are the same two moments reappearing in later loops. But
-`tears-robotics-space` (15-30 s) and `tears-robot-hand-fear` (30-60 s) annotate
-only the first occurrence, although the same content recurs at +734 s, +1468 s and
-so on. If the selector picks a later copy, it is scored as a miss while being
-factually right. Re-annotate those two, or move them onto the 12-minute original,
-before either is cited.
+- **The "61.17 minutes, 99.98% token reduction" smoke test is withdrawn.** It is
+  not the project's longest end-to-end run and must not be quoted as one. The
+  longest genuine run is now whatever the 7-recording corpus produces.
+- **Nine evaluation cases were dropped** with it: 3 of 9 in
+  `gist-acceptance.jsonl`, 2 of 7 in `local-regression.jsonl`, and 4 of 39 in
+  `long-video-quality.jsonl`, which is the set the heuristics ablation ran on. See
+  "Results that need recomputing" below.
+
+The genuine 12.2-minute original (`tears_of_steel_720p.webm`, CC BY 3.0, Blender
+Foundation) is kept. It is a real short video and the cases that use it stand.
+
+### Results that need recomputing
+
+`long-video-quality.jsonl` went from 39 to 35 cases. Two committed results were
+computed on the 39-case version and each drew 4 of their cases from the loop:
+
+| Result | Status |
+| :----- | :----- |
+| `results/heuristics-ablation/` | computed at n=39; needs re-running at n=35 |
+| `results/split-budget-ablation/` | same |
+
+The committed JSON and Markdown under `results/` are left exactly as they are.
+They are the experimental record of what was run on the day, and rewriting them
+would be falsifying that record. They must be **re-run** and the new numbers
+published alongside, with a note that the earlier version included four cases from
+a duplicated video. Anything in the paper that cites either ablation is provisional
+until that happens.
+
+One silver lining: dropping four robotics-heavy cases slightly reduces the corpus
+skew the next section describes.
 
 ### Three problems to fix before this tier is defensible
 
@@ -200,7 +218,6 @@ Computed from `plan_ingestion` on 2026-09-22, not estimated:
 | :--- | ------: | :--- | -----: | -----: | ------: | ---------: |
 | Video-MME long, mean | 41.2 | medium | 256 | 10 s | 248 | 504 |
 | Video-MME long, ceiling | 60.0 | medium | 256 | 10 s | 360 | 616 |
-| Tears of Steel (synthetic loop) | 61.2 | long | 512 | 30 s | 123 | 635 |
 | Paul Graham | 67.4 | long | 512 | 30 s | 135 | 647 |
 | Kinect keynote | 69.5 | long | 512 | 30 s | 140 | 652 |
 | Bio-Inspired L01 | 75.0 | long | 512 | 30 s | 150 | 662 |

@@ -82,5 +82,12 @@
       "tears-of-steel-robotics-space-robot-hand",
       "yale-financial-markets-behavioral-finance"
     ]
+  },
+  "invalidated": {
+    "date": "2026-09-22",
+    "reason": "Four cases were removed from data/eval/long-video-quality.jsonl because they ran against tears_of_steel_61min.webm, which was the 12.2-minute Blender film concatenated five times rather than an hour-long recording. The dataset is now 35 cases, not the 39 this split was frozen over, so corpus_fingerprint no longer matches.",
+    "effect": "Both removed dev cases were the dev split's only mixed_av cases, so the dev side now covers four query categories while the held-out side still covers five. The design requirement that both sides cover every category is violated.",
+    "held_out_still_unexecuted": true,
+    "decision_required": "Either author replacement mixed_av cases and re-freeze, or re-freeze on the 35 cases and state that the split was re-frozen on 2026-09-22 after invalid cases were withdrawn. The held-out side has never been run, so re-freezing does not leak held-out information either way. Do not re-freeze silently: the 5 September freeze date is quoted in the defense brief."
   }
 }

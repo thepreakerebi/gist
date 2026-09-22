@@ -138,6 +138,16 @@ def test_split_partitions_every_case_exactly_once() -> None:
     assert len(held) + len(dev) == manifest["held_out"]["cases"] + manifest["dev"]["cases"]
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "Dev lost its only two mixed_av cases on 2026-09-22 when the tears-of-steel-61min "
+        "cases were withdrawn: that file was a 5x loop, not an hour-long recording. The "
+        "requirement stands and is deliberately not weakened. Restore mixed_av coverage on "
+        "the dev side, re-freeze the split, then delete this marker. See the invalidated "
+        "block in data/eval/splits/held-out.json."
+    ),
+)
 def test_both_sides_cover_every_query_category() -> None:
     manifest = build_manifest()
     assert set(manifest["held_out"]["categories"]) == set(manifest["dev"]["categories"])

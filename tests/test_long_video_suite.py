@@ -391,7 +391,7 @@ def test_long_video_proposal_label_supports_curation_paths(tmp_path: Path) -> No
         tmp_path
         / ".gist"
         / "curation"
-        / "tears-of-steel-61min"
+        / "sample-recording"
         / "query"
         / "compression.json",
         "internal-hash",
@@ -403,7 +403,7 @@ def test_long_video_proposal_label_supports_curation_paths(tmp_path: Path) -> No
         json.loads(artifact.read_text()),
     )
 
-    assert label == "tears-of-steel-61min"
+    assert label == "sample-recording"
 
 
 def test_long_video_curation_queue_reports_next_actions(tmp_path: Path) -> None:
