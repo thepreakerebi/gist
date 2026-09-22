@@ -106,13 +106,31 @@ From `src/gist/media/longform.py`. Mode is resolved from duration unless forced.
 In LONG mode the audio window widens to at least `ceil(duration / 240)` so window
 count stays capped at 240.
 
-Consequences worth stating in the paper:
+### Measured across both tiers
 
-- A **60-minute** video sits in MEDIUM: 256 frames + ~360 audio windows ≈ 616
-  candidates.
-- The **Tier 2 corpus (61–86 min) crosses into LONG**: 512 frames, 30 s windows.
-  The two tiers are therefore sampled differently, and any table mixing them must
-  say so.
+Computed from `plan_ingestion` on 2026-09-22, not estimated:
+
+| Case | Minutes | Mode | Frames | Window | Windows | Candidates |
+| :--- | ------: | :--- | -----: | -----: | ------: | ---------: |
+| Video-MME long, mean | 41.2 | medium | 256 | 10 s | 248 | 504 |
+| Video-MME long, ceiling | 60.0 | medium | 256 | 10 s | 360 | 616 |
+| Tears of Steel | 61.2 | long | 512 | 30 s | 123 | 635 |
+| Paul Graham | 67.4 | long | 512 | 30 s | 135 | 647 |
+| Kinect keynote | 69.5 | long | 512 | 30 s | 140 | 652 |
+| Bio-Inspired L01 | 75.0 | long | 512 | 30 s | 150 | 662 |
+| Bio-Inspired L02 | 86.4 | long | 512 | 30 s | 173 | 685 |
+
+Two consequences, and the first is better news than expected:
+
+1. **Total candidate count is near-flat across the tier boundary** — 504 to 685
+   across 41 to 86 minutes — because LONG doubles the frame budget while widening
+   the audio window. Visual sampling density is also near-constant, about one frame
+   per 10 seconds on both sides. Token-reduction percentages are therefore
+   comparable across tiers without adjustment.
+2. **Audio resolution is not comparable.** The window widens from 10 s to 30 s at
+   the boundary, so Tier 2 audio evidence is three times coarser in time. Any table
+   mixing the tiers must say so, and any claim about timestamp precision on audio
+   evidence has to be made per tier.
 
 ---
 
