@@ -8,7 +8,72 @@ Gist is an audio-visual context compression layer for video LLMs. The first impl
 - deterministic compression presets
 - API-ready response metadata for observability
 
-The current code does not pretend to run CLIP, CLAP, Whisper, or an Omni-LLM yet. Those are model adapters that will plug into the candidate-generation layer. This keeps the compression logic independently testable before expensive model integration.
+The compression core stays independently testable: CLIP, CLAP, Whisper and the downstream Omni-LLM sit behind model adapters outside the selector, so the selection logic can be tested without them. Those adapters are implemented — the web demo and the benchmark runs all score real media through them.
+
+## Capstone Submission — Initial Software Demonstration
+
+Submitted for ALU BSE Capstone, *Initial software product/solution demonstration* (due 2 October 2026). Everything in this section is a pointer into the rest of this README; nothing here is a summary that can drift from the code.
+
+**Repository:** https://github.com/thepreakerebi/gist
+
+**Description.** Gist is a training-free, plug-and-play audio-visual context compression layer for Omni/AV-LLMs. A user adds a video once; Gist ingests it into frames and audio windows, scores every candidate against the user's question with CLIP (visual), CLAP (sound) and Whisper (speech), arbitrates a joint visual/audio budget with z-score MMR and a temporal-diversity kernel, and passes only the surviving seconds of evidence to the answering model. The distinguishing property is *where* the compression sits: Gist drops candidates **before the encoders run**, so it reduces encoder FLOPs and peak memory rather than only decoder work. The surveyed field of training-free omni-modal methods compresses post-encoder.
+
+### How to set up the environment and run it
+
+Full detail is in [Quickstart](#quickstart); the two commands the demo needs are:
+
+```bash
+# 1. API (CPU is fine; all scoring falls back to CPU automatically)
+uv run uvicorn gist.api.app:app --port 8000     # http://localhost:8000/docs
+
+# 2. Frontend
+cd web && bun install && bun dev                # http://localhost:3000
+```
+
+Keys go in `.env` (copy `.env.example`). The **Extractive** answerer needs no key at all, and if the API is unreachable the frontend replays a baked cached run, so the demo cannot fail live — see [Cached-run safety net](#cached-run-safety-net).
+
+### Designs — application interfaces
+
+Captured from the running application (`docs/screenshots/`):
+
+| Interface | Screenshot |
+| :-------- | :--------- |
+| Library — add a video by link, then ask questions of anything already ingested | ![Library](docs/screenshots/01-library.jpg) |
+| Live scoring — every frame and audio window is scored against the question, streamed to the UI | ![Scoring](docs/screenshots/02-scoring-in-progress.jpg) |
+| Evidence kept — the timeline collapses from 129 candidates to the 12 that answer the question | ![Evidence kept](docs/screenshots/03-evidence-kept.jpg) |
+| Answer and evidence — the answer, its source, and every timestamped span it was allowed to see | ![Answer](docs/screenshots/04-answer-and-evidence.jpg) |
+| API UI — the FastAPI/OpenAPI surface behind the frontend | ![Swagger](docs/screenshots/05-swagger-api.jpg) |
+
+The run shown kept **12 of 129 candidates — 90.6% fewer tokens sent onward** — and still answered the visual question correctly, with the budget escalating to stage 2 because the first pass was not confident.
+
+### Initial performance metrics
+
+Gist is **training-free**, so there is no loss curve, no learned weights and no precision/recall over a trained classifier. The metrics that matter are answer quality held against the budget spent. Raw per-question output for each run is committed under [`results/`](results/README.md).
+
+| Run | Condition | Accuracy | avg frames | avg audio windows |
+| :-- | :-------- | -------: | ---------: | ----------------: |
+| n=51, Qwen2.5-Omni-7B 4-bit | Full (uniform) | 25/51 (49%) | 8 | — |
+| n=51, Qwen2.5-Omni-7B 4-bit | Gist-selected | 26/51 (51%) | 3.0 | 2.96 |
+| n=18, Qwen2.5-Omni-7B fp16 | Full (uniform) | 5/18 (28%) | 8 | 4 |
+| n=18, Qwen2.5-Omni-7B fp16 | Gist-selected | 6/18 (33%) | 2.7 | 3.2 |
+
+Read honestly: Gist matches or edges the uniform baseline at roughly **3/8 of the visual budget**. The one-question gaps are well inside noise at these sample sizes — the pre-registered bootstrap in `gist.eval.bootstrap` exists so this is stated rather than glossed. The durable claim is structural: *matched accuracy at reduced compute*. A head-to-head against OmniZip, a per-intent heuristics ablation and a pooled-vs-split budget ablation are also committed under `results/`.
+
+### Deployment plan
+
+The application is fully environment-configurable already (`DATABASE_URL`, `TWELVELABS_API_KEY`, `GIST_CORS_ORIGINS`, `NEXT_PUBLIC_GIST_API`); no code changes are required to deploy. Because a hosted multimodal model answers in the demo, **Qwen2.5-Omni-7B is never deployed** — it stays offline for the measured research runs. The server needs only CLIP (1.1 GB), CLAP (1.1 GB), faster-whisper base int8 (141 MB) and the torch venv (1.1 GB): about **4 GB RAM**, plus roughly 50–100 MB of disk per ingested video at 360p.
+
+**Tier 1 — frontend only, zero backend.** Deploy `web/` to Vercel. The cached-run snapshot in `web/public/cached-runs/` ships with the build, so the library, chat, collapse animation, evidence and clips all work with no server behind them. Free, about ten minutes, and it cannot fall over. This is the guaranteed floor and ships first.
+
+**Tier 2 — live API,** so a panel member can paste any link. A small VPS (~4 GB RAM) running the FastAPI app under systemd, an own domain with an A record to the box, and **Caddy** terminating TLS for automatic Let's Encrypt. Caddy rather than a Cloudflare tunnel because the app streams source video and clips, and Cloudflare's free plan restricts proxying large media (ToS §2.8); Caddy keeps nothing in the byte-range path. HTTPS is mandatory, not optional — Vercel serves over HTTPS and browsers silently block calls to an `http://` API. One deployment gotcha: `LIBRARY_ROOT` is relative to the working directory, so the systemd unit must set `WorkingDirectory`.
+
+**Timing.** Deployment is deliberately scheduled for shortly before the defense rather than now: nothing about it is on the critical path for the research, and a box provisioned months early is a box that drifts, expires or runs up cost before it is needed. Until then the demo runs locally with the two commands above.
+
+**Operational note.** Ingestion is uncapped by choice, so on a CPU box Whisper takes 10–20 minutes on a one-hour video. Progress streams to the UI and survives a reload; keep a short video ready for anything live and let long ones run in the background.
+
+### Video demo
+
+A 5–10 minute walkthrough of the running application, focused on functionality rather than research background. *(Recorded separately and submitted alongside this repository.)*
 
 ## Live Web Demo
 
