@@ -5,15 +5,19 @@
     "domain": "startup education",
     "duration_seconds": 4046.169977,
     "local_artifact_root": ".gist/runs/paul-graham-y-combinator",
-    "source_notes": "Existing local evaluation video; preserve source and license records before public redistribution."
+    "source_notes": "YouTube's default licence, not CC BY: the uploader must opt in to Creative Commons and did not. Analysed under fair dealing for non-commercial research; the file is never redistributed and only the manifest is published. Source URL was not recorded at download time and should be.",
+    "license": "Standard YouTube License (all rights reserved)"
   },
   {
     "video_id": "539597cd20bdf6a8",
-    "title": "Tears of Steel extended test video",
+    "title": "Tears of Steel, 5x concatenation (SYNTHETIC)",
     "domain": "narrative film",
     "duration_seconds": 3670.38,
     "local_artifact_root": ".gist/runs/tears-of-steel-61min",
-    "source_notes": "Blender Foundation open movie material; verify redistribution terms for the exact extended file."
+    "source_notes": "NOT a 61-minute recording. It is the 12.2-minute Blender open movie concatenated exactly five times: 5 x 734.07 s = 3670.38 s, and frames at t=734.07 and t=1468.15 are byte-identical. Verified 2026-09-22. Keep it as a duplication stress test, which is a fair use of it, but never count it as an hour-plus recording and never quote its token-reduction figure as a long-video result: four fifths of its content is literally duplicated, which is the best case for any deduplicating selector.",
+    "synthetic": true,
+    "counts_as_hour_plus": false,
+    "license": "CC BY 3.0, Blender Foundation (derivative: concatenation)"
   },
   {
     "video_id": "77ce0f01bddcf2cc",

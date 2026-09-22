@@ -50,27 +50,57 @@ are not leaderboard scores and are not comparable to them.
 Self-assembled recordings longer than one hour, covering conditions no published
 audio-visual benchmark reaches. Manifest: `data/eval/long-video-sources.json`.
 
-### Current corpus — 5 recordings
+### Current corpus — 7 genuine recordings
 
 | Recording | Length | Licence |
 | :-------- | -----: | :------ |
-| Paul Graham / Y Combinator discussion | 67.4 min | **not recorded** |
-| Tears of Steel, extended | 61.2 min | **not recorded** |
-| Microsoft Kinect Keynote, Art && Code 2011 | 69.6 min | CC BY-SA 4.0 |
-| Bio-Inspired Motor Control, Lecture 01 | 75.0 min | CC BY-NC-ND 3.0 |
+| Night of the Living Dead (1968) | 95.8 min | Public domain (US) |
 | Bio-Inspired Motor Control, Lecture 02 | 86.4 min | CC BY-NC-ND 3.0 |
+| Bio-Inspired Motor Control, Lecture 01 | 75.0 min | CC BY-NC-ND 3.0 |
+| Microsoft Kinect Keynote, Art && Code 2011 | 69.6 min | CC BY-SA 4.0 |
+| Paul Graham / Y Combinator discussion | 67.4 min | Standard YouTube License |
+| The Quiet One (1948) documentary | 63.9 min | **unverified** |
+| NASA STS-115 post-flight briefing (2006) | 60.1 min | Public domain (US Gov) |
 
-The longest end-to-end run in the project is the Tears of Steel smoke test at
-61.17 minutes: 99.98% token reduction, all quality gates passed.
+### Tears of Steel is synthetic, and its smoke-test number is not a long-video result
+
+`tears_of_steel_61min.webm` is **not a 61-minute recording**. It is the 12.2-minute
+Blender open movie concatenated exactly five times. Verified 2026-09-22:
+5 x 734.07 s = 3670.38 s, and the frames at t=734.07 and t=1468.15 are
+byte-identical, with t=0 matching the genuine 720p original.
+
+That makes the Tears of Steel smoke test -- 61.17 minutes, 99.98% token reduction,
+all gates passed -- **not usable as evidence about hour-long video**, and it should
+not be quoted as the project's longest end-to-end run. Four fifths of the content
+is literally duplicated, which is the most favourable possible input for any
+selector that removes redundancy. It is also the exact case Pillar 3's temporal
+gate exists to handle, so a high reduction figure there is close to what the
+design predicts rather than a finding.
+
+Keep the file. It is a legitimate and useful **duplication stress test**, and it is
+labelled `synthetic: true` with `counts_as_hour_plus: false` in the manifest. Just
+never count it as a recording.
+
+**A scoring hazard follows from the loop.** Several acceptance cases run against
+`.gist/runs/tears-of-steel-61min/`. One of them, `tears-robot-hand-entity`,
+annotates recurrences correctly -- its relevant ranges at 37, 340, 1090, 1510 and
+2560 seconds are the same two moments reappearing in later loops. But
+`tears-robotics-space` (15-30 s) and `tears-robot-hand-fear` (30-60 s) annotate
+only the first occurrence, although the same content recurs at +734 s, +1468 s and
+so on. If the selector picks a later copy, it is scored as a miss while being
+factually right. Re-annotate those two, or move them onto the 12-minute original,
+before either is cited.
 
 ### Three problems to fix before this tier is defensible
 
 1. **Question skew.** 20 of the 39 current cases come from two robotics lectures.
    This is the most attackable feature of the evaluation and more video does not
    fix it — the *question* distribution is what is lumpy.
-2. **Two recordings have no licence recorded.** The manifest itself flags them for
-   verification. Nothing can be redistributed or published until they are resolved
-   or replaced.
+2. **Licences are now recorded, and two need care.** The Paul Graham recording is
+   under YouTube's default Standard YouTube License, all rights reserved: analysis
+   for research is ordinary use, but the file is never redistributed and only the
+   manifest is published. The Quiet One (1948) remains unverified and must not
+   appear in a published table until its rights statement is checked.
 3. **Content monoculture.** The corpus is lecture and talking-head heavy, which
    flatters a method that leans on speech.
 
@@ -170,7 +200,7 @@ Computed from `plan_ingestion` on 2026-09-22, not estimated:
 | :--- | ------: | :--- | -----: | -----: | ------: | ---------: |
 | Video-MME long, mean | 41.2 | medium | 256 | 10 s | 248 | 504 |
 | Video-MME long, ceiling | 60.0 | medium | 256 | 10 s | 360 | 616 |
-| Tears of Steel | 61.2 | long | 512 | 30 s | 123 | 635 |
+| Tears of Steel (synthetic loop) | 61.2 | long | 512 | 30 s | 123 | 635 |
 | Paul Graham | 67.4 | long | 512 | 30 s | 135 | 647 |
 | Kinect keynote | 69.5 | long | 512 | 30 s | 140 | 652 |
 | Bio-Inspired L01 | 75.0 | long | 512 | 30 s | 150 | 662 |
