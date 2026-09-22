@@ -84,7 +84,7 @@ Two consequences:
 - **Nine evaluation cases were dropped** with it: 3 of 9 in
   `gist-acceptance.jsonl`, 2 of 7 in `local-regression.jsonl`, and 4 of 39 in
   `long-video-quality.jsonl`, which is the set the heuristics ablation ran on. See
-  "Results that need recomputing" below.
+  "Results recomputed at n=35" below.
 
 The genuine 12.2-minute original (`tears_of_steel_720p.webm`, CC BY 3.0, Blender
 Foundation) is kept. It is a real short video and the cases that use it stand.
@@ -103,6 +103,63 @@ note saying what changed.
 Anything in the paper citing the split-budget ablation as evidence that pooling
 *significantly* beats a split rule must be corrected. The even-split comparison
 still stands.
+
+### Three problems to fix before this tier is defensible
+
+1. **Question skew.** 20 of the 35 current cases, 57%, come from two robotics
+   lectures. This is the most attackable feature of the evaluation and more video does not
+   fix it — the *question* distribution is what is lumpy.
+2. **Licences are recorded, and two need care.** The Paul Graham recording is under
+   YouTube's default Standard YouTube License, all rights reserved: analysis for
+   research is ordinary use, but the file is never redistributed and only the
+   manifest is published. The Quiet One (1948) remains unverified and must not
+   appear in a published table until its rights statement is checked.
+3. **Content monoculture.** The corpus is lecture and talking-head heavy, which
+   flatters a method that leans on speech.
+
+### Target shape — 12 recordings
+
+- **3–4 questions per recording, hard cap.** Twelve recordings gives 36–48 cases
+  with no single recording above roughly 8%.
+- **Stratified across the six query-intent categories**, since RQ4 is defined by
+  them and the per-intent heuristics ablation depends on them.
+- **CC-BY, CC-BY-SA or public domain only.** Internet Archive conference talks,
+  Blender open movies, NASA footage, openly licensed university lecture series.
+  The Kinect keynote is the model to copy.
+- **Diversify away from lectures.**
+- The frozen 12-case held-out split stays grouped by recording, so no recording
+  appears on both sides. It is run exactly once, at the end.
+
+### Drafting questions, and what it actually yields
+
+`scripts/draft_corpus_questions.py` drafts candidates from transcript plus frames
+and then screens each one three ways — transcript only, frames only, both — keeping
+only those where both modalities are needed and the ground truth holds up. The
+screen exists because a model drafting from a transcript writes
+transcript-answerable questions even when told not to.
+
+**Measured yield, 2026-09-22, gpt-4.1-mini with 16 draft frames:**
+
+| Recording | Drafted | Kept | Dominant rejection |
+| :-------- | ------: | ---: | :----------------- |
+| NASA STS-115 briefing | 3 | 0 | speech alone answers it |
+| Night of the Living Dead | 8 | 1 | ground truth wrong (5 of 8) |
+
+About one in ten survives, so budget 30–40 candidates per recording to land 3–4
+keepers. That is cheap in API terms — four calls per candidate — but the failure
+mode matters more than the rate.
+
+**Five of eight film rejections were unreliable ground truth**, not modality
+failures. Sixteen frames sampled across 96 minutes is too thin a view for a model
+to write checkable questions about a specific moment; it confabulates details.
+Two fixes worth trying before a full run: draft per segment rather than per
+recording, with dense frames over a five to ten minute window, and use a stronger
+drafting model. The screen catches these either way, which is the point of having
+it, but a higher yield means less human review per keeper.
+
+**The screen does not replace human verification.** It removes questions that are
+clearly broken. Every survivor still needs a person to confirm the answer and the
+timestamp before it enters the dataset.
 
 ### Where to source the seven replacements
 
