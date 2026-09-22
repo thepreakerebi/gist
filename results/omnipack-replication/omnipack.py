@@ -13,7 +13,7 @@ chosen, marked **ASSUMPTION** in the code, and listed in RUN.md. Results from
 this file must be labelled "our reimplementation", never "OmniPack", because the
 four assumptions below are ours and not theirs.
 
-Assumptions, all from `docs/omnipack-replication-audit.md`:
+Assumptions, also tabulated in RUN.md:
 
   A1  `N(.)` is described in prose as "modality-wise min-max normalization" with
       no formula. Implemented as min-max to [0,1] per modality.

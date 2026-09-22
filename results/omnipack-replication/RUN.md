@@ -20,7 +20,8 @@ the repository in ten seconds.
 
 ## Two findings that do not need this run
 
-Both come from `docs/omnipack-replication-audit.md` and stand on the paper alone.
+Both were established by reading the paper before any code was written, and
+both stand on the paper alone.
 
 **1. OmniPack is post-encoder, in its own words.** "The modality-specific
 encoder-projector pipelines map them into the LLM embedding space, producing Nv
