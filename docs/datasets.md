@@ -104,6 +104,31 @@ Anything in the paper citing the split-budget ablation as evidence that pooling
 *significantly* beats a split rule must be corrected. The even-split comparison
 still stands.
 
+### The frozen split, re-frozen 2026-09-22
+
+`data/eval/splits/held-out.json`. Grouped by recording, so no video appears on both
+sides.
+
+| Side | Cases | Recordings |
+| :--- | ----: | ---------: |
+| held-out | 12 | 6 |
+| dev | 23 | 5 |
+
+**The held-out side is untouched.** All four withdrawn cases were dev cases, so
+held-out is the same 12 cases over the same 6 recordings frozen on 5 September,
+with the same fingerprint `6568af1cd5cfc5d1`. It has still never been executed.
+Only `corpus_fingerprint` was recut, because the corpus itself changed.
+
+**One requirement is not met, and is recorded rather than hidden.** The corpus now
+holds exactly one `mixed_av` case and it sits in held-out, so the dev side cannot
+exercise that category at all. Both sides covering every category is arithmetically
+impossible at n=35. The test suite now asserts the strongest achievable version —
+every category with two or more cases appears on both sides — plus a second test
+pinning the singleton list to the manifest, so a category cannot quietly become a
+hole. Authoring more `mixed_av` cases and recutting is the real fix.
+
+The manifest carries the full `history`: original freeze, invalidation, re-freeze.
+
 ### Three problems to fix before this tier is defensible
 
 1. **Question skew.** 20 of the 35 current cases, 57%, come from two robotics

@@ -2,7 +2,7 @@
   "created": "2026-09-05",
   "dataset": "data/eval/long-video-quality.jsonl",
   "policy": "Grouped by source video: no recording appears in both splits. Frozen once; the held-out split is to be executed a single time, after development against the dev split is complete.",
-  "corpus_fingerprint": "4d93c75742221068",
+  "corpus_fingerprint": "999778b703a01098",
   "held_out_fingerprint": "6568af1cd5cfc5d1",
   "held_out": {
     "cases": 12,
@@ -37,19 +37,17 @@
     ]
   },
   "dev": {
-    "cases": 27,
+    "cases": 23,
     "videos": [
       "bio-inspired-motor-control-lecture-01",
       "bio-inspired-motor-control-lecture-02",
-      "tears-of-steel-61min",
       "yale-financial-markets-shiller",
       "yt-medicine-human-anatomy",
       "yt-technology-manufacturing"
     ],
     "categories": {
       "global_summary": 2,
-      "mixed_av": 2,
-      "speech_semantic": 5,
+      "speech_semantic": 3,
       "temporal_before_after": 3,
       "visual_object_action": 15
     },
@@ -76,18 +74,37 @@
       "bio-motor-control-lecture-02-opening-title",
       "manufacturing-crayon-packing",
       "medicine-anatomy-peripheral-nervous-system",
-      "tears-of-steel-robot-hand-fear",
-      "tears-of-steel-robot-hand-visible-question",
-      "tears-of-steel-robotics-space",
-      "tears-of-steel-robotics-space-robot-hand",
       "yale-financial-markets-behavioral-finance"
     ]
   },
-  "invalidated": {
+  "refrozen": {
     "date": "2026-09-22",
-    "reason": "Four cases were removed from data/eval/long-video-quality.jsonl because they ran against tears_of_steel_61min.webm, which was the 12.2-minute Blender film concatenated five times rather than an hour-long recording. The dataset is now 35 cases, not the 39 this split was frozen over, so corpus_fingerprint no longer matches.",
-    "effect": "Both removed dev cases were the dev split's only mixed_av cases, so the dev side now covers four query categories while the held-out side still covers five. The design requirement that both sides cover every category is violated.",
-    "held_out_still_unexecuted": true,
-    "decision_required": "Either author replacement mixed_av cases and re-freeze, or re-freeze on the 35 cases and state that the split was re-frozen on 2026-09-22 after invalid cases were withdrawn. The held-out side has never been run, so re-freezing does not leak held-out information either way. Do not re-freeze silently: the 5 September freeze date is quoted in the defense brief."
-  }
+    "reason": "Four cases were withdrawn from the corpus because they ran against tears_of_steel_61min.webm, which was the 12.2-minute Blender film concatenated five times rather than an hour-long recording. The corpus went from 39 cases to 35, so corpus_fingerprint had to be recut.",
+    "held_out_unchanged": true,
+    "held_out_fingerprint_before": "6568af1cd5cfc5d1",
+    "what_changed": "Only the dev side. All four withdrawn cases were dev cases, and the held-out side is the split frozen on 2026-09-05: same 12 cases, same 6 recordings, same fingerprint. It has still never been executed. Dev went from 27 cases over 6 recordings to 23 over 5.",
+    "known_limitation": "The corpus now holds exactly one mixed_av case and it sits in the held-out split, so the dev side cannot exercise that category at all. The original design requirement that both sides cover every query category is arithmetically unsatisfiable at n=35 and is not met. It was not weakened to hide that: the requirement now tested is that every category with at least two cases appears on both sides, with singleton categories recorded explicitly here. Authoring more mixed_av cases and recutting is the real fix.",
+    "singleton_categories": [
+      "mixed_av"
+    ]
+  },
+  "history": [
+    {
+      "date": "2026-09-05",
+      "event": "original freeze",
+      "corpus_cases": 39,
+      "corpus_fingerprint": "4d93c75742221068"
+    },
+    {
+      "date": "2026-09-22",
+      "event": "invalidated",
+      "detail": "Four cases were removed from data/eval/long-video-quality.jsonl because they ran against tears_of_steel_61min.webm, which was the 12.2-minute Blender film concatenated five times rather than an hour-long recording. The dataset is now 35 cases, not the 39 this split was frozen over, so corpus_fingerprint no longer matches."
+    },
+    {
+      "date": "2026-09-22",
+      "event": "refrozen at n=35, held-out untouched",
+      "corpus_cases": 35,
+      "corpus_fingerprint": "999778b703a01098"
+    }
+  ]
 }
