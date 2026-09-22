@@ -192,7 +192,8 @@ def draft_for_video(
         f"Frames supplied, at: {frame_catalogue(frames)}\n\n"
         f"Write {per_video} questions. Spread them across the recording and across "
         f"these categories where the material allows: {', '.join(QUERY_CATEGORIES)}.\n\n"
-        f"TRANSCRIPT\n{transcript}"
+        f"TRANSCRIPT\n{transcript}\n\n"
+        "Respond with a json object in the schema given."
     )
     raw = ask(
         instructions=DRAFT_INSTRUCTIONS,
