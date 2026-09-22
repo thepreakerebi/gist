@@ -45,7 +45,6 @@ from pathlib import Path
 from typing import Any
 
 from gist.audio.whisper import FasterWhisperTranscriber
-from gist.media.longform import ProcessingMode
 from gist.gateway.openai_vision import (
     DEFAULT_MODEL,
     OpenAIVisionGatewayError,
@@ -53,20 +52,38 @@ from gist.gateway.openai_vision import (
     post_openai_response,
 )
 from gist.media.ingestion import MediaIngestor
+from gist.media.longform import ProcessingMode
 from gist.media.models import AudioWindow, ExtractedFrame, IngestedVideo
 
 DRAFT_FRAMES = 16
 SCREEN_FRAMES = 12
 TIMEOUT_SECONDS = 180.0
 
+# The corpus taxonomy, from data/eval/long-video-quality.jsonl. Not invented here:
+# the ablation reports and RQ4 are defined over these exact names.
 QUERY_CATEGORIES = [
-    "temporal ordering",
-    "cross-modal grounding",
-    "causal reasoning",
-    "counting or quantity",
-    "attribute or identity",
-    "summarisation over spans",
+    "speech_semantic",
+    "visual_object_action",
+    "mixed_av",
+    "temporal_before_after",
+    "global_summary",
 ]
+
+CATEGORY_BRIEFS = {
+    "mixed_av": (
+        "The answer requires BOTH what is said and what is on screen at the same "
+        "moment. The canonical shape is: something the speaker says ABOUT something "
+        "simultaneously visible. Neither the transcript nor the frames alone suffice."
+    ),
+    "speech_semantic": (
+        "The answer is carried by what is said, understood rather than quoted verbatim."
+    ),
+    "visual_object_action": (
+        "The answer is carried by an object or action visible on screen."
+    ),
+    "temporal_before_after": "The answer depends on the order of two events.",
+    "global_summary": "The answer requires summarising across a long span.",
+}
 
 
 @dataclass
@@ -74,6 +91,7 @@ class Candidate:
     question: str
     options: list[str]
     answer: str
+    query: str
     timestamp_seconds: float
     query_category: str
     why_both_modalities: str
@@ -123,6 +141,14 @@ def ask(
     return extract_output_text(response)
 
 
+def frange(start: float, stop: float, step: float) -> list[float]:
+    out, value = [], start
+    while value < stop:
+        out.append(value)
+        value += step
+    return out
+
+
 def evenly_spaced(items: list[Any], count: int) -> list[Any]:
     if len(items) <= count:
         return list(items)
@@ -165,14 +191,36 @@ the transcript is useless here, and so is one answerable from a single frame.
 Give exactly four options, one correct. Keep questions factual and checkable
 against a specific moment. Never ask about anything you are unsure of.
 
+Also give, for each question, a `query`: the same thing asked as a natural
+open-ended question a person would type, with no options. This is what the
+evaluation corpus stores; the multiple-choice form exists only so the question can
+be screened automatically.
+
 Return JSON: {"questions": [{"question": str, "options": [str, str, str, str],
-"answer": "A"|"B"|"C"|"D", "timestamp_seconds": number, "query_category": str,
-"why_both_modalities": str}]}"""
+"answer": "A"|"B"|"C"|"D", "query": str, "timestamp_seconds": number,
+"query_category": str, "why_both_modalities": str}]}"""
 
 SCREEN_INSTRUCTIONS = """Answer the multiple-choice question from the evidence
 provided. If the evidence provided is insufficient to determine the answer, reply
 exactly UNANSWERABLE. Do not guess. Reply with a single letter, or UNANSWERABLE,
 and nothing else."""
+
+
+def window_transcript(
+    windows: list[AudioWindow],
+    transcripts: dict[Path, str],
+    start: float,
+    end: float,
+) -> str:
+    lines = []
+    for window in windows:
+        if not (start <= window.start_seconds < end):
+            continue
+        said = (transcripts.get(window.path) or "").strip()
+        if said:
+            minutes, seconds = divmod(int(window.start_seconds), 60)
+            lines.append(f"[{minutes:02d}:{seconds:02d}] {said}")
+    return "\n".join(lines)
 
 
 def draft_for_video(
@@ -184,15 +232,55 @@ def draft_for_video(
     per_video: int,
     key: str,
     model: str,
+    category: str | None = None,
+    segment: tuple[float, float] | None = None,
+    transcripts: dict[Path, str] | None = None,
 ) -> list[Candidate]:
-    frames = evenly_spaced(ingestion.frames, DRAFT_FRAMES)
+    """Draft candidates, optionally confined to one segment of the recording.
+
+    Segment drafting exists because the first run of this tool sampled 16 frames
+    across 96 minutes and the model confabulated specifics: five of eight
+    candidates were rejected for unreliable ground truth rather than for modality
+    failure. Confining a draft to a five or ten minute window lets the same frame
+    budget cover it densely, so the model is describing what it can actually see.
+    """
+    if segment is not None:
+        start, end = segment
+        pool = [f for f in ingestion.frames if start <= f.timestamp_seconds < end]
+        frames = evenly_spaced(pool or ingestion.frames, DRAFT_FRAMES)
+        text = (
+            window_transcript(ingestion.audio_windows, transcripts or {}, start, end)
+            if transcripts
+            else transcript
+        )
+        scope = (
+            f"Segment: {start / 60:.1f} to {end / 60:.1f} minutes. Every question must be "
+            f"answerable from THIS segment, and its timestamp must fall inside it."
+        )
+    else:
+        frames = evenly_spaced(ingestion.frames, DRAFT_FRAMES)
+        text = transcript
+        scope = "Spread the questions across the whole recording."
+
+    if category:
+        brief = CATEGORY_BRIEFS.get(category, "")
+        ask_for = (
+            f"Every question must be of category '{category}'. {brief}\n"
+            f"Set query_category to '{category}' on every question."
+        )
+    else:
+        ask_for = (
+            "Spread them across these categories where the material allows: "
+            + ", ".join(QUERY_CATEGORIES)
+        )
+
     prompt = (
         f"Recording: {title}\n"
         f"Duration: {ingestion.metadata.duration_seconds / 60:.1f} minutes\n"
+        f"{scope}\n"
         f"Frames supplied, at: {frame_catalogue(frames)}\n\n"
-        f"Write {per_video} questions. Spread them across the recording and across "
-        f"these categories where the material allows: {', '.join(QUERY_CATEGORIES)}.\n\n"
-        f"TRANSCRIPT\n{transcript}\n\n"
+        f"Write {per_video} questions. {ask_for}\n\n"
+        f"TRANSCRIPT\n{text}\n\n"
         "Respond with a json object in the schema given."
     )
     raw = ask(
@@ -216,6 +304,7 @@ def draft_for_video(
                     question=str(item["question"]),
                     options=[str(o) for o in item["options"]][:4],
                     answer=str(item["answer"]).strip().upper()[:1],
+                    query=str(item.get("query") or item["question"]),
                     timestamp_seconds=float(item.get("timestamp_seconds", 0.0)),
                     query_category=str(item.get("query_category", "")),
                     why_both_modalities=str(item.get("why_both_modalities", "")),
@@ -229,7 +318,7 @@ def draft_for_video(
 def question_block(candidate: Candidate) -> str:
     letters = "ABCD"
     lines = [candidate.question]
-    for letter, option in zip(letters, candidate.options):
+    for letter, option in zip(letters, candidate.options, strict=False):
         lines.append(f"{letter}. {option}")
     return "\n".join(lines)
 
@@ -293,19 +382,54 @@ def screen(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=Path("data/eval/long-video-sources.json"))
-    parser.add_argument("--output", type=Path, default=Path("data/eval/corpus-questions.draft.json"))
+    parser.add_argument(
+        "--output", type=Path, default=Path("data/eval/corpus-questions.draft.json")
+    )
     parser.add_argument("--artifact-root", type=Path, default=Path(".gist/corpus-drafting"))
     parser.add_argument("--per-video", type=int, default=6, help="candidates drafted per recording")
-    parser.add_argument("--keep", type=int, default=4, help="hard cap on kept questions per recording")
+    parser.add_argument(
+        "--keep", type=int, default=4, help="hard cap on kept questions per recording"
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--whisper-max-windows", type=int, default=240)
     parser.add_argument("--only", action="append", help="substring match on title; repeatable")
+    parser.add_argument(
+        "--video", type=Path, help="draft against one local file, ignoring the manifest"
+    )
+    parser.add_argument(
+        "--title", default=None, help="title to record when --video is used"
+    )
+    parser.add_argument(
+        "--domain", default=None, help="domain to record when --video is used"
+    )
+    parser.add_argument(
+        "--category", choices=QUERY_CATEGORIES, help="draft only this category"
+    )
+    parser.add_argument(
+        "--segment-minutes",
+        type=float,
+        default=0.0,
+        help="draft per segment of this length with dense frames (0 = whole recording)",
+    )
     parser.add_argument("--seed", type=int, default=20260922)
     args = parser.parse_args()
 
     random.seed(args.seed)
     key = api_key()
-    sources = json.loads(args.manifest.read_text())
+    if args.video:
+        if not args.video.exists():
+            raise SystemExit(f"no such file: {args.video}")
+        sources = [
+            {
+                "video_id": args.video.stem,
+                "title": args.title or args.video.stem,
+                "domain": args.domain or "",
+                "local_video_path": str(args.video),
+                "duration_seconds": 0,
+            }
+        ]
+    else:
+        sources = json.loads(args.manifest.read_text())
     ingestor = MediaIngestor(output_root=args.artifact_root)
     transcriber = FasterWhisperTranscriber(max_windows=args.whisper_max_windows)
 
@@ -337,16 +461,38 @@ def main() -> int:
             print("    ! empty transcript, skipping")
             continue
 
-        print(f"    drafting {args.per_video} candidates")
-        candidates = draft_for_video(
-            video_path=video_path,
-            title=title,
-            ingestion=ingestion,
-            transcript=transcript,
-            per_video=args.per_video,
-            key=key,
-            model=args.model,
+        duration = ingestion.metadata.duration_seconds
+        if args.segment_minutes > 0:
+            step = args.segment_minutes * 60
+            segments = [(s, min(s + step, duration)) for s in frange(0, duration, step)]
+        else:
+            segments = [None]
+
+        per_segment = max(1, round(args.per_video / len(segments))) if segments else args.per_video
+        print(
+            f"    drafting {args.per_video} candidates "
+            f"over {len(segments)} segment(s)"
+            + (f", category={args.category}" if args.category else "")
         )
+        candidates = []
+        for segment in segments:
+            if len(candidates) >= args.per_video:
+                break
+            candidates.extend(
+                draft_for_video(
+                    video_path=video_path,
+                    title=title,
+                    ingestion=ingestion,
+                    transcript=transcript,
+                    per_video=per_segment,
+                    key=key,
+                    model=args.model,
+                    category=args.category,
+                    segment=segment,
+                    transcripts=transcripts,
+                )
+            )
+        candidates = candidates[: args.per_video]
         print(f"    screening {len(candidates)}")
         kept = 0
         for candidate in candidates:
@@ -374,6 +520,7 @@ def main() -> int:
                     "question": candidate.question,
                     "options": candidate.options,
                     "answer": candidate.answer,
+                    "query": candidate.query,
                     "timestamp_seconds": candidate.timestamp_seconds,
                     "query_category": candidate.query_category,
                     "why_both_modalities": candidate.why_both_modalities,
