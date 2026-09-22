@@ -15,6 +15,7 @@ table row whose raw data existed only on one laptop.
 | `split-budget-ablation/` | Pooled vs split-then-rank allocation *inside* Gist | yes |
 | `efficiency-measured/` | Wall clock and peak GPU memory. Replaces the analytic FLOPs | **no** |
 | `runpod-omniscope-h2h/` | Head to head against OmniScope, the closest published method to Gist | **no** |
+| `omnipack-replication/` | Our reimplementation of OmniPack, written because they released no code. Unit tested; calibration and head to head outstanding | **no** |
 | `fetch_videos.py` | Shared video fetcher for every runner above | — |
 
 ## Suggested order on a fresh pod
