@@ -1,28 +1,36 @@
-"""Measured system-efficiency accounting for Gist.
+"""System-efficiency accounting for Gist: analytic FLOPs and measured cost.
 
-Replaces the arbitrary token-count constants (``estimate_tokens`` = counts x
-258/32) with two things:
+Two different kinds of number live here and the distinction is load bearing, so
+it is made in the type system rather than left to prose:
 
-1. The *measured* structural quantity — how many frames / audio windows Gist
-   actually encodes (K) versus a full/uniform baseline (N). This is the
-   dual-encoder saving the capstone plan's headline rests on, and it is a real
-   count, not a guess.
-2. Architecture-derived encoder FLOPs and downstream token counts, computed
-   analytically from the target encoders' transformer configs (documented
-   below), so "far less compute" is expressed in GFLOPs, not hand-waved.
+*Analytic* (``build_report``). Encoder FLOPs and downstream token counts,
+computed from the target encoders' transformer configs. The item counts feeding
+them are real — how many frames and audio windows Gist actually encodes (K)
+against a full/uniform baseline (N) — and the relative saving (1 - K/N) is exact.
+The absolute GFLOPs are *derived*, not profiled. Anything quoting them must say
+so; "measured GFLOPs" is a claim this module does not support.
 
-The relative saving (1 - K/N) is exact and count-driven; the absolute GFLOPs
-scale it by a per-item cost derived from the encoder architecture.
+*Measured* (``build_measured_report``). Wall clock and peak GPU memory taken
+from a real run by ``gist.eval.profiling``. This is what an efficiency claim
+needs in order to survive review, because Gist's whole thesis is that selecting
+before the encoders run reduces encoder cost and peak memory — and peak memory
+in particular cannot be inferred from a FLOP count at all.
+
+The two are reported in separate tables under separate headings. They are never
+summed, averaged, or presented as if one corroborated the other.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from pydantic import BaseModel
+
+from gist.eval.profiling import DeviceInfo, StageMeasurement, load_measurements
 
 
 def transformer_encoder_gflops(
@@ -131,10 +139,11 @@ def build_report(
 
 def render_markdown(report: EfficiencyReport) -> str:
     lines = [
-        "# Gist system-efficiency (architecture-derived FLOPs, measured item counts)",
+        "# Gist system-efficiency — analytic (architecture-derived FLOPs, real item counts)",
         "",
         f"- Encoder profile: {report.profile}; baseline: {report.baseline}",
-        "- Frames/windows are real encode counts; GFLOPs derived from encoder configs.",
+        "- Frames/windows are real encode counts. GFLOPs are **derived** from the encoder",
+        "  configs, not profiled — do not quote them as measured.",
         "",
         "| Condition | Frames | Audio windows | System GFLOPs | Downstream tokens | GFLOPs saving |",
         "| :--- | ---: | ---: | ---: | ---: | ---: |",
@@ -160,9 +169,170 @@ def _conditions_from_vision_report(path: Path) -> dict[str, tuple[int, int]]:
     return out
 
 
+# --------------------------------------------------------------------------
+# Measured: wall clock and peak GPU memory from a real run.
+# --------------------------------------------------------------------------
+
+
+class MeasuredCondition(BaseModel):
+    """Per-condition aggregate of profiled rows.
+
+    ``n`` is every row seen; ``n_used`` is how many survived the warmup drop and
+    actually fed the timing statistics. They differ, so both are reported.
+
+    ``n_oom`` is reported beside the timings rather than folded into them. A
+    condition that runs out of memory has not produced a slow measurement, it
+    has produced a different result — it did not fit — and averaging a failed
+    forward pass into a latency would hide exactly the finding that matters for
+    a pre-encoder claim.
+    """
+
+    condition: str
+    n: int
+    n_used: int
+    n_oom: int
+    wall_seconds_median: float | None = None
+    wall_seconds_mean: float | None = None
+    peak_reserved_gb_max: float | None = None
+    activation_gb_median: float | None = None
+    activation_gb_max: float | None = None
+    speedup_vs_baseline: float | None = None
+    activation_saving_pct: float | None = None
+
+
+class MeasuredReport(BaseModel):
+    device: str
+    baseline: str
+    stage: str | None = None
+    warmup_dropped: int = 0
+    conditions: list[MeasuredCondition]
+
+    def write_json(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.model_dump_json(indent=2))
+
+
+def _median(values: list[float]) -> float | None:
+    if not values:
+        return None
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2
+
+
+def build_measured_report(
+    stages: Sequence[StageMeasurement],
+    *,
+    baseline: str,
+    device: DeviceInfo | None = None,
+    stage: str | None = None,
+    drop_warmup: int = 1,
+) -> MeasuredReport:
+    """Aggregate profiled rows by condition.
+
+    ``drop_warmup`` discards the first N successful rows of each condition. The
+    first call on a fresh process pays for lazy CUDA context creation and kernel
+    autotuning, which on a short run is large enough to dominate the median and
+    to flatter whichever condition happens to run second.
+    """
+    rows = [row for row in stages if stage is None or row.stage == stage]
+    grouped: dict[str, list[StageMeasurement]] = {}
+    for row in rows:
+        grouped.setdefault(str(row.extra.get("condition", row.stage)), []).append(row)
+    if baseline not in grouped:
+        raise ValueError(f"baseline '{baseline}' not among conditions {sorted(grouped)}")
+
+    stats: dict[str, MeasuredCondition] = {}
+    for name, group in grouped.items():
+        ok = [row for row in group if row.ok][drop_warmup:]
+        walls = [row.wall_seconds for row in ok]
+        activations = [row.activation_gb for row in ok if row.activation_gb is not None]
+        # Reserved memory spans every row, warmup and OOM included: warmup does not
+        # inflate the footprint the way it inflates the clock, and the whole point
+        # of the high-water mark is to include the case that did not fit.
+        reserved = [row.peak_reserved_gb for row in group if row.peak_reserved_gb is not None]
+        stats[name] = MeasuredCondition(
+            condition=name,
+            n=len(group),
+            n_used=len(ok),
+            n_oom=sum(1 for row in group if row.oom),
+            wall_seconds_median=_median(walls),
+            wall_seconds_mean=round(sum(walls) / len(walls), 4) if walls else None,
+            peak_reserved_gb_max=max(reserved) if reserved else None,
+            activation_gb_median=_median(activations),
+            activation_gb_max=max(activations) if activations else None,
+        )
+
+    base = stats[baseline]
+    for cond in stats.values():
+        # Guard the divisor explicitly. Testing truthiness would silently drop a
+        # legitimate median of 0.0 and report no comparison at all.
+        if base.wall_seconds_median is not None and cond.wall_seconds_median:
+            cond.speedup_vs_baseline = round(
+                base.wall_seconds_median / cond.wall_seconds_median, 2
+            )
+        if base.activation_gb_median and cond.activation_gb_median is not None:
+            cond.activation_saving_pct = round(
+                (1 - cond.activation_gb_median / base.activation_gb_median) * 100, 1
+            )
+
+    described = device.describe() if device else "unknown device"
+    return MeasuredReport(
+        device=described,
+        baseline=baseline,
+        stage=stage,
+        warmup_dropped=drop_warmup,
+        conditions=sorted(stats.values(), key=lambda c: c.condition),
+    )
+
+
+def render_measured_markdown(report: MeasuredReport) -> str:
+    lines = [
+        "# Gist system-efficiency — measured (wall clock and peak GPU memory)",
+        "",
+        f"- Device: {report.device}",
+        f"- Baseline: {report.baseline}"
+        + (f"; stage: {report.stage}" if report.stage else ""),
+        f"- First {report.warmup_dropped} successful call(s) per condition dropped as warmup.",
+        "- `activation GB` is peak allocated minus memory already resident, so the",
+        "  model weights (identical under every condition) do not mask the effect.",
+        "- `peak reserved GB` is the allocator high-water mark, which is what decides",
+        "  whether the card OOMs.",
+        "",
+        "| Condition | n | OOM | Median s | Speedup | Activation GB (median) "
+        "| Peak reserved GB | Activation saving |",
+        "| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    ]
+    def fmt(value: float | None, spec: str = ",.2f") -> str:
+        return "—" if value is None else format(value, spec)
+
+    for c in report.conditions:
+        speedup = "—" if c.speedup_vs_baseline is None else f"{c.speedup_vs_baseline:.2f}x"
+        saving = "—" if c.activation_saving_pct is None else f"{c.activation_saving_pct:.1f}%"
+        lines.append(
+            f"| {c.condition} | {c.n} | {c.n_oom} | {fmt(c.wall_seconds_median)} "
+            f"| {speedup} | {fmt(c.activation_gb_median, ',.3f')} "
+            f"| {fmt(c.peak_reserved_gb_max, ',.2f')} | {saving} |"
+        )
+    oomed = [c.condition for c in report.conditions if c.n_oom]
+    if oomed:
+        lines += [
+            "",
+            "**Out of memory.** " + ", ".join(oomed) + " exhausted the device on at least",
+            "one case. For a pre-encoder claim that is a result, not a run failure: the",
+            "condition did not fit on hardware where Gist did.",
+        ]
+    return "\n".join(lines) + "\n"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Measured system-efficiency: frames/windows encoded + derived FLOPs/tokens."
+        description=(
+            "System efficiency. Without --measurements: analytic FLOPs from real item "
+            "counts. With --measurements: also wall clock and peak GPU memory from a run."
+        )
     )
     parser.add_argument("--profile", default="qwen2.5-omni-7b", choices=list(PROFILES))
     parser.add_argument("--baseline-frames", type=int, default=64)
@@ -178,6 +348,35 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", type=Path, dest="json_output")
     parser.add_argument("--markdown", type=Path, dest="markdown_output")
+    parser.add_argument(
+        "--measurements",
+        type=Path,
+        help="Profiling JSONL from gist.eval.profiling (as written by the pod runner).",
+    )
+    parser.add_argument(
+        "--measured-baseline",
+        default="full",
+        help="Condition in the measurement log to compare the others against.",
+    )
+    parser.add_argument(
+        "--measured-stage",
+        default="answer",
+        help="Only aggregate rows from this stage; empty string aggregates all.",
+    )
+    parser.add_argument(
+        "--drop-warmup",
+        type=int,
+        default=1,
+        help="Successful calls to discard per condition before timing (CUDA warmup).",
+    )
+    parser.add_argument(
+        "--measured-json", type=Path, help="Where to write the measured report JSON."
+    )
+    parser.add_argument(
+        "--measured-markdown",
+        type=Path,
+        help="Where to write the measured report markdown.",
+    )
     args = parser.parse_args(argv)
 
     profile = PROFILES[args.profile]
@@ -205,13 +404,41 @@ def main(argv: list[str] | None = None) -> int:
         args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
         args.markdown_output.write_text(render_markdown(report))
 
-    print(f"profile={report.profile} baseline={report.baseline}")
+    print(f"[analytic] profile={report.profile} baseline={report.baseline}")
     for c in report.conditions:
         saving = "" if c.system_gflops_saving_pct is None else f" saving={c.system_gflops_saving_pct:.1f}%"
         print(
             f"{c.condition}: frames={c.frames} windows={c.audio_windows} "
             f"system_gflops={c.system_gflops:,.0f} tokens={c.downstream_tokens:,}{saving}"
         )
+
+    if args.measurements:
+        device, stages = load_measurements(args.measurements)
+        measured = build_measured_report(
+            stages,
+            baseline=args.measured_baseline,
+            device=device,
+            stage=args.measured_stage or None,
+            drop_warmup=args.drop_warmup,
+        )
+        if args.measured_json:
+            measured.write_json(args.measured_json)
+        if args.measured_markdown:
+            args.measured_markdown.parent.mkdir(parents=True, exist_ok=True)
+            args.measured_markdown.write_text(render_measured_markdown(measured))
+        print(f"\n[measured] device={measured.device} baseline={measured.baseline}")
+        for c in measured.conditions:
+            speed = (
+                "" if c.speedup_vs_baseline is None
+                else f" speedup={c.speedup_vs_baseline:.2f}x"
+            )
+            act = (
+                "" if c.activation_gb_median is None
+                else f" activation={c.activation_gb_median:.3f}GB"
+            )
+            oom = f" OOM={c.n_oom}" if c.n_oom else ""
+            median = "—" if c.wall_seconds_median is None else f"{c.wall_seconds_median:.2f}s"
+            print(f"{c.condition}: n={c.n} median={median}{speed}{act}{oom}")
     return 0
 
 
