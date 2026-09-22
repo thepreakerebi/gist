@@ -48,5 +48,32 @@
     "license": "CC BY-NC-ND 3.0",
     "local_video_path": ".gist/videos/archive/bio-inspired-motor-control-lecture-02.ogv",
     "local_artifact_root": ".gist/runs/bio-inspired-motor-control-lecture-02"
+  },
+  {
+    "video_id": "519e41c7c58a2c81",
+    "title": "NASA STS-115 post-flight crew briefing (2006)",
+    "domain": "spaceflight press briefing",
+    "duration_seconds": 3606.549333,
+    "license": "Public domain (US Government work, NASA)",
+    "local_video_path": ".gist/videos/archive/nasa-sts115-postflight-briefing-2006.mp4",
+    "source_notes": "NASA-produced material is not subject to copyright in the US. Confirm the specific upload carries no third-party footage before redistribution."
+  },
+  {
+    "video_id": "80443b10b432a498",
+    "title": "Night of the Living Dead (1968)",
+    "domain": "narrative feature film",
+    "duration_seconds": 5750.466667,
+    "license": "Public domain (US, copyright notice omitted on original release)",
+    "local_video_path": ".gist/videos/archive/night-of-the-living-dead-1968.mp4",
+    "source_notes": "Widely documented public domain status. Dialogue, score and sound effects over changing scenes; the strongest audio-visual case in the corpus."
+  },
+  {
+    "video_id": "03fefc681bd358b1",
+    "title": "The Quiet One (1948) documentary",
+    "domain": "documentary",
+    "duration_seconds": 3836.656327,
+    "license": "UNVERIFIED \u2014 confirm before use or redistribution",
+    "local_video_path": ".gist/videos/archive/the-quiet-one-1948-documentary.ogv",
+    "source_notes": "1948 US documentary; public domain status plausible but NOT verified. Do not include in any published table until the rights statement on the source item is checked."
   }
 ]
