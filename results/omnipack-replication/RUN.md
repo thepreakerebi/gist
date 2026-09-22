@@ -119,11 +119,51 @@ larger than the encoding it saves, the framing of the whole contribution changes
 and that would reshape what this comparison needs to show. There is no sense
 paying for a head to head whose caption you might have to rewrite.
 
+## First run: it is a debugging session, not a measurement session
+
+Every other runner under `results/` was written against a live pod. This one was
+not, because OmniPack shipped no code to borrow a working harness from. Three
+functions in `omnipack_h2h.py` are deliberately left raising `NotImplementedError`
+rather than guessed:
+
+| Function | What it must do |
+| :------- | :-------------- |
+| `build_inputs` | processor inputs for one video plus prompt, at the configured frames and max_pixels |
+| `encode` | run both towers, return visual and audio token tensors plus `frames`, `patches`, `media_span`, `text_span` |
+| `generate` | splice compressed embeddings into `inputs_embeds` and generate |
+
+They are unimplemented on purpose. Their correct form depends on the transformers
+version installed on the pod -- the processor's video and audio keyword names,
+whether the visual tower takes `grid_thw` positionally, and where media tokens
+land in the prompt all moved between releases. A guess would produce a file that
+looks finished and fails three layers from the cause, burning pod time.
+
+Fill them in against the installed version, using OmniScope's
+`tools/qwenomni_prune_inference.py` as the worked example: it does exactly this,
+for the same checkpoint, and is already cloned for the OmniScope head to head.
+
+Order for the first session:
+
+1. Implement the three functions. Confirm `decoder_layers` finds the layer list.
+2. **Run the `full` arm alone and check it reproduces stock Qwen answers.** If the
+   control arm is wrong, nothing downstream means anything. This is the single
+   most important check in the session.
+3. Run stage 1 only, `OMNIPACK_STAGE2=0`. Confirm the token counts in the `select`
+   records match the retention ratio.
+4. Enable stage 2. The hook prunes mid-forward, which changes sequence length and
+   invalidates the attention mask, position ids and KV cache for later layers; it
+   fires on prefill only. **This is the part of the implementation most likely to
+   be wrong.** If answers degrade sharply or generation breaks, fall back to
+   stage 1 only and say so in the write-up rather than shipping a broken stage 2.
+5. Only then calibrate, then sweep.
+
+A stage-1-only result is still publishable. It is the half of the method that
+carries the placement argument, and the honest caption says stage 2 was not
+validated.
+
 ## What is not done here
 
-- Stage 2 wiring. `stage2_select` is a pure function over hidden states; hooking
-  it into Qwen2.5-Omni at layer 18 and repairing position ids and the KV cache is
-  the runner's job and is not yet written.
-- The runner `omnipack_h2h.py` itself.
+- The three model-shaped functions above, and therefore any execution at all.
+- Validation of the stage 2 hook against a live forward pass.
 - Calibration against the paper's reported numbers.
-- The head to head.
+- The head to head and the ratio sweep.

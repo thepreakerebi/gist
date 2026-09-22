@@ -248,7 +248,10 @@ def stage1_compress(
 
     k_imp = max(int(round(eta * budget)), 0)
     k_imp = min(k_imp, budget)
-    top = torch.topk(scores, k=k_imp).indices if k_imp > 0 else scores.new_zeros(0, dtype=torch.long)
+    if k_imp > 0:
+        top = torch.topk(scores, k=k_imp).indices
+    else:
+        top = scores.new_zeros(0, dtype=torch.long)
 
     chosen = torch.zeros(n, dtype=torch.bool, device=embeds.device)
     chosen[top] = True
