@@ -270,37 +270,6 @@ async function replayFromCache(
   return true;
 }
 
-/**
- * The downstream models that can answer from Gist's selected evidence.
- *
- * The choice is the reader's, not the compressor's: Gist produces the same
- * evidence either way, and which model reads it is a separate decision. That
- * separation is the point of the gateway, so the interface exposes it rather
- * than hiding it behind a constant.
- *
- * OpenAI and Claude read sampled frames and the transcript of the selected
- * evidence. TwelveLabs reads the selected clips as video, which is the closer
- * demonstration of the idea, but it is a third-party service and an outage
- * should not take a demo with it.
- */
-export const ANSWERERS = [
-  { id: "openai", label: "OpenAI", note: "frames and transcript" },
-  { id: "claude", label: "Claude", note: "frames and transcript" },
-  { id: "twelvelabs", label: "TwelveLabs", note: "reads the clips as video" },
-] as const;
-
-export type AnswererId = (typeof ANSWERERS)[number]["id"];
-
-export const DEFAULT_ANSWERER: AnswererId =
-  (process.env.NEXT_PUBLIC_GIST_ANSWERER as AnswererId) ?? "openai";
-
-/** Remembered per browser, so a chosen model survives a reload. */
-export const ANSWERER_STORAGE_KEY = "gist.answerer";
-
-export function isAnswererId(value: string | null): value is AnswererId {
-  return ANSWERERS.some((option) => option.id === value);
-}
-
 export async function streamQuery(
   id: string,
   query: string,
@@ -315,7 +284,7 @@ export async function streamQuery(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         query,
-        answerer: options.answerer ?? DEFAULT_ANSWERER,
+        answerer: options.answerer ?? "twelvelabs",
         tail_merging: options.tailMerging ?? false,
       }),
       signal,

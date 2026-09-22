@@ -53,11 +53,11 @@ class AddVideoRequest(BaseModel):
         return url
 
 
-# Which hosted model answers when the client does not say. TwelveLabs reads the
-# clips directly, which is the better demonstration, but it is a third-party
-# service and an outage should not take the demo with it. Override with
-# GIST_ANSWERER=twelvelabs|openai|claude|extractive.
-DEFAULT_ANSWERER = os.getenv("GIST_ANSWERER", "openai")
+# Which model answers when the client does not say. TwelveLabs reads the selected
+# clips as video; the OpenAI and Claude adapters receive only the evidence text in
+# this flow, with no frames attached, so they cannot answer a question about what
+# is on screen. Override with GIST_ANSWERER=twelvelabs|openai|claude|extractive.
+DEFAULT_ANSWERER = os.getenv("GIST_ANSWERER", "twelvelabs")
 
 
 class QueryRequest(BaseModel):
