@@ -87,6 +87,31 @@ The longest end-to-end run in the project is the Tears of Steel smoke test at
 - The frozen 12-case held-out split stays grouped by recording, so no recording
   appears on both sides. It is run exactly once, at the end.
 
+### Where to source the seven replacements
+
+Automated search of the Internet Archive was attempted on 2026-09-22 and abandoned:
+the scrape API returned identical result counts for materially different queries, so
+nothing it produced can be trusted as a survey. Source candidates by hand instead,
+and verify duration and licence on the item page before adding any of them.
+
+Source families worth checking, roughly in order of fit:
+
+1. **Public-domain feature films** (`collection:feature_films` on the Internet
+   Archive). The best fit nobody has used yet: 70–100 minutes, and genuinely
+   audio-visual — dialogue, score, sound effects, scene changes, and questions whose
+   answers depend on both channels. Verify each title's rights statement
+   individually; the collection mixes rights.
+2. **NASA mission and ISS coverage** — US Government work, public domain, routinely
+   hours long, with continuous radio comms over changing visuals.
+3. **Blender Foundation open movies** (CC BY) — short individually, but the licence
+   is unambiguous and one is already in the corpus.
+4. **Openly licensed university lecture series** — only if the lecture share of the
+   corpus is already falling. Two are in there now and they are the skew.
+
+Selection rule: prefer material where the answer to a plausible question requires
+both channels. A recording where the speech transcript alone answers everything
+tests the Whisper path, not Gist.
+
 Authoring one hour-video question with verified ground truth and timestamps takes
 15–20 minutes. Forty is 10–13 hours of work, and that — not GPU time — is what
 gates this tier.
