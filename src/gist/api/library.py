@@ -11,6 +11,7 @@ database — a client that reloads mid-ingestion still sees the real state.
 from __future__ import annotations
 
 import json
+import os
 import queue
 import threading
 from collections.abc import Iterator
@@ -52,9 +53,16 @@ class AddVideoRequest(BaseModel):
         return url
 
 
+# Which hosted model answers when the client does not say. TwelveLabs reads the
+# clips directly, which is the better demonstration, but it is a third-party
+# service and an outage should not take the demo with it. Override with
+# GIST_ANSWERER=twelvelabs|openai|claude|extractive.
+DEFAULT_ANSWERER = os.getenv("GIST_ANSWERER", "openai")
+
+
 class QueryRequest(BaseModel):
     query: str = Field(min_length=1)
-    answerer: str = "twelvelabs"
+    answerer: str = Field(default_factory=lambda: DEFAULT_ANSWERER)
     preset: CompressionPreset = CompressionPreset.BALANCED
     adaptive_budget: bool = True
     decompose_query: bool = True

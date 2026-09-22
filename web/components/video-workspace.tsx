@@ -5,7 +5,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CollapseField } from "@/components/collapse-field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EvidencePanel } from "@/components/evidence-panel";
+import type { AnswererId } from "@/lib/library";
 import type {
   Clip,
   Message,
@@ -15,11 +23,13 @@ import type {
   VideoDetail,
 } from "@/lib/library";
 import {
+  ANSWERERS,
   clearConversation,
   formatDuration,
   getVideo,
   streamQuery,
 } from "@/lib/library";
+import { useAnswerer } from "@/lib/use-answerer";
 import { cn } from "@/lib/utils";
 
 type Turn = {
@@ -79,6 +89,7 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
   // modal for a one-click action is heavier than the action deserves.
   const [confirmingClear, setConfirmingClear] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [answerer, chooseAnswerer] = useAnswerer();
   const abort = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -141,7 +152,7 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
         await streamQuery(
           videoId,
           trimmed,
-          { answerer: "twelvelabs" },
+          { answerer },
           {
             onStage: (_stage, label) =>
               patch(id, { stage: label, cached: label.includes("(cached)") }),
@@ -176,7 +187,7 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
         abort.current = null;
       }
     },
-    [busy, patch, videoId],
+    [answerer, busy, patch, videoId],
   );
 
   if (loadError) {
@@ -237,6 +248,38 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
               {video.audio_window_count} audio windows
             </p>
           </div>
+
+          <Select
+            value={answerer}
+            onValueChange={(value) => chooseAnswerer(value as AnswererId)}
+            disabled={busy}
+          >
+            <SelectTrigger
+              size="sm"
+              aria-label="Answering model"
+              className="shrink-0 text-xs text-muted-foreground"
+            >
+              {/* Format explicitly: the items carry a second descriptive line,
+                  and the trigger should show only the name. */}
+              <SelectValue>
+                {(value) =>
+                  ANSWERERS.find((option) => option.id === value)?.label ?? "Model"
+                }
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent align="end" alignItemWithTrigger={false}>
+              {ANSWERERS.map((option) => (
+                <SelectItem key={option.id} value={option.id} className="py-2">
+                  <span className="flex flex-col items-start gap-1">
+                    <span className="text-sm leading-none">{option.label}</span>
+                    <span className="text-xs leading-none text-muted-foreground">
+                      {option.note}
+                    </span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {turns.length > 0 && (
             <button
