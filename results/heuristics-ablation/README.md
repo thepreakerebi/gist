@@ -14,7 +14,14 @@ contributes materially, and which query intent categories benefit most and
 least").
 
 **Runner:** `gist-ablation` / `scripts`-free: `python -m gist.eval.ablation`
-**Data:** `data/eval/long-video-quality.jsonl`, all 39 cases
+**Data:** `data/eval/long-video-quality.jsonl`, all 35 cases
+
+> **Re-run 2026-09-22 at n=35.** The original run was n=39. Four cases were
+> withdrawn because they ran against `tears_of_steel_61min.webm`, which was the
+> 12.2-minute Blender film concatenated five times rather than an hour-long
+> recording. Every number below is the re-run. The headline conclusion is
+> unchanged; one interval in the companion split-budget ablation is not, and that
+> is called out there.
 **Conditions:** candidate pool held fixed per case; only the selection input or
 the post-processing varies. CLAP seeded (see below), so this run reproduces.
 
@@ -22,17 +29,17 @@ the post-processing varies. CLAP seeded (see below), so this run reproduces.
 
 | Mode | Pass rate | Answer recall | Timestamp hit | Token reduction | Avg selected |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| Full Gist (audio+visual) | **69% (27/39)** | 0.81 | 0.82 | 99.84% | 1.31 |
-| Full Gist, coverage heuristics **OFF** | **67% (26/39)** | 0.79 | 0.79 | 99.84% | 1.28 |
-| Visual-only retrieval | 41% (16/39) | 0.50 | 0.54 | 99.52% | 2.41 |
-| Transcript-only retrieval | 26% (10/39) | 0.37 | 0.33 | 99.98% | 0.64 |
-| Score top-k (relevance only, no MMR) | 26% (10/39) | 0.39 | 0.38 | 99.75% | 1.31 |
-| Uniform sampling | 15% (6/39) | 0.30 | 0.27 | 99.79% | 1.31 |
+| Full Gist (audio+visual) | **74% (26/35)** | 0.83 | 0.86 | 99.83% | 1.29 |
+| Full Gist, coverage heuristics **OFF** | **71% (25/35)** | 0.80 | 0.83 | 99.82% | 1.29 |
+| Visual-only retrieval | 46% (16/35) | 0.55 | 0.60 | 99.55% | 2.26 |
+| Transcript-only retrieval | 29% (10/35) | 0.34 | 0.31 | 99.99% | 0.54 |
+| Score top-k (relevance only, no MMR) | 29% (10/35) | 0.40 | 0.40 | 99.75% | 1.29 |
+| Uniform sampling | 14% (5/35) | 0.27 | 0.24 | 99.78% | 1.29 |
 
-**Disabling every `_ensure_*` post-processor costs one case out of 39.** The
+**Disabling every `_ensure_*` post-processor costs one case out of 35.** The
 hand-tuned coverage rules are not what produces the result. Scoring and MMR
 are: `score_topk` isolates that directly — identical scores, identical budget,
-diversity removed — and drops from 67% to 26%.
+diversity removed — and drops from 71% to 29%.
 
 ### What the confidence intervals do to that claim
 
@@ -41,18 +48,18 @@ Paired percentile bootstrap, 10,000 resamples, cases resampled together
 
 | Condition | Pass rate [95% CI] | vs full Gist (pp) | Case agreement |
 | :--- | :--- | :--- | ---: |
-| Full Gist | 69.2% [53.8%, 84.6%] | — | — |
-| Heuristics OFF | 66.7% [51.3%, 82.1%] | −2.6 [−7.7, +0.0] | 97% |
-| Visual-only | 41.0% [25.6%, 56.4%] | −28.2 [−43.6, −15.4] | 72% |
-| Transcript-only | 25.6% [12.8%, 38.5%] | −43.6 [−61.5, −25.6] | 46% |
-| Score top-k | 25.6% [12.8%, 41.0%] | −43.6 [−59.0, −28.2] | 56% |
-| Uniform | 15.4% [5.1%, 28.2%] | −53.8 [−69.2, −35.9] | 41% |
+| Full Gist | 74.3% [60.0%, 88.6%] | — | — |
+| Heuristics OFF | 71.4% [57.1%, 85.7%] | −2.9 [−8.6, +0.0] | 97% |
+| Visual-only | 45.7% [28.6%, 62.9%] | −28.6 [−42.9, −14.3] | 71% |
+| Transcript-only | 28.6% [14.3%, 42.9%] | −45.7 [−65.7, −25.7] | 43% |
+| Score top-k | 28.6% [14.3%, 42.9%] | −45.7 [−62.9, −28.6] | 54% |
+| Uniform | 14.3% [2.9%, 25.7%] | −60.0 [−74.3, −42.9] | 40% |
 
 The intervals sharpen two claims and **weaken a third**, which is the point of
 computing them:
 
 - **Sharpened.** Every baseline comparison excludes zero by a wide margin.
-  Cross-modal scoring and MMR are not noise: visual-only is at least 15 points
+  Cross-modal scoring and MMR are not noise: visual-only is at least 14 points
   worse and score-top-k at least 28, at 95% confidence.
 - **Sharpened.** Heuristics-off agrees with full Gist on **97% of cases**, and
   the difference's upper bound is exactly +0.0 — across 10,000 resamples,

@@ -11,25 +11,44 @@ the allocation strategy. This run measures it.
 
 ## Result
 
-39 curated cases, paired percentile bootstrap, 10,000 resamples, 95% intervals.
+> **Re-run 2026-09-22 at n=35, and one conclusion changed.** The original run was
+> n=39. Four cases were withdrawn because they ran against
+> `tears_of_steel_61min.webm`, which was the 12.2-minute Blender film concatenated
+> five times rather than an hour-long recording. The result against the
+> *intent-aware* split no longer excludes zero. That claim is withdrawn below; it
+> is not softened in place, because the n=39 version of this file asserted the
+> opposite.
+
+35 curated cases, paired percentile bootstrap, 10,000 resamples, 95% intervals.
 
 | Condition | Pass rate [95% CI] | vs full Gist (pp) | Agreement |
 | :--- | :--- | :--- | ---: |
-| **Full Gist (standardise, then pool)** | **69.2% [53.8%, 84.6%]** | — | — |
-| Coverage heuristics OFF | 66.7% [51.3%, 82.1%] | −2.6 [−7.7, +0.0] | 97% |
-| Split first, intent-aware | 51.3% [35.9%, 66.7%] | **−17.9 [−33.3, −2.6]** | 72% |
-| Split first, even halves | 25.6% [12.8%, 41.0%] | **−43.6 [−59.0, −28.2]** | 56% |
-| Visual-only retrieval | 41.0% [25.6%, 56.4%] | −28.2 [−43.6, −15.4] | 72% |
-| Transcript-only retrieval | 25.6% [12.8%, 38.5%] | −43.6 [−61.5, −25.6] | 46% |
-| Uniform sampling | 15.4% [5.1%, 28.2%] | −53.8 [−69.2, −35.9] | 41% |
+| **Full Gist (standardise, then pool)** | **74.3% [60.0%, 88.6%]** | — | — |
+| Coverage heuristics OFF | 71.4% [57.1%, 85.7%] | −2.9 [−8.6, +0.0] | 97% |
+| Split first, intent-aware | 57.1% [40.0%, 74.3%] | −17.1 [−34.3, **+0.0**] | 71% |
+| Split first, even halves | 28.6% [14.3%, 42.9%] | **−45.7 [−62.9, −28.6]** | 54% |
+| Visual-only retrieval | 45.7% [28.6%, 62.9%] | −28.6 [−42.9, −14.3] | 71% |
+| Transcript-only retrieval | 28.6% [14.3%, 42.9%] | −45.7 [−65.7, −25.7] | 43% |
+| Uniform sampling | 14.3% [2.9%, 25.7%] | −60.0 [−74.3, −42.9] | 40% |
 
-**Pooling wins, and the interval excludes zero** for both split rules. Against the
-stronger of the two (intent-aware), pooling is better by at least 2.6 points at 95%
-confidence.
+**Pooling beats the naive even split decisively**, by at least 28.6 points at 95%
+confidence, and that interval is nowhere near zero.
 
-**The split rule matters enormously.** An even 50/50 split scores 25.6%; an
-intent-aware split scores 51.3%. Testing only the naive rule would have overstated
-the case by roughly 26 points, which is why two rules were run.
+**Against the intent-aware split, pooling no longer wins at 95% confidence.** The
+point estimate still favours pooling by 17.1 points, but the interval runs to
++0.0: across 10,000 resamples the split rule was never better, yet the data at
+n=35 cannot exclude parity. At n=39 the same comparison gave [−33.3, −2.6] and
+this file claimed the interval excluded zero. **That claim is withdrawn.** Four
+cases were enough to move it, which is the honest reading of a 35-case corpus, not
+a defect in the resampling.
+
+What survives: the allocation choice was tested rather than asserted, pooling is
+never worse, and the naive rule is clearly worse. What does not survive: any
+statement that pooling is *significantly* better than a well-chosen split rule.
+
+**The split rule matters enormously.** An even 50/50 split scores 28.6%; an
+intent-aware split scores 57.1%. Testing only the naive rule would have overstated
+the case by roughly 29 points, which is why two rules were run.
 
 ## The load-bearing caveat: the budget is almost always one item
 
@@ -61,7 +80,7 @@ This run does not measure that regime.
 
 `split_intent` and `split_intent_sep` — the latter scoring each modality in complete
 isolation rather than sharing one scored pool — produced **byte-identical selections
-on all 39 cases**.
+on all 35 cases**.
 
 That is correct, not a wiring bug. z-scores are computed per modality in
 `_score_modality` either way, and `_apply_audio_visual_anchors` only *annotates*
@@ -104,8 +123,13 @@ python -m gist.eval.bootstrap \
 ## What this does and does not license saying
 
 **Can say:** the allocation choice was tested rather than asserted; pooling beats
-both fixed split rules on this corpus with intervals that exclude zero; and the
-mechanism is understood (blind modality commitment at unit budgets).
+the even split on this corpus with an interval that excludes zero by a wide
+margin; pooling is never worse than the intent-aware split across 10,000
+resamples; and the mechanism is understood (blind modality commitment at unit
+budgets).
+
+**Cannot say (changed 2026-09-22):** that pooling significantly beats the
+intent-aware split. At n=35 that interval reaches +0.0.
 
 **Cannot say:** that Gist's allocation beats OmniScope's, Macer's or OmniDelta's.
 Those methods allocate with their own signals, on their own benchmarks, post-encoder.

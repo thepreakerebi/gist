@@ -89,82 +89,20 @@ Two consequences:
 The genuine 12.2-minute original (`tears_of_steel_720p.webm`, CC BY 3.0, Blender
 Foundation) is kept. It is a real short video and the cases that use it stand.
 
-### Results that need recomputing
+### Results recomputed at n=35
 
-`long-video-quality.jsonl` went from 39 to 35 cases. Two committed results were
-computed on the 39-case version and each drew 4 of their cases from the loop:
+`long-video-quality.jsonl` went from 39 to 35 cases. Both affected results were
+re-run on 2026-09-22 and their committed output replaced. Each README carries a
+note saying what changed.
 
-| Result | Status |
-| :----- | :----- |
-| `results/heuristics-ablation/` | computed at n=39; needs re-running at n=35 |
-| `results/split-budget-ablation/` | same |
+| Result | Outcome of the re-run |
+| :----- | :-------------------- |
+| `results/heuristics-ablation/` | Conclusion unchanged. Disabling the coverage heuristics still costs one case; agreement with full Gist is still 97%, and the difference's upper bound is still exactly +0.0 |
+| `results/split-budget-ablation/` | **One conclusion withdrawn.** Pooling versus the *intent-aware* split was −17.9 pp [−33.3, −2.6] at n=39 and is −17.1 pp [−34.3, +0.0] at n=35, so it no longer excludes zero. Pooling still beats the even split by at least 28.6 points |
 
-The committed JSON and Markdown under `results/` are left exactly as they are.
-They are the experimental record of what was run on the day, and rewriting them
-would be falsifying that record. They must be **re-run** and the new numbers
-published alongside, with a note that the earlier version included four cases from
-a duplicated video. Anything in the paper that cites either ablation is provisional
-until that happens.
-
-One silver lining: dropping four robotics-heavy cases slightly reduces the corpus
-skew the next section describes.
-
-### Three problems to fix before this tier is defensible
-
-1. **Question skew.** 20 of the 39 current cases come from two robotics lectures.
-   This is the most attackable feature of the evaluation and more video does not
-   fix it — the *question* distribution is what is lumpy.
-2. **Licences are now recorded, and two need care.** The Paul Graham recording is
-   under YouTube's default Standard YouTube License, all rights reserved: analysis
-   for research is ordinary use, but the file is never redistributed and only the
-   manifest is published. The Quiet One (1948) remains unverified and must not
-   appear in a published table until its rights statement is checked.
-3. **Content monoculture.** The corpus is lecture and talking-head heavy, which
-   flatters a method that leans on speech.
-
-### Target shape — 12 recordings
-
-- **3–4 questions per recording, hard cap.** Twelve recordings gives 36–48 cases
-  with no single recording above roughly 8%.
-- **Stratified across the six query-intent categories**, since RQ4 is defined by
-  them and the per-intent heuristics ablation depends on them.
-- **CC-BY, CC-BY-SA or public domain only.** Internet Archive conference talks,
-  Blender open movies, NASA footage, openly licensed university lecture series.
-  The Kinect keynote is the model to copy.
-- **Diversify away from lectures.**
-- The frozen 12-case held-out split stays grouped by recording, so no recording
-  appears on both sides. It is run exactly once, at the end.
-
-### Drafting questions, and what it actually yields
-
-`scripts/draft_corpus_questions.py` drafts candidates from transcript plus frames
-and then screens each one three ways — transcript only, frames only, both — keeping
-only those where both modalities are needed and the ground truth holds up. The
-screen exists because a model drafting from a transcript writes
-transcript-answerable questions even when told not to.
-
-**Measured yield, 2026-09-22, gpt-4.1-mini with 16 draft frames:**
-
-| Recording | Drafted | Kept | Dominant rejection |
-| :-------- | ------: | ---: | :----------------- |
-| NASA STS-115 briefing | 3 | 0 | speech alone answers it |
-| Night of the Living Dead | 8 | 1 | ground truth wrong (5 of 8) |
-
-About one in ten survives, so budget 30–40 candidates per recording to land 3–4
-keepers. That is cheap in API terms — four calls per candidate — but the failure
-mode matters more than the rate.
-
-**Five of eight film rejections were unreliable ground truth**, not modality
-failures. Sixteen frames sampled across 96 minutes is too thin a view for a model
-to write checkable questions about a specific moment; it confabulates details.
-Two fixes worth trying before a full run: draft per segment rather than per
-recording, with dense frames over a five to ten minute window, and use a stronger
-drafting model. The screen catches these either way, which is the point of having
-it, but a higher yield means less human review per keeper.
-
-**The screen does not replace human verification.** It removes questions that are
-clearly broken. Every survivor still needs a person to confirm the answer and the
-timestamp before it enters the dataset.
+Anything in the paper citing the split-budget ablation as evidence that pooling
+*significantly* beats a split rule must be corrected. The even-split comparison
+still stands.
 
 ### Where to source the seven replacements
 

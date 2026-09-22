@@ -1,131 +1,131 @@
 {
-  "cases": 39,
+  "cases": 35,
   "summaries": {
     "full_gist": {
       "mode": "full_gist",
       "label": "Full Gist (audio+visual)",
-      "cases": 39,
-      "passed": 27,
-      "pass_rate": 0.6923076923076923,
-      "avg_answer_term_recall": 0.811965811965812,
-      "avg_evidence_term_coverage": 0.82991452991453,
-      "avg_evidence_relevance_rate": 0.8632478632478632,
-      "avg_timestamp_hit_rate": 0.8205128205128205,
-      "avg_grounded_evidence_rate": 0.9038461538461539,
-      "avg_token_reduction_percent": 99.83754510407987,
-      "avg_selected_evidence": 1.3076923076923077
+      "cases": 35,
+      "passed": 26,
+      "pass_rate": 0.7428571428571429,
+      "avg_answer_term_recall": 0.8285714285714286,
+      "avg_evidence_term_coverage": 0.839047619047619,
+      "avg_evidence_relevance_rate": 0.8857142857142857,
+      "avg_timestamp_hit_rate": 0.8571428571428571,
+      "avg_grounded_evidence_rate": 0.8928571428571429,
+      "avg_token_reduction_percent": 99.82775827711326,
+      "avg_selected_evidence": 1.2857142857142858
     },
     "full_gist_no_heuristics": {
       "mode": "full_gist_no_heuristics",
       "label": "Full Gist, coverage heuristics OFF",
-      "cases": 39,
-      "passed": 26,
-      "pass_rate": 0.6666666666666666,
-      "avg_answer_term_recall": 0.7863247863247863,
-      "avg_evidence_term_coverage": 0.8042735042735043,
-      "avg_evidence_relevance_rate": 0.8589743589743589,
-      "avg_timestamp_hit_rate": 0.7948717948717948,
-      "avg_grounded_evidence_rate": 0.9166666666666666,
-      "avg_token_reduction_percent": 99.8381761556386,
-      "avg_selected_evidence": 1.2820512820512822
+      "cases": 35,
+      "passed": 25,
+      "pass_rate": 0.7142857142857143,
+      "avg_answer_term_recall": 0.8,
+      "avg_evidence_term_coverage": 0.8104761904761905,
+      "avg_evidence_relevance_rate": 0.8714285714285714,
+      "avg_timestamp_hit_rate": 0.8285714285714286,
+      "avg_grounded_evidence_rate": 0.9071428571428571,
+      "avg_token_reduction_percent": 99.82304255581657,
+      "avg_selected_evidence": 1.2857142857142858
     },
     "visual_only": {
       "mode": "visual_only",
       "label": "Visual-only retrieval",
-      "cases": 39,
+      "cases": 35,
       "passed": 16,
-      "pass_rate": 0.41025641025641024,
-      "avg_answer_term_recall": 0.4957264957264957,
-      "avg_evidence_term_coverage": 0.5136752136752137,
-      "avg_evidence_relevance_rate": 0.5876068376068376,
-      "avg_timestamp_hit_rate": 0.5384615384615384,
-      "avg_grounded_evidence_rate": 0.6666666666666666,
-      "avg_token_reduction_percent": 99.51911576793786,
-      "avg_selected_evidence": 2.41025641025641
+      "pass_rate": 0.45714285714285713,
+      "avg_answer_term_recall": 0.5523809523809523,
+      "avg_evidence_term_coverage": 0.5723809523809524,
+      "avg_evidence_relevance_rate": 0.6547619047619048,
+      "avg_timestamp_hit_rate": 0.6,
+      "avg_grounded_evidence_rate": 0.7142857142857143,
+      "avg_token_reduction_percent": 99.54544096549148,
+      "avg_selected_evidence": 2.257142857142857
     },
     "transcript_only": {
       "mode": "transcript_only",
       "label": "Transcript-only retrieval",
-      "cases": 39,
+      "cases": 35,
       "passed": 10,
-      "pass_rate": 0.2564102564102564,
-      "avg_answer_term_recall": 0.37435897435897436,
-      "avg_evidence_term_coverage": 0.38290598290598293,
-      "avg_evidence_relevance_rate": 0.40170940170940167,
-      "avg_timestamp_hit_rate": 0.3333333333333333,
-      "avg_grounded_evidence_rate": 0.4700854700854701,
-      "avg_token_reduction_percent": 99.98406411331335,
-      "avg_selected_evidence": 0.6410256410256411
+      "pass_rate": 0.2857142857142857,
+      "avg_answer_term_recall": 0.34095238095238095,
+      "avg_evidence_term_coverage": 0.34095238095238095,
+      "avg_evidence_relevance_rate": 0.3619047619047619,
+      "avg_timestamp_hit_rate": 0.3142857142857143,
+      "avg_grounded_evidence_rate": 0.40952380952380957,
+      "avg_token_reduction_percent": 99.98627553370372,
+      "avg_selected_evidence": 0.5428571428571428
     },
     "score_topk": {
       "mode": "score_topk",
       "label": "Score top-k (relevance only)",
-      "cases": 39,
+      "cases": 35,
       "passed": 10,
-      "pass_rate": 0.2564102564102564,
-      "avg_answer_term_recall": 0.3888888888888889,
-      "avg_evidence_term_coverage": 0.41025641025641024,
-      "avg_evidence_relevance_rate": 0.47863247863247865,
-      "avg_timestamp_hit_rate": 0.38461538461538464,
-      "avg_grounded_evidence_rate": 0.9743589743589743,
-      "avg_token_reduction_percent": 99.75473193731472,
-      "avg_selected_evidence": 1.3076923076923077
+      "pass_rate": 0.2857142857142857,
+      "avg_answer_term_recall": 0.4,
+      "avg_evidence_term_coverage": 0.42857142857142855,
+      "avg_evidence_relevance_rate": 0.5142857142857142,
+      "avg_timestamp_hit_rate": 0.4,
+      "avg_grounded_evidence_rate": 0.9714285714285714,
+      "avg_token_reduction_percent": 99.74972109524126,
+      "avg_selected_evidence": 1.2857142857142858
     },
     "split_even": {
       "mode": "split_even",
       "label": "Split budget first, even halves",
-      "cases": 39,
+      "cases": 35,
       "passed": 10,
-      "pass_rate": 0.2564102564102564,
-      "avg_answer_term_recall": 0.3717948717948718,
-      "avg_evidence_term_coverage": 0.39316239316239315,
-      "avg_evidence_relevance_rate": 0.45726495726495725,
-      "avg_timestamp_hit_rate": 0.358974358974359,
+      "pass_rate": 0.2857142857142857,
+      "avg_answer_term_recall": 0.4,
+      "avg_evidence_term_coverage": 0.42857142857142855,
+      "avg_evidence_relevance_rate": 0.4952380952380952,
+      "avg_timestamp_hit_rate": 0.4,
       "avg_grounded_evidence_rate": 1.0,
-      "avg_token_reduction_percent": 99.79629008596461,
-      "avg_selected_evidence": 1.1538461538461537
+      "avg_token_reduction_percent": 99.79535663583016,
+      "avg_selected_evidence": 1.1428571428571428
     },
     "split_intent": {
       "mode": "split_intent",
       "label": "Split budget first, intent-aware",
-      "cases": 39,
+      "cases": 35,
       "passed": 20,
-      "pass_rate": 0.5128205128205128,
-      "avg_answer_term_recall": 0.6623931623931624,
-      "avg_evidence_term_coverage": 0.6837606837606838,
-      "avg_evidence_relevance_rate": 0.688034188034188,
-      "avg_timestamp_hit_rate": 0.5384615384615384,
+      "pass_rate": 0.5714285714285714,
+      "avg_answer_term_recall": 0.6952380952380952,
+      "avg_evidence_term_coverage": 0.7238095238095238,
+      "avg_evidence_relevance_rate": 0.7238095238095238,
+      "avg_timestamp_hit_rate": 0.6,
       "avg_grounded_evidence_rate": 1.0,
-      "avg_token_reduction_percent": 99.85796725333563,
-      "avg_selected_evidence": 1.1538461538461537
+      "avg_token_reduction_percent": 99.85933584005956,
+      "avg_selected_evidence": 1.1428571428571428
     },
     "split_intent_sep": {
       "mode": "split_intent_sep",
       "label": "Split budget + separate scoring (diagnostic)",
-      "cases": 39,
+      "cases": 35,
       "passed": 20,
-      "pass_rate": 0.5128205128205128,
-      "avg_answer_term_recall": 0.6623931623931624,
-      "avg_evidence_term_coverage": 0.6837606837606838,
-      "avg_evidence_relevance_rate": 0.688034188034188,
-      "avg_timestamp_hit_rate": 0.5384615384615384,
+      "pass_rate": 0.5714285714285714,
+      "avg_answer_term_recall": 0.6952380952380952,
+      "avg_evidence_term_coverage": 0.7238095238095238,
+      "avg_evidence_relevance_rate": 0.7238095238095238,
+      "avg_timestamp_hit_rate": 0.6,
       "avg_grounded_evidence_rate": 1.0,
-      "avg_token_reduction_percent": 99.85796725333563,
-      "avg_selected_evidence": 1.1538461538461537
+      "avg_token_reduction_percent": 99.85933584005956,
+      "avg_selected_evidence": 1.1428571428571428
     },
     "uniform": {
       "mode": "uniform",
       "label": "Uniform sampling",
-      "cases": 39,
-      "passed": 6,
-      "pass_rate": 0.15384615384615385,
-      "avg_answer_term_recall": 0.3004273504273504,
-      "avg_evidence_term_coverage": 0.3388888888888889,
-      "avg_evidence_relevance_rate": 0.5192307692307693,
-      "avg_timestamp_hit_rate": 0.2692307692307692,
-      "avg_grounded_evidence_rate": 0.9230769230769231,
-      "avg_token_reduction_percent": 99.79302240650428,
-      "avg_selected_evidence": 1.3076923076923077
+      "cases": 35,
+      "passed": 5,
+      "pass_rate": 0.14285714285714285,
+      "avg_answer_term_recall": 0.27285714285714285,
+      "avg_evidence_term_coverage": 0.32047619047619047,
+      "avg_evidence_relevance_rate": 0.5214285714285715,
+      "avg_timestamp_hit_rate": 0.24285714285714285,
+      "avg_grounded_evidence_rate": 0.9142857142857143,
+      "avg_token_reduction_percent": 99.78289405351303,
+      "avg_selected_evidence": 1.2857142857142858
     }
   },
   "results": [
@@ -464,357 +464,6 @@
             "answer term recall 0.00 below required 1.00",
             "evidence term coverage 0.00 below required 1.00"
           ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robot-hand-fear",
-      "query_category": "speech_semantic",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 0.6666666666666666,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.76329099035522,
-          "selected_evidence": 3,
-          "visual_evidence": 2,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "evidence relevance rate 0.67 below required 1.00",
-            "selected evidence 3 exceeds limit 1"
-          ]
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.95295224653023,
-          "selected_evidence": 2,
-          "visual_evidence": 1,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.95295224653023,
-          "selected_evidence": 2,
-          "visual_evidence": 1,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 0.6666666666666666,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.76329099035522,
-          "selected_evidence": 3,
-          "visual_evidence": 1,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "evidence relevance rate 0.67 below required 1.00",
-            "selected evidence 3 exceeds limit 1"
-          ]
-        },
-        "split_even": {
-          "mode": "split_even",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.3333333333333333,
-          "evidence_relevance_rate": 0.5,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.7868148670901,
-          "selected_evidence": 2,
-          "visual_evidence": 2,
-          "audio_evidence": 1,
-          "answer": "The evidence suggests: have made that you're freaked out by my robot hand.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.33 below required 1.00",
-            "evidence relevance rate 0.50 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "split_intent": {
-          "mode": "split_intent",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.3333333333333333,
-          "evidence_relevance_rate": 0.5,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.7868148670901,
-          "selected_evidence": 2,
-          "visual_evidence": 2,
-          "audio_evidence": 1,
-          "answer": "The evidence suggests: have made that you're freaked out by my robot hand.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.33 below required 1.00",
-            "evidence relevance rate 0.50 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "split_intent_sep": {
-          "mode": "split_intent_sep",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.3333333333333333,
-          "evidence_relevance_rate": 0.5,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.7868148670901,
-          "selected_evidence": 2,
-          "visual_evidence": 2,
-          "audio_evidence": 1,
-          "answer": "The evidence suggests: have made that you're freaked out by my robot hand.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.33 below required 1.00",
-            "evidence relevance rate 0.50 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.92942836979535,
-          "selected_evidence": 3,
-          "visual_evidence": 1,
-          "audio_evidence": 3,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "selected evidence 3 exceeds limit 1"
-          ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robotics-space",
-      "query_category": "speech_semantic",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 0.0,
-          "token_reduction_percent": 99.62067748764997,
-          "selected_evidence": 2,
-          "visual_evidence": 2,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "grounded evidence rate 0.00 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "split_even": {
-          "mode": "split_even",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "split_intent": {
-          "mode": "split_intent",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "split_intent_sep": {
-          "mode": "split_intent_sep",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": true,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "You have your robotics, and I just want to be awesome in space.",
-          "failures": []
         }
       }
     },
@@ -2401,385 +2050,6 @@
           "failures": [
             "answer term recall 0.00 below required 1.00",
             "timestamp hit rate 0.00 below required 1.00"
-          ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robotics-space-robot-hand",
-      "query_category": "mixed_av",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "...be tender to her.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "...be tender to her.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 0.0,
-          "token_reduction_percent": 98.86203246294988,
-          "selected_evidence": 6,
-          "visual_evidence": 6,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "grounded evidence rate 0.00 below required 1.00",
-            "token reduction 98.86% below required 99.00%",
-            "selected evidence 6 exceeds limit 1",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "...be tender to her.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "split_even": {
-          "mode": "split_even",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "split_intent": {
-          "mode": "split_intent",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "split_intent_sep": {
-          "mode": "split_intent_sep",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robot-hand-visible-question",
-      "query_category": "mixed_av",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": true,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
-          "failures": []
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": true,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
-          "failures": []
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 0.0,
-          "token_reduction_percent": 98.86203246294988,
-          "selected_evidence": 6,
-          "visual_evidence": 6,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "grounded evidence rate 0.00 below required 1.00",
-            "token reduction 98.86% below required 99.00%",
-            "selected evidence 6 exceeds limit 1",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.95295224653023,
-          "selected_evidence": 2,
-          "visual_evidence": 2,
-          "audio_evidence": 2,
-          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
-          "failures": [
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.5,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": "Visual evidence shows does woman ask while her robot hand visible near 1103.98 seconds.",
-          "failures": [
-            "answer term recall 0.50 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "split_even": {
-          "mode": "split_even",
-          "passed": false,
-          "answer_term_recall": 0.5,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": "Visual evidence shows does woman ask while her robot hand visible near 1103.98 seconds.",
-          "failures": [
-            "answer term recall 0.50 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "split_intent": {
-          "mode": "split_intent",
-          "passed": false,
-          "answer_term_recall": 0.5,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": "Visual evidence shows does woman ask while her robot hand visible near 1103.98 seconds.",
-          "failures": [
-            "answer term recall 0.50 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "split_intent_sep": {
-          "mode": "split_intent_sep",
-          "passed": false,
-          "answer_term_recall": 0.5,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": "Visual evidence shows does woman ask while her robot hand visible near 1103.98 seconds.",
-          "failures": [
-            "answer term recall 0.50 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": false,
-          "answer_term_recall": 0.5,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": "Visual evidence shows does woman ask while her robot hand visible near 50.18 seconds.",
-          "failures": [
-            "answer term recall 0.50 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
           ]
         }
       }

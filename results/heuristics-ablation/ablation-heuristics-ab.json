@@ -1,89 +1,131 @@
 {
-  "cases": 39,
+  "cases": 35,
   "summaries": {
     "full_gist": {
       "mode": "full_gist",
       "label": "Full Gist (audio+visual)",
-      "cases": 39,
-      "passed": 27,
-      "pass_rate": 0.6923076923076923,
-      "avg_answer_term_recall": 0.811965811965812,
-      "avg_evidence_term_coverage": 0.82991452991453,
-      "avg_evidence_relevance_rate": 0.8632478632478632,
-      "avg_timestamp_hit_rate": 0.8205128205128205,
-      "avg_grounded_evidence_rate": 0.9038461538461539,
-      "avg_token_reduction_percent": 99.83754510407987,
-      "avg_selected_evidence": 1.3076923076923077
+      "cases": 35,
+      "passed": 26,
+      "pass_rate": 0.7428571428571429,
+      "avg_answer_term_recall": 0.8285714285714286,
+      "avg_evidence_term_coverage": 0.839047619047619,
+      "avg_evidence_relevance_rate": 0.8857142857142857,
+      "avg_timestamp_hit_rate": 0.8571428571428571,
+      "avg_grounded_evidence_rate": 0.8928571428571429,
+      "avg_token_reduction_percent": 99.82775827711326,
+      "avg_selected_evidence": 1.2857142857142858
     },
     "full_gist_no_heuristics": {
       "mode": "full_gist_no_heuristics",
       "label": "Full Gist, coverage heuristics OFF",
-      "cases": 39,
-      "passed": 26,
-      "pass_rate": 0.6666666666666666,
-      "avg_answer_term_recall": 0.7863247863247863,
-      "avg_evidence_term_coverage": 0.8042735042735043,
-      "avg_evidence_relevance_rate": 0.8589743589743589,
-      "avg_timestamp_hit_rate": 0.7948717948717948,
-      "avg_grounded_evidence_rate": 0.9166666666666666,
-      "avg_token_reduction_percent": 99.8381761556386,
-      "avg_selected_evidence": 1.2820512820512822
+      "cases": 35,
+      "passed": 25,
+      "pass_rate": 0.7142857142857143,
+      "avg_answer_term_recall": 0.8,
+      "avg_evidence_term_coverage": 0.8104761904761905,
+      "avg_evidence_relevance_rate": 0.8714285714285714,
+      "avg_timestamp_hit_rate": 0.8285714285714286,
+      "avg_grounded_evidence_rate": 0.9071428571428571,
+      "avg_token_reduction_percent": 99.82304255581657,
+      "avg_selected_evidence": 1.2857142857142858
     },
     "visual_only": {
       "mode": "visual_only",
       "label": "Visual-only retrieval",
-      "cases": 39,
+      "cases": 35,
       "passed": 16,
-      "pass_rate": 0.41025641025641024,
-      "avg_answer_term_recall": 0.4957264957264957,
-      "avg_evidence_term_coverage": 0.5136752136752137,
-      "avg_evidence_relevance_rate": 0.5876068376068376,
-      "avg_timestamp_hit_rate": 0.5384615384615384,
-      "avg_grounded_evidence_rate": 0.6666666666666666,
-      "avg_token_reduction_percent": 99.51911576793786,
-      "avg_selected_evidence": 2.41025641025641
+      "pass_rate": 0.45714285714285713,
+      "avg_answer_term_recall": 0.5523809523809523,
+      "avg_evidence_term_coverage": 0.5723809523809524,
+      "avg_evidence_relevance_rate": 0.6547619047619048,
+      "avg_timestamp_hit_rate": 0.6,
+      "avg_grounded_evidence_rate": 0.7142857142857143,
+      "avg_token_reduction_percent": 99.54544096549148,
+      "avg_selected_evidence": 2.257142857142857
     },
     "transcript_only": {
       "mode": "transcript_only",
       "label": "Transcript-only retrieval",
-      "cases": 39,
+      "cases": 35,
       "passed": 10,
-      "pass_rate": 0.2564102564102564,
-      "avg_answer_term_recall": 0.37435897435897436,
-      "avg_evidence_term_coverage": 0.38290598290598293,
-      "avg_evidence_relevance_rate": 0.40170940170940167,
-      "avg_timestamp_hit_rate": 0.3333333333333333,
-      "avg_grounded_evidence_rate": 0.4700854700854701,
-      "avg_token_reduction_percent": 99.98406411331335,
-      "avg_selected_evidence": 0.6410256410256411
+      "pass_rate": 0.2857142857142857,
+      "avg_answer_term_recall": 0.34095238095238095,
+      "avg_evidence_term_coverage": 0.34095238095238095,
+      "avg_evidence_relevance_rate": 0.3619047619047619,
+      "avg_timestamp_hit_rate": 0.3142857142857143,
+      "avg_grounded_evidence_rate": 0.40952380952380957,
+      "avg_token_reduction_percent": 99.98627553370372,
+      "avg_selected_evidence": 0.5428571428571428
     },
     "score_topk": {
       "mode": "score_topk",
       "label": "Score top-k (relevance only)",
-      "cases": 39,
+      "cases": 35,
       "passed": 10,
-      "pass_rate": 0.2564102564102564,
-      "avg_answer_term_recall": 0.3888888888888889,
-      "avg_evidence_term_coverage": 0.41025641025641024,
-      "avg_evidence_relevance_rate": 0.47863247863247865,
-      "avg_timestamp_hit_rate": 0.38461538461538464,
-      "avg_grounded_evidence_rate": 0.9743589743589743,
-      "avg_token_reduction_percent": 99.75473193731472,
-      "avg_selected_evidence": 1.3076923076923077
+      "pass_rate": 0.2857142857142857,
+      "avg_answer_term_recall": 0.4,
+      "avg_evidence_term_coverage": 0.42857142857142855,
+      "avg_evidence_relevance_rate": 0.5142857142857142,
+      "avg_timestamp_hit_rate": 0.4,
+      "avg_grounded_evidence_rate": 0.9714285714285714,
+      "avg_token_reduction_percent": 99.74972109524126,
+      "avg_selected_evidence": 1.2857142857142858
+    },
+    "split_even": {
+      "mode": "split_even",
+      "label": "Split budget first, even halves",
+      "cases": 35,
+      "passed": 10,
+      "pass_rate": 0.2857142857142857,
+      "avg_answer_term_recall": 0.4,
+      "avg_evidence_term_coverage": 0.42857142857142855,
+      "avg_evidence_relevance_rate": 0.4952380952380952,
+      "avg_timestamp_hit_rate": 0.4,
+      "avg_grounded_evidence_rate": 1.0,
+      "avg_token_reduction_percent": 99.79535663583016,
+      "avg_selected_evidence": 1.1428571428571428
+    },
+    "split_intent": {
+      "mode": "split_intent",
+      "label": "Split budget first, intent-aware",
+      "cases": 35,
+      "passed": 20,
+      "pass_rate": 0.5714285714285714,
+      "avg_answer_term_recall": 0.6952380952380952,
+      "avg_evidence_term_coverage": 0.7238095238095238,
+      "avg_evidence_relevance_rate": 0.7238095238095238,
+      "avg_timestamp_hit_rate": 0.6,
+      "avg_grounded_evidence_rate": 1.0,
+      "avg_token_reduction_percent": 99.85933584005956,
+      "avg_selected_evidence": 1.1428571428571428
+    },
+    "split_intent_sep": {
+      "mode": "split_intent_sep",
+      "label": "Split budget + separate scoring (diagnostic)",
+      "cases": 35,
+      "passed": 20,
+      "pass_rate": 0.5714285714285714,
+      "avg_answer_term_recall": 0.6952380952380952,
+      "avg_evidence_term_coverage": 0.7238095238095238,
+      "avg_evidence_relevance_rate": 0.7238095238095238,
+      "avg_timestamp_hit_rate": 0.6,
+      "avg_grounded_evidence_rate": 1.0,
+      "avg_token_reduction_percent": 99.85933584005956,
+      "avg_selected_evidence": 1.1428571428571428
     },
     "uniform": {
       "mode": "uniform",
       "label": "Uniform sampling",
-      "cases": 39,
-      "passed": 6,
-      "pass_rate": 0.15384615384615385,
-      "avg_answer_term_recall": 0.3004273504273504,
-      "avg_evidence_term_coverage": 0.3388888888888889,
-      "avg_evidence_relevance_rate": 0.5192307692307693,
-      "avg_timestamp_hit_rate": 0.2692307692307692,
-      "avg_grounded_evidence_rate": 0.9230769230769231,
-      "avg_token_reduction_percent": 99.79302240650428,
-      "avg_selected_evidence": 1.3076923076923077
+      "cases": 35,
+      "passed": 5,
+      "pass_rate": 0.14285714285714285,
+      "avg_answer_term_recall": 0.27285714285714285,
+      "avg_evidence_term_coverage": 0.32047619047619047,
+      "avg_evidence_relevance_rate": 0.5214285714285715,
+      "avg_timestamp_hit_rate": 0.24285714285714285,
+      "avg_grounded_evidence_rate": 0.9142857142857143,
+      "avg_token_reduction_percent": 99.78289405351303,
+      "avg_selected_evidence": 1.2857142857142858
     }
   },
   "results": [
@@ -181,6 +223,54 @@
             "answer term recall 0.00 below required 1.00",
             "evidence term coverage 0.00 below required 1.00"
           ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Startups fail when they make something that users don't like.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Startups fail when they make something that users don't like.",
+          "failures": []
         },
         "uniform": {
           "mode": "uniform",
@@ -301,6 +391,62 @@
             "evidence term coverage 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.3333333333333333,
+          "evidence_term_coverage": 0.3333333333333333,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Founders that have been through their program is well in excess of 4,000 people the valuation of their portfolio of startups is a massive 100 billion dollar portfolio which includes Reddit stripe drop box on one of my favorites Airbnb have all Spend their formative early days with Paul Graham at white combinator I mean, you know, I think chat.",
+          "failures": [
+            "answer term recall 0.33 below required 1.00",
+            "evidence term coverage 0.33 below required 1.00",
+            "timestamp hit rate 0.00 below required 0.75"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.3333333333333333,
+          "evidence_term_coverage": 0.3333333333333333,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Founders that have been through their program is well in excess of 4,000 people the valuation of their portfolio of startups is a massive 100 billion dollar portfolio which includes Reddit stripe drop box on one of my favorites Airbnb have all Spend their formative early days with Paul Graham at white combinator I mean, you know, I think chat.",
+          "failures": [
+            "answer term recall 0.33 below required 1.00",
+            "evidence term coverage 0.33 below required 1.00",
+            "timestamp hit rate 0.00 below required 0.75"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -318,240 +464,6 @@
             "answer term recall 0.00 below required 1.00",
             "evidence term coverage 0.00 below required 1.00"
           ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robot-hand-fear",
-      "query_category": "speech_semantic",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 0.6666666666666666,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.76329099035522,
-          "selected_evidence": 3,
-          "visual_evidence": 2,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "evidence relevance rate 0.67 below required 1.00",
-            "selected evidence 3 exceeds limit 1"
-          ]
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.95295224653023,
-          "selected_evidence": 2,
-          "visual_evidence": 1,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.95295224653023,
-          "selected_evidence": 2,
-          "visual_evidence": 1,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 0.6666666666666666,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.76329099035522,
-          "selected_evidence": 3,
-          "visual_evidence": 1,
-          "audio_evidence": 2,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "evidence relevance rate 0.67 below required 1.00",
-            "selected evidence 3 exceeds limit 1"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": false,
-          "answer_term_recall": 0.6666666666666666,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.92942836979535,
-          "selected_evidence": 3,
-          "visual_evidence": 1,
-          "audio_evidence": 3,
-          "answer": "The evidence suggests: I'm having nightmares that I'm being chased by his giant robotic glass.",
-          "failures": [
-            "answer term recall 0.67 below required 1.00",
-            "selected evidence 3 exceeds limit 1"
-          ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robotics-space",
-      "query_category": "speech_semantic",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 0.0,
-          "token_reduction_percent": 99.62067748764997,
-          "selected_evidence": 2,
-          "visual_evidence": 2,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "grounded evidence rate 0.00 below required 1.00",
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "Sorry, sorry, look Celia we have to follow our passions you have your robotics I just want to be awesome in space",
-          "failures": [
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": true,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 0,
-          "audio_evidence": 1,
-          "answer": "You have your robotics, and I just want to be awesome in space.",
-          "failures": []
         }
       }
     },
@@ -629,6 +541,66 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2705.96 seconds: XS - re —alf",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2705.96 seconds: XS - re —alf",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2705.96 seconds: XS - re —alf",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": false,
           "answer_term_recall": 0.0,
           "evidence_term_coverage": 0.0,
@@ -778,6 +750,69 @@
             "audio evidence 0 below required 1"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "Visual evidence shows does presenter say about demonstration showing person skeleton from 2950.47s to 2974.92s.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "Visual evidence shows does presenter say about demonstration showing person skeleton from 2950.47s to 2974.92s.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "Visual evidence shows does presenter say about demonstration showing person skeleton from 2950.47s to 2974.92s.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -906,6 +941,66 @@
             "selected evidence 2 exceeds limit 1"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2306.58 seconds: * ee nec P ik (earew!",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2306.58 seconds: * ee nec P ik (earew!",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81109418931584,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2306.58 seconds: * ee nec P ik (earew!",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -1021,6 +1116,66 @@
             "timestamp hit rate 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 914.49 seconds: Course Evaluation = — Course ‘ 8.15 10am Lecture wnat *10 diam Cxercise ' at ut +e",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 914.49 seconds: Course Evaluation = — Course ‘ 8.15 10am Lecture wnat *10 diam Cxercise ' at ut +e",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 914.49 seconds: Course Evaluation = — Course ‘ 8.15 10am Lecture wnat *10 diam Cxercise ' at ut +e",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": true,
@@ -1112,6 +1267,51 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 0.00 seconds: ETH > Swiss Federal nstitute of echnology Zurich Blo-uspred Robotics Lab Bio-Inspired Motor Control ETH Zurich, Autumn Semester 2012 Lecture 2 Lecturer: Fumiya lida",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": true,
           "answer_term_recall": 1.0,
           "evidence_term_coverage": 1.0,
@@ -1244,6 +1444,66 @@
             "selected evidence 2 exceeds limit 1"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -1371,6 +1631,69 @@
             "timestamp hit rate 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4758.40 seconds: Next Week",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "visual evidence 1 below required 2"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4758.40 seconds: Next Week",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "visual evidence 1 below required 2"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4758.40 seconds: Next Week",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "visual evidence 1 below required 2"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -1491,6 +1814,66 @@
             "audio evidence 0 below required 2"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.57641972423463,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 2,
+          "answer": "20 of the lecture.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.57641972423463,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 2,
+          "answer": "20 of the lecture.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.57641972423463,
+          "selected_evidence": 4,
+          "visual_evidence": 4,
+          "audio_evidence": 2,
+          "answer": "20 of the lecture.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -1600,6 +1983,57 @@
             "answer term recall 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.3333333333333333,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.76604278074866,
+          "selected_evidence": 3,
+          "visual_evidence": 3,
+          "audio_evidence": 2,
+          "answer": "you and models are the main tools that can be completely smooth as a break.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.3333333333333333,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.76604278074866,
+          "selected_evidence": 3,
+          "visual_evidence": 3,
+          "audio_evidence": 2,
+          "answer": "you and models are the main tools that can be completely smooth as a break.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 0.3333333333333333,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.76604278074866,
+          "selected_evidence": 3,
+          "visual_evidence": 3,
+          "audio_evidence": 2,
+          "answer": "you and models are the main tools that can be completely smooth as a break.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -1616,259 +2050,6 @@
           "failures": [
             "answer term recall 0.00 below required 1.00",
             "timestamp hit rate 0.00 below required 1.00"
-          ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robotics-space-robot-hand",
-      "query_category": "mixed_av",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "...be tender to her.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "...be tender to her.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 0.0,
-          "token_reduction_percent": 98.86203246294988,
-          "selected_evidence": 6,
-          "visual_evidence": 6,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "grounded evidence rate 0.00 below required 1.00",
-            "token reduction 98.86% below required 99.00%",
-            "selected evidence 6 exceeds limit 1",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "...be tender to her.",
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        }
-      }
-    },
-    {
-      "case_id": "tears-of-steel-robot-hand-visible-question",
-      "query_category": "mixed_av",
-      "domain": "narrative film",
-      "outcomes": {
-        "full_gist": {
-          "mode": "full_gist",
-          "passed": true,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
-          "failures": []
-        },
-        "full_gist_no_heuristics": {
-          "mode": "full_gist_no_heuristics",
-          "passed": true,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.97647612326512,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 1,
-          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
-          "failures": []
-        },
-        "visual_only": {
-          "mode": "visual_only",
-          "passed": false,
-          "answer_term_recall": 0.0,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 0.0,
-          "token_reduction_percent": 98.86203246294988,
-          "selected_evidence": 6,
-          "visual_evidence": 6,
-          "audio_evidence": 0,
-          "answer": null,
-          "failures": [
-            "answer term recall 0.00 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "grounded evidence rate 0.00 below required 1.00",
-            "token reduction 98.86% below required 99.00%",
-            "selected evidence 6 exceeds limit 1",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "transcript_only": {
-          "mode": "transcript_only",
-          "passed": false,
-          "answer_term_recall": 1.0,
-          "evidence_term_coverage": 1.0,
-          "evidence_relevance_rate": 1.0,
-          "timestamp_hit_rate": 1.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.95295224653023,
-          "selected_evidence": 2,
-          "visual_evidence": 2,
-          "audio_evidence": 2,
-          "answer": "Why don't you just admit that you're freaked out by my robot hand?",
-          "failures": [
-            "selected evidence 2 exceeds limit 1"
-          ]
-        },
-        "score_topk": {
-          "mode": "score_topk",
-          "passed": false,
-          "answer_term_recall": 0.5,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": "Visual evidence shows does woman ask while her robot hand visible near 1103.98 seconds.",
-          "failures": [
-            "answer term recall 0.50 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
-          ]
-        },
-        "uniform": {
-          "mode": "uniform",
-          "passed": false,
-          "answer_term_recall": 0.5,
-          "evidence_term_coverage": 0.0,
-          "evidence_relevance_rate": 0.0,
-          "timestamp_hit_rate": 0.0,
-          "grounded_evidence_rate": 1.0,
-          "token_reduction_percent": 99.81033874382497,
-          "selected_evidence": 1,
-          "visual_evidence": 1,
-          "audio_evidence": 0,
-          "answer": "Visual evidence shows does woman ask while her robot hand visible near 50.18 seconds.",
-          "failures": [
-            "answer term recall 0.50 below required 1.00",
-            "evidence term coverage 0.00 below required 1.00",
-            "evidence relevance rate 0.00 below required 1.00",
-            "timestamp hit rate 0.00 below required 1.00",
-            "audio evidence 0 below required 1"
           ]
         }
       }
@@ -1971,6 +2152,55 @@
             "evidence term coverage 0.00 below required 1.00",
             "audio evidence 0 below required 1"
           ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81087262491204,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "One, learn a lot about things that matter. Two, work on problems that interest you. Three, with people you like and respect.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97654234107436,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "One, learn a lot about things that matter. Two, work on problems that interest you. Three, with people you like and respect.",
+          "failures": []
         },
         "uniform": {
           "mode": "uniform",
@@ -2089,6 +2319,57 @@
             "timestamp hit rate 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1222.24 seconds: Chapter 1 Why Bio-Inspired Motor Control?",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1222.24 seconds: Chapter 1 Why Bio-Inspired Motor Control?",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1222.24 seconds: Chapter 1 Why Bio-Inspired Motor Control?",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -2184,6 +2465,57 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": false,
           "answer_term_recall": 1.0,
           "evidence_term_coverage": 1.0,
@@ -2324,6 +2656,69 @@
             "timestamp hit rate 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4758.40 seconds: Next Week",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "visual evidence 1 below required 2"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4758.40 seconds: Next Week",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "visual evidence 1 below required 2"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4758.40 seconds: Next Week",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 0.50",
+            "timestamp hit rate 0.00 below required 1.00",
+            "visual evidence 1 below required 2"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -2432,6 +2827,51 @@
           "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
           "failures": []
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1123.79 seconds: Characterization and Modelling .",
+          "failures": []
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -2527,6 +2967,51 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": []
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 4667.28 seconds: = r Further Reading Materials ‘",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": true,
           "answer_term_recall": 1.0,
           "evidence_term_coverage": 1.0,
@@ -2651,6 +3136,57 @@
             "timestamp hit rate 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 222.73 seconds: Today: Lecture 2 Legged Locomotion and Cont eptual Models * Legged Locomotion in Nature * Characterization of Locomotion * Model ' I Walking ° Mode for Runnit",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 222.73 seconds: Today: Lecture 2 Legged Locomotion and Cont eptual Models * Legged Locomotion in Nature * Characterization of Locomotion * Model ' I Walking ° Mode for Runnit",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 222.73 seconds: Today: Lecture 2 Legged Locomotion and Cont eptual Models * Legged Locomotion in Nature * Characterization of Locomotion * Model ' I Walking ° Mode for Runnit",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -2746,6 +3282,51 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2055.22 seconds: How To Make Equations of Motion",
+          "failures": []
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2055.22 seconds: How To Make Equations of Motion",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2055.22 seconds: How To Make Equations of Motion",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": true,
           "answer_term_recall": 1.0,
           "evidence_term_coverage": 1.0,
@@ -2868,6 +3449,51 @@
           "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
           "failures": []
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1398.11 seconds: Sense-Think-Act Control Scheme —",
+          "failures": []
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -2977,6 +3603,51 @@
           "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
           "failures": []
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 1617.94 seconds: Behavior Based Robotics — = — a eed a allel tl",
+          "failures": []
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -3072,6 +3743,51 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2400.52 seconds: Biology-Robotics Loop Biology Robotics ie!",
+          "failures": []
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2400.52 seconds: Biology-Robotics Loop Biology Robotics ie!",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 2400.52 seconds: Biology-Robotics Loop Biology Robotics ie!",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": true,
           "answer_term_recall": 1.0,
           "evidence_term_coverage": 1.0,
@@ -3195,6 +3911,57 @@
             "timestamp hit rate 0.00 below required 1.00"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.8125435945129,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 242.98 seconds: Today: Lecture 2 Legged Locomotion and Conceptual Model: * Legged Locomotion in Nature * Characterization of Locomotion « Models for Walkir | * Ivic f } 1O Run '",
+          "failures": [
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -3290,6 +4057,51 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 483.62 seconds: Course Overview —— —— ct ——",
+          "failures": []
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 483.62 seconds: Course Overview —— —— ct ——",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 483.62 seconds: Course Overview —— —— ct ——",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": true,
           "answer_term_recall": 1.0,
           "evidence_term_coverage": 1.0,
@@ -3412,6 +4224,51 @@
           "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
           "failures": []
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 246.21 seconds: Objectives of this course — — oo == 7",
+          "failures": []
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -3508,6 +4365,51 @@
         },
         "score_topk": {
           "mode": "score_topk",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 791.38 seconds: Course Evaluation",
+          "failures": []
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 791.38 seconds: Course Evaluation",
+          "failures": []
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81157980836645,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": "on-screen text near 791.38 seconds: Course Evaluation",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
           "passed": true,
           "answer_term_recall": 1.0,
           "evidence_term_coverage": 1.0,
@@ -3635,6 +4537,57 @@
             "audio evidence 0 below required 1"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.66867005701957,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "now tells us that the emergency presidential conference, which we've just mentioned, will include high-ranking scientists from the National Aeronautics and Space Administration.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "now tells us that the emergency presidential conference, which we've just mentioned, will include high-ranking scientists from the National Aeronautics and Space Administration.",
+          "failures": []
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -3752,6 +4705,57 @@
             "timestamp hit rate 0.00 below required 1.00",
             "audio evidence 0 below required 1"
           ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.66867005701957,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The murders are taking place in villages, cities, rural homes, and suburbs with no apparent pattern or reason for the slaying.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.95890481327375,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The murders are taking place in villages, cities, rural homes, and suburbs with no apparent pattern or reason for the slaying.",
+          "failures": []
         },
         "uniform": {
           "mode": "uniform",
@@ -3874,6 +4878,57 @@
             "audio evidence 0 below required 1"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81024947046365,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Finishing up their work on the newest element of the International Space Station, the P3 and P4 Trust segments.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "Finishing up their work on the newest element of the International Space Station, the P3 and P4 Trust segments.",
+          "failures": []
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -3989,6 +5044,57 @@
             "timestamp hit rate 0.00 below required 1.00",
             "audio evidence 0 below required 1"
           ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81024947046365,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "each solar wing measures 38 feet wide and a hundred seven feet long.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97646505060014,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 1,
+          "answer": "each solar wing measures 38 feet wide and a hundred seven feet long.",
+          "failures": []
         },
         "uniform": {
           "mode": "uniform",
@@ -4109,6 +5215,57 @@
             "audio evidence 0 below required 1"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81069499882601,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765203099319,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Today's lecture is about behavioral finance, and this is a term that emerged in the public consciousness around the mid 1990s before that it was unknown.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765203099319,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "Today's lecture is about behavioral finance, and this is a term that emerged in the public consciousness around the mid 1990s before that it was unknown.",
+          "failures": []
+        },
         "uniform": {
           "mode": "uniform",
           "passed": true,
@@ -4218,6 +5375,57 @@
             "timestamp hit rate 0.00 below required 1.00",
             "audio evidence 0 below required 1"
           ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81029411764706,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The man known to history, as Caesar Augustus, was born on the 23rd of September 63 BC, on the Palatine Hill, in the city of Rome, the capital of the Ben Roman Republic.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The man known to history, as Caesar Augustus, was born on the 23rd of September 63 BC, on the Palatine Hill, in the city of Rome, the capital of the Ben Roman Republic.",
+          "failures": []
         },
         "uniform": {
           "mode": "uniform",
@@ -4330,6 +5538,57 @@
             "timestamp hit rate 0.00 below required 1.00",
             "audio evidence 0 below required 1"
           ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81029411764706,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The peripheral nervous system can be divided into the somatic nervous system and the autonomic nervous system.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97647058823529,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The peripheral nervous system can be divided into the somatic nervous system and the autonomic nervous system.",
+          "failures": []
         },
         "uniform": {
           "mode": "uniform",
@@ -4448,6 +5707,67 @@
             "audio evidence 0 below required 1"
           ]
         },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81100562587905,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97655883731834,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The computer also assigns a lot number to each batch, so if there's a problem with the product, they'll be able to track the source and fix it.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.97655883731834,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "The computer also assigns a lot number to each batch, so if there's a problem with the product, they'll be able to track the source and fix it.",
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00"
+          ]
+        },
         "uniform": {
           "mode": "uniform",
           "passed": false,
@@ -4560,6 +5880,57 @@
             "timestamp hit rate 0.00 below required 1.00",
             "audio evidence 0 below required 1"
           ]
+        },
+        "split_even": {
+          "mode": "split_even",
+          "passed": false,
+          "answer_term_recall": 0.0,
+          "evidence_term_coverage": 0.0,
+          "evidence_relevance_rate": 0.0,
+          "timestamp_hit_rate": 0.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.81091697936209,
+          "selected_evidence": 1,
+          "visual_evidence": 1,
+          "audio_evidence": 0,
+          "answer": null,
+          "failures": [
+            "answer term recall 0.00 below required 1.00",
+            "evidence term coverage 0.00 below required 1.00",
+            "evidence relevance rate 0.00 below required 1.00",
+            "timestamp hit rate 0.00 below required 1.00",
+            "audio evidence 0 below required 1"
+          ]
+        },
+        "split_intent": {
+          "mode": "split_intent",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765478424015,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "proper or the chink-de-chenta with a discussion of the big three Leonardo Miguel Angelo and Raphael and their contemporaries at the dawn of the high renaissance.",
+          "failures": []
+        },
+        "split_intent_sep": {
+          "mode": "split_intent_sep",
+          "passed": true,
+          "answer_term_recall": 1.0,
+          "evidence_term_coverage": 1.0,
+          "evidence_relevance_rate": 1.0,
+          "timestamp_hit_rate": 1.0,
+          "grounded_evidence_rate": 1.0,
+          "token_reduction_percent": 99.9765478424015,
+          "selected_evidence": 1,
+          "visual_evidence": 0,
+          "audio_evidence": 1,
+          "answer": "proper or the chink-de-chenta with a discussion of the big three Leonardo Miguel Angelo and Raphael and their contemporaries at the dawn of the high renaissance.",
+          "failures": []
         },
         "uniform": {
           "mode": "uniform",
