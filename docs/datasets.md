@@ -186,6 +186,50 @@ it, but a higher yield means less human review per keeper.
 clearly broken. Every survivor still needs a person to confirm the answer and the
 timestamp before it enters the dataset.
 
+### Why mixed_av cases cannot be drafted from the current dev recordings
+
+Attempted 2026-09-22 with `scripts/draft_corpus_questions.py --category mixed_av
+--segment-minutes 10`, after the re-freeze left the dev side with no `mixed_av`
+case. **24 candidates drafted, 0 kept**, across two deliberately different
+recordings:
+
+| Recording | Drafted | Kept | Speech alone answered it | Ground truth wrong |
+| :-------- | ------: | ---: | -----------------------: | -----------------: |
+| Bio-Inspired Motor Control, Lecture 01 | 12 | 0 | 9 | 3 |
+| Manufacturing process documentary | 12 | 0 | 7 | 5 |
+
+The dominant rejection is the same in both: **the transcript alone answers the
+question**. That is not a tuning problem, it is a property of the material.
+Every dev recording is *narrated* — three lectures, a narrated process
+documentary, an anatomy walkthrough — and narration exists precisely to say aloud
+what is on screen. The two channels are redundant by design, so a question needing
+both cannot be constructed from them, however the prompt is phrased.
+
+This also explains the scarcity rather than treating it as bad luck. The corpus's
+single `mixed_av` case comes from the Microsoft Kinect keynote, a **live demo**,
+where things happen on screen that the presenter does not narrate. That is the
+shape `mixed_av` requires: sound and vision carrying *different* information.
+
+Material that can support `mixed_av`: live demos and product keynotes, narrative
+film (dialogue plus unnarrated action), sports, news with b-roll, unnarrated
+footage with incidental speech. Material that cannot: anything narrated.
+
+**Consequence.** The dev side cannot host a `mixed_av` case drawn from its current
+recordings. Three ways forward, in order of preference:
+
+1. **Add a live-demo or narrative recording to the dev side** and draft from it.
+   This fixes the cause rather than the symptom, and it also reduces the 57%
+   robotics skew.
+2. **Hand-author the cases and let the tool screen them.** A person can spot a
+   moment where the visual carries something unnarrated; the three-way screen then
+   verifies that neither modality alone suffices. Human proposes, tool verifies.
+3. **Accept the singleton**, which is the current state: declared in the manifest,
+   pinned by a test, and stated as an unmet requirement rather than hidden.
+
+Segment drafting did help the *other* failure mode: confabulated ground truth fell
+from 5 of 8 on whole-recording drafting to 3 of 12 and 5 of 12 here. Keep using
+`--segment-minutes`.
+
 ### Where to source the seven replacements
 
 Automated search of the Internet Archive was attempted on 2026-09-22 and abandoned:
