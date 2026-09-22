@@ -92,10 +92,9 @@ def test_log_persists_the_row_even_when_the_error_propagates(tmp_path):
     """
     path = tmp_path / "m.jsonl"
     log = MeasurementLog(path, device=DeviceInfo(available=False))
-    with pytest.raises(ValueError):
-        with log.measure("answer", condition="gist"):
-            sum(range(200_000))
-            raise ValueError("bad frame path")
+    with pytest.raises(ValueError), log.measure("answer", condition="gist"):
+        sum(range(200_000))
+        raise ValueError("bad frame path")
 
     _, stages = load_measurements(path)
     assert len(stages) == 1

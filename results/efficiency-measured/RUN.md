@@ -53,22 +53,40 @@ which is the one failure mode worth catching before the model downloads.
 
 ## 3. Data
 
-The same 18 questions and 6 videos as the OmniZip run:
+The same 18 questions and 6 videos the OmniZip run used:
 
 ```bash
 scp .gist/benchmark/videomme_av6.json root@<pod>:/root/videomme_av6.json
-# fetch sources on the pod rather than copying them up; the question file carries the URL
-python - <<'PY'
-import json, subprocess, pathlib
-rows = json.loads(pathlib.Path("/root/videomme_av6.json").read_text())
-out = pathlib.Path("/content/vids"); out.mkdir(parents=True, exist_ok=True)
-fmt = "bv*[height<=360][vcodec^=avc1]+ba[acodec^=mp4a]/bv*[height<=360]+ba/b[height<=360]/best"
-for vid, url in {r["videoID"]: r["url"] for r in rows}.items():
-    dest = out / f"videomme-{vid}.mp4"
-    if not dest.exists():
-        subprocess.run(["yt-dlp", "-f", fmt, "--merge-output-format", "mp4", "-o", str(dest), url])
-PY
+python results/fetch_videos.py /root/videomme_av6.json /content/vids
 ```
+
+`fetch_videos.py` caps downloads at 360p H.264 and, crucially, **exits non-zero and
+names any video it could not fetch**, along with how many questions that removes.
+A silently missing video quietly changes n between conditions, which is worse than
+a failed download. Record the effective n it prints.
+
+### Running at larger n
+
+The runner takes the question file as its only argument, and three pools ship in
+`.gist/benchmark/`:
+
+| File | Questions | Videos | Note |
+| :--- | --------: | -----: | :--- |
+| `videomme_av6.json` | 18 | 6 | what every existing result uses |
+| `videomme_av_all.json` | 51 | 18 | superset of av6; the n=51 4-bit run used it |
+| `videomme_long.json` | 60 | 21 | superset of av6 |
+
+Going to 51 costs roughly three times the pod time, so about $5 rather than $2, and
+needs ~2 GB of video at 360p. Nothing else changes:
+
+```bash
+python results/fetch_videos.py /root/videomme_av_all.json /content/vids
+python results/efficiency-measured/efficiency_bench.py /root/videomme_av_all.json
+```
+
+For a *cost* measurement the larger n matters less than it does for accuracy, since
+per-question latency varies far less than per-question correctness. Run 18 first,
+confirm the numbers are sane, then decide whether 51 is worth the extra hour.
 
 ## 4. Run
 
