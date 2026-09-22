@@ -75,7 +75,9 @@ The application is fully environment-configurable already (`DATABASE_URL`, `TWEL
 
 ### Video demo
 
-A 5–10 minute walkthrough of the running application, focused on functionality rather than research background. *(Recorded separately and submitted alongside this repository.)*
+**https://youtu.be/Q_6_BG6ncAk** (5:54, unlisted)
+
+A walkthrough of the running application, focused on demonstrating functionality rather than on research background.
 
 ## Live Web Demo
 
