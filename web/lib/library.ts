@@ -166,6 +166,16 @@ export async function deleteVideo(id: string): Promise<void> {
   }
 }
 
+/** Clear a video's chat history. The video and its artifacts are untouched. */
+export async function clearConversation(id: string): Promise<void> {
+  const response = await fetch(apiUrl(`/v1/library/videos/${id}/conversation`), {
+    method: "DELETE",
+  });
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`could not clear the chat (${response.status})`);
+  }
+}
+
 /** Parse an SSE byte stream into typed events. */
 async function* readEvents(
   response: Response,

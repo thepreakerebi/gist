@@ -413,6 +413,19 @@ def append_message(
         return str(cur.fetchone()["id"])
 
 
+def delete_conversations(video_id: str) -> int:
+    """Drop every conversation for a video, and with it the whole chat history.
+
+    Messages cascade from conversations, so one delete is enough. Returns the
+    number of conversations removed, which lets the caller distinguish "cleared
+    something" from "there was nothing there".
+    """
+
+    with cursor() as cur:
+        cur.execute("delete from conversations where video_id = %s", (video_id,))
+        return cur.rowcount
+
+
 def list_messages(conversation_id: str) -> list[dict[str, Any]]:
     with cursor() as cur:
         cur.execute(

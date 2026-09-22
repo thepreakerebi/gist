@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ArrowUp, Loader2, Square } from "lucide-react";
+import { ArrowLeft, ArrowUp, Eraser, Loader2, Square } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -14,7 +14,12 @@ import type {
   SelectedEvidence,
   VideoDetail,
 } from "@/lib/library";
-import { formatDuration, getVideo, streamQuery } from "@/lib/library";
+import {
+  clearConversation,
+  formatDuration,
+  getVideo,
+  streamQuery,
+} from "@/lib/library";
 import { cn } from "@/lib/utils";
 
 type Turn = {
@@ -70,6 +75,10 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  // Two-step rather than a confirm() dialog: clearing cannot be undone, but a
+  // modal for a one-click action is heavier than the action deserves.
+  const [confirmingClear, setConfirmingClear] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
@@ -191,6 +200,25 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
 
   const { video } = detail;
 
+  async function clearHistory() {
+    if (clearing) return;
+    if (!confirmingClear) {
+      setConfirmingClear(true);
+      return;
+    }
+    setClearing(true);
+    try {
+      await clearConversation(video.id);
+      setTurns([]);
+    } catch {
+      // Leave the history on screen if the server refused: pretending it went
+      // is worse than the button appearing not to work.
+    } finally {
+      setClearing(false);
+      setConfirmingClear(false);
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-6">
       <header className="sticky top-0 z-20 -mx-6 border-b border-border bg-background/85 px-6 py-3 backdrop-blur-sm">
@@ -209,6 +237,33 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
               {video.audio_window_count} audio windows
             </p>
           </div>
+
+          {turns.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void clearHistory()}
+              onBlur={() => setConfirmingClear(false)}
+              disabled={clearing || busy}
+              aria-label="Clear chat history"
+              title="Clear chat history"
+              className={cn(
+                "shrink-0 rounded px-2 py-1.5 text-xs transition-colors",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                "disabled:opacity-40",
+                confirmingClear
+                  ? "font-medium text-destructive"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {clearing ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+              ) : confirmingClear ? (
+                "Clear?"
+              ) : (
+                <Eraser className="size-4" aria-hidden />
+              )}
+            </button>
+          )}
         </div>
       </header>
 

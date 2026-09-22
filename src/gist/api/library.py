@@ -162,6 +162,20 @@ def delete_video(video_id: str) -> None:
     repo.delete_video(video_id)
 
 
+@library_router.delete("/videos/{video_id}/conversation", status_code=204)
+def clear_conversation(video_id: str) -> None:
+    """Clear the chat history for a video, keeping the video and its artifacts.
+
+    Distinct from deleting the video: ingestion is the expensive part and there
+    is no reason to pay it again just to start a fresh conversation.
+    """
+
+    _require_db()
+    if repo.get_video(video_id) is None:
+        raise HTTPException(status_code=404, detail="video not found")
+    repo.delete_conversations(video_id)
+
+
 def _start_ingestion(video_id: str, url: str) -> None:
     with _active_lock:
         if video_id in _active:
