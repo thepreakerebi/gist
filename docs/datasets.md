@@ -87,6 +87,37 @@ The longest end-to-end run in the project is the Tears of Steel smoke test at
 - The frozen 12-case held-out split stays grouped by recording, so no recording
   appears on both sides. It is run exactly once, at the end.
 
+### Drafting questions, and what it actually yields
+
+`scripts/draft_corpus_questions.py` drafts candidates from transcript plus frames
+and then screens each one three ways — transcript only, frames only, both — keeping
+only those where both modalities are needed and the ground truth holds up. The
+screen exists because a model drafting from a transcript writes
+transcript-answerable questions even when told not to.
+
+**Measured yield, 2026-09-22, gpt-4.1-mini with 16 draft frames:**
+
+| Recording | Drafted | Kept | Dominant rejection |
+| :-------- | ------: | ---: | :----------------- |
+| NASA STS-115 briefing | 3 | 0 | speech alone answers it |
+| Night of the Living Dead | 8 | 1 | ground truth wrong (5 of 8) |
+
+About one in ten survives, so budget 30–40 candidates per recording to land 3–4
+keepers. That is cheap in API terms — four calls per candidate — but the failure
+mode matters more than the rate.
+
+**Five of eight film rejections were unreliable ground truth**, not modality
+failures. Sixteen frames sampled across 96 minutes is too thin a view for a model
+to write checkable questions about a specific moment; it confabulates details.
+Two fixes worth trying before a full run: draft per segment rather than per
+recording, with dense frames over a five to ten minute window, and use a stronger
+drafting model. The screen catches these either way, which is the point of having
+it, but a higher yield means less human review per keeper.
+
+**The screen does not replace human verification.** It removes questions that are
+clearly broken. Every survivor still needs a person to confirm the answer and the
+timestamp before it enters the dataset.
+
 ### Where to source the seven replacements
 
 Automated search of the Internet Archive was attempted on 2026-09-22 and abandoned:
