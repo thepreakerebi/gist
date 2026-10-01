@@ -53,6 +53,52 @@ above from the parquet.
 Pools live in `.gist/benchmark/` (gitignored). Raw per-question output for each
 completed run is committed under `results/`.
 
+### The balanced pool — `videomme_balanced.json`, built 2026-10-01
+
+The block above is unbiased but lopsided: 2% audio-bearing against the split's
+15%, and all 18 videos in a single domain, Life Record. A method that arbitrates
+between two modalities cannot show that on questions where sound never matters.
+
+Selecting *only* audio questions would mirror the fault — a question answerable
+from the transcript alone exercises Whisper, not the arbitration. So
+`scripts/build_videomme_pool.py` balances across modality phrasing instead.
+
+| | Questions | Share |
+| :--- | ---: | ---: |
+| `audio` — names speech or sound only | 22 | 36% |
+| `both` — names speech or sound **and** something seen | 21 | 34% |
+| `visual` — names something seen only | 18 | 30% |
+| **Total** | **61** across 32 videos | |
+
+**It captures all 21 `both` questions in the long split.** Those are the scarce
+resource — the only questions in 900 that name something heard *and* something
+seen — and they are the ones that actually test the contribution. Examples:
+
+- *"the male interviewee wearing a tight black shirt told a joke about…"* — you
+  must see who is in the black shirt and hear the joke
+- *"when Sal, the man wearing a black suit and a yellow tie, gives a speech…"*
+- *"the place with the green tin door and the sign that says GAYOSO"*
+
+Domain spread is 5 domains with none above 33%, against the old pool's 100% Life
+Record. Each question carries its `modality_bucket`, so results can be reported
+per bucket.
+
+**This is an addition, not a replacement.** The arbitrary block stays as the
+unbiased sample; this is the targeted one. Reporting both is stronger than
+swapping one for the other: parity on an arbitrary sample, and whatever the
+balanced pool shows on questions where arbitration can matter.
+
+**Caveats to state when using it.** The bucketing is a keyword heuristic, wrong in
+both directions — it misses questions needing audio that do not say so, and
+catches idioms like "tell apart". Every question is printed by
+`--review` and the pool is not meant to be used unread. A model deciding what
+needs audio would put a model's judgement inside the sampling frame of the
+evaluation it later takes part in.
+
+31 of the 32 videos still need downloading. Two of them, 874 and 878, are among
+the three that failed to download when the original block was fetched, so expect
+them to fail again and record the effective n that `fetch_videos.py` prints.
+
 ### What Video-MME is, and its ceiling
 
 900 videos across three duration bands: short (11 s–2 min, mean 80.8 s), medium
