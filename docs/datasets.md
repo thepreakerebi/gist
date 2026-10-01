@@ -63,7 +63,14 @@ Selecting *only* audio questions would mirror the fault — a question answerabl
 from the transcript alone exercises Whisper, not the arbitration. So
 `scripts/build_videomme_pool.py` balances across modality phrasing instead.
 
-**60 questions over 30 videos, all 30 downloaded.**
+**60 questions over 35 videos. 56 questions / 31 videos are downloaded**, as of
+2026-10-01. Record the effective n that `fetch_videos.py` prints with any result.
+
+Four outstanding: `HTv4z899xgA` is dead and recorded as such; `8UxGzDeRIJk`,
+`SrqTAg6n798` and `g8UiXbc19og` are alive but download so slowly that five
+attempts were cut off mid-transfer. They are worth one unattended retry, not a
+rebuild: replacing the dead one would pull in a fresh video needing another slow
+download to recover a single question out of sixty.
 
 | Bucket | Questions | Share |
 | :--- | ---: | ---: |

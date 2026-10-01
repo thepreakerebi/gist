@@ -70,6 +70,25 @@ AUDIO_MARKERS = re.compile(
     re.IGNORECASE,
 )
 
+# Video-MME phrases a great many questions as "according to what is shown in the
+# video". That is boilerplate framing, not a statement that the answer is visible:
+# it appears on questions answered entirely by narration. Left in, it inflated the
+# `both` bucket from 5 real questions to 15. Stripped before matching.
+BOILERPLATE = re.compile(
+    r"\b(?:according to|as)\s+(?:what\s+(?:is|can\s+be)\s+)?"
+    r"(?:shown|depicted|seen|described)\s*(?:in)?\s*(?:the|this)?\s*video\b",
+    re.IGNORECASE,
+)
+
+# "show" as a noun — a reality show, a musical competition show — is not a visual
+# cue. Without this, questions about what hosts *say* about TV shows were bucketed
+# visual.
+SHOW_AS_NOUN = re.compile(
+    r"\b(?:reality|musical|competition|variety|tv|game|talk|quiz)\s+shows?\b"
+    r"|\bshows?\b(?=\s+(?:like|such as|ranked|rank|named|called))",
+    re.IGNORECASE,
+)
+
 VISUAL_MARKERS = re.compile(
     r"\b(?:show|shows|shown|appear|appears|see|seen|visible|screen|wear|wearing|"
     r"colou?r|scene|display|displays|image|picture|frame|gesture|background|logo|"
@@ -114,7 +133,14 @@ def load_long(parquet: Path) -> pd.DataFrame:
     frame = pd.read_parquet(parquet)
     long = frame[frame["duration"] == "long"].copy()
     long["audio"] = long["question"].str.contains(AUDIO_MARKERS)
-    long["visual"] = long["question"].str.contains(VISUAL_MARKERS)
+    # Strip the framing boilerplate and the noun sense of "show" before deciding
+    # whether a question genuinely points at something seen.
+    probe = (
+        long["question"]
+        .str.replace(BOILERPLATE, " ", regex=True)
+        .str.replace(SHOW_AS_NOUN, " ", regex=True)
+    )
+    long["visual"] = probe.str.contains(VISUAL_MARKERS)
     long["bucket"] = long.apply(bucket_of, axis=1)
     dead = load_dead(DEAD_IDS)
     if dead:
