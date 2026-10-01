@@ -1,0 +1,13 @@
+# Video-MME YouTube ids that no longer resolve, checked 2026-10-01.
+# Video-MME is sourced from YouTube and its videos rot: uploaders delete them or
+# make them private. Excluded at selection time so a pool's n is known before a
+# pod run rather than discovered after the download.
+wCkQ138sg6M  # Private video
+aansXcMqnNk  # unavailable
+lMxFbRc3Luk  # unavailable
+KIg4rprmO9Y  # This video is not available
+v4YhsooE5xY  # Video unavailable
+5Z2_uRf7ckY  # unavailable
+h1cv8Fsn4eU  # unavailable
+p9CCSG3-dhI  # unavailable
+whksDmTR9YE  # Private video

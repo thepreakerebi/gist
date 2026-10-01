@@ -88,6 +88,26 @@ def bucket_of(row: pd.Series) -> str:
     return "unmarked"
 
 
+DEAD_IDS = Path("data/eval/videomme-unavailable.txt")
+
+
+def load_dead(path: Path) -> set[str]:
+    """YouTube ids that no longer resolve.
+
+    Video-MME is sourced from YouTube and its videos rot: uploaders delete them
+    or make them private. A dead id cannot be fetched on a pod either, so it must
+    be excluded at selection time rather than discovered as a smaller n after the
+    download.
+    """
+    if not path.exists():
+        return set()
+    return {
+        line.split("#")[0].strip()
+        for line in path.read_text().splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+
+
 def load_long(parquet: Path) -> pd.DataFrame:
     if not parquet.exists():
         raise SystemExit(f"parquet not found at {parquet}")
@@ -96,6 +116,11 @@ def load_long(parquet: Path) -> pd.DataFrame:
     long["audio"] = long["question"].str.contains(AUDIO_MARKERS)
     long["visual"] = long["question"].str.contains(VISUAL_MARKERS)
     long["bucket"] = long.apply(bucket_of, axis=1)
+    dead = load_dead(DEAD_IDS)
+    if dead:
+        before = long["videoID"].nunique()
+        long = long[~long["videoID"].isin(dead)]
+        print(f"excluded {before - long['videoID'].nunique()} unavailable videos")
     return long
 
 

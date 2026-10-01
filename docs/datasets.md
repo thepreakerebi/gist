@@ -63,41 +63,45 @@ Selecting *only* audio questions would mirror the fault — a question answerabl
 from the transcript alone exercises Whisper, not the arbitration. So
 `scripts/build_videomme_pool.py` balances across modality phrasing instead.
 
-| | Questions | Share |
-| :--- | ---: | ---: |
-| `audio` — names speech or sound only | 22 | 36% |
-| `both` — names speech or sound **and** something seen | 21 | 34% |
-| `visual` — names something seen only | 18 | 30% |
-| **Total** | **61** across 32 videos | |
+**60 questions over 30 videos, all 30 downloaded.**
 
-**It captures all 21 `both` questions in the long split.** Those are the scarce
-resource — the only questions in 900 that name something heard *and* something
-seen — and they are the ones that actually test the contribution. Examples:
+| Bucket | Questions | Share |
+| :--- | ---: | ---: |
+| `audio` — names speech or sound only | 24 | 40% |
+| `visual` — names something seen only | 21 | 35% |
+| `both` — names speech or sound **and** something seen | 15 | 25% |
+
+It captures **every `both` question that still exists** in the long split. Those
+are the scarce resource and the ones that actually test the contribution:
 
 - *"the male interviewee wearing a tight black shirt told a joke about…"* — you
   must see who is in the black shirt and hear the joke
 - *"when Sal, the man wearing a black suit and a yellow tie, gives a speech…"*
 - *"the place with the green tin door and the sign that says GAYOSO"*
 
-Domain spread is 5 domains with none above 33%, against the old pool's 100% Life
-Record. Each question carries its `modality_bucket`, so results can be reported
-per bucket.
+Six domains, none above 33%, against the old pool's 100% Life Record. Each
+question carries its `modality_bucket`, so results can be reported per bucket.
 
 **This is an addition, not a replacement.** The arbitrary block stays as the
-unbiased sample; this is the targeted one. Reporting both is stronger than
-swapping one for the other: parity on an arbitrary sample, and whatever the
-balanced pool shows on questions where arbitration can matter.
+unbiased sample; this is the targeted one. Parity on an arbitrary sample plus
+whatever the balanced pool shows is a stronger pair of claims than either alone.
 
-**Caveats to state when using it.** The bucketing is a keyword heuristic, wrong in
-both directions — it misses questions needing audio that do not say so, and
-catches idioms like "tell apart". Every question is printed by
-`--review` and the pool is not meant to be used unread. A model deciding what
-needs audio would put a model's judgement inside the sampling frame of the
-evaluation it later takes part in.
+### Video-MME rots, and the pool accounts for it
 
-31 of the 32 videos still need downloading. Two of them, 874 and 878, are among
-the three that failed to download when the original block was fetched, so expect
-them to fail again and record the effective n that `fetch_videos.py` prints.
+Nine of the videos originally selected no longer resolve — "Private video",
+"Video unavailable", "This video is not available". Video-MME is sourced from
+YouTube, and uploaders delete or privatise their videos after a benchmark ships.
+The first fetch lost 8 of 32 videos, taking 13 of 61 questions with them,
+including 6 of the 21 `both` questions.
+
+Dead ids are recorded in `data/eval/videomme-unavailable.txt` and excluded at
+**selection** time, so the builder picks replacements and the pool's n is known
+before a pod run rather than discovered after the download. Add any new failure
+to that file and rebuild.
+
+This is worth stating in the paper as a property of the benchmark: a
+YouTube-sourced benchmark is not a fixed artefact, and two groups running
+"Video-MME" a year apart are not necessarily running the same videos.
 
 ### What Video-MME is, and its ceiling
 
