@@ -50,7 +50,7 @@ The run shown kept **12 of 129 candidates — 90.6% fewer tokens sent onward** �
 
 Gist is **training-free**, so there is no loss curve, no learned weights and no precision/recall over a trained classifier. The metrics that matter are answer quality held against the budget spent. Raw per-question output for each run is committed under [`results/`](results/README.md).
 
-**Evaluation data:** see [`docs/datasets.md`](docs/datasets.md) for the full two-tier description. In short: a **curated audio-visual subset of Video-MME** (`lmms-lab/Video-MME`), built by `scripts/prepare_videomme_subset.py` and filtered to questions that require audio *and* video rather than either alone — 51 questions across 18 videos at the largest, and an 18-question / 6-video slice for most runs. These are not Video-MME leaderboard scores and should not be read against published Video-MME figures.
+**Evaluation data:** see [`docs/datasets.md`](docs/datasets.md) for the full two-tier description. In short: a **subset of Video-MME's long split** (`lmms-lab/Video-MME`, 30–60 minute band) — 51 questions across 18 videos at the largest, and an 18-question / 6-video slice for most runs. The 18 are a contiguous block of the split truncated by download success, not a curated audio-visual selection; `scripts/analyse_videomme_subset.py` reconstructs and reports that from the parquet. These are not Video-MME leaderboard scores and should not be read against published Video-MME figures.
 
 | Run | Condition | Accuracy | avg frames | avg audio windows |
 | :-- | :-------- | -------: | ---------: | ----------------: |

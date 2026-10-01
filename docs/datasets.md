@@ -10,13 +10,39 @@ Two tiers, with different jobs. Neither replaces the other.
 
 ## Tier 1 — Video-MME, for comparability
 
-A **curated audio-visual subset of Video-MME** (`lmms-lab/Video-MME`), built by
-`scripts/prepare_videomme_subset.py`, which downloads the test parquet from
-HuggingFace, filters by duration, and fetches videos at 360p.
+A **subset of Video-MME's long split** (`lmms-lab/Video-MME`). The parquet comes
+from HuggingFace via `scripts/prepare_videomme_subset.py`, filtered to the long
+duration band and fetched at 360p.
 
-Questions are filtered to those requiring audio **and** video. A method that
-arbitrates a budget between two modalities cannot be tested on visual-only
-questions, so the full benchmark is not the right instrument.
+### How the subset was actually drawn — corrected 2026-10-01
+
+An earlier version of this file said the questions were "filtered to those
+requiring audio **and** video". **That was wrong.** Reconstructed from the data by
+`scripts/analyse_videomme_subset.py`:
+
+- The long split is `video_id` 601–900: 300 videos, 900 questions.
+- Our subset is the **contiguous block 867–887**.
+- Ids 874, 876 and 878 are missing from inside that block. They exist in the
+  benchmark, so they were lost to **failed downloads**, not excluded on purpose.
+- Every question of every surviving video was kept, except video 867 (1 of 3) and
+  887 (2 of 3). That is why n is 51 rather than 54.
+
+So the sample is **an arbitrary contiguous block of the long split, truncated by
+download success.** No audio-visual criterion was ever applied, in code or by
+hand.
+
+Say it that way. An arbitrary block is a defensible sample precisely because
+nothing about the method influenced it; a hand-picked one would invite the
+question of how it was picked. What is not defensible is describing it as curated
+when it was not.
+
+**The sample is audio-poorer than the population**: 2% of our 51 questions name
+speech or sound, against 15% of all 900 long questions. That bias runs *against*
+the method — fewer questions where sound carries the answer means fewer chances
+for cross-modal arbitration to matter — so it is a conservative one to report.
+
+Run `uv run python scripts/analyse_videomme_subset.py` to regenerate all of the
+above from the parquet.
 
 | Pool | Questions | Videos | Used by |
 | :--- | --------: | -----: | :------ |
@@ -38,7 +64,8 @@ reason Tier 2 exists.
 
 ### How to describe these numbers
 
-Say "a curated audio-visual subset of Video-MME, n = 51". Never "the Video-MME
+Say "a subset of Video-MME's long split, n = 51". Not "curated audio-visual
+subset" — see the correction above. Never "the Video-MME
 dataset" unqualified — a reader who knows the benchmark will read 51% as a
 Video-MME leaderboard score and ask why it is so far from published figures. These
 are not leaderboard scores and are not comparable to them.
