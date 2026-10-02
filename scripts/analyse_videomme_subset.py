@@ -206,7 +206,6 @@ def describe_pools(long: pd.DataFrame) -> list[str]:
     ]
     video_dir = Path(".gist/videos/archive")
     on_disk = {p.stem.removeprefix("videomme-") for p in video_dir.glob("videomme-*.mp4")}
-    present_q = set(long["question_id"])
 
     for name in POOLS:
         pool = load_pool(name)
