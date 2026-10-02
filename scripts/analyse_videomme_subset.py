@@ -46,7 +46,13 @@ import pandas as pd
 
 PARQUET = Path("data/videomme-real-subset/hf/videomme/test-00000-of-00001.parquet")
 BENCHMARK_DIR = Path(".gist/benchmark")
-POOLS = ("videomme_av6.json", "videomme_av_all.json", "videomme_long.json")
+POOLS = (
+    "videomme_av6.json",
+    "videomme_av_all.json",
+    "videomme_long.json",
+    "videomme_balanced.json",
+)
+DEAD_IDS = Path("data/eval/videomme-unavailable.txt")
 
 # A question is counted as carrying an audio marker if its text names speech or
 # sound. This is a crude keyword test and is used only to characterise the
@@ -175,12 +181,28 @@ def describe_audio_balance(long: pd.DataFrame, pool: list[dict[str, Any]]) -> li
     return lines
 
 
+def load_dead() -> set[str]:
+    if not DEAD_IDS.exists():
+        return set()
+    return {
+        line.split("#")[0].strip()
+        for line in DEAD_IDS.read_text().splitlines()
+        if line.strip() and not line.startswith("#")
+    }
+
+
 def describe_pools(long: pd.DataFrame) -> list[str]:
+    dead = load_dead()
     lines = [
         "## The pool files, and whether they still match",
         "",
-        "| Pool | Questions | Videos | In the parquet | Downloaded |",
-        "| :--- | ---: | ---: | ---: | ---: |",
+        "A missing video is either **dead** — removed or privatised on YouTube, so it "
+        "can never be fetched — or merely **unfetched**. The two need different "
+        "responses: a dead video caps the pool's n permanently, an unfetched one is a "
+        "download away.",
+        "",
+        "| Pool | Questions | Videos | Downloaded | Dead | Unfetched |",
+        "| :--- | ---: | ---: | ---: | ---: | ---: |",
     ]
     video_dir = Path(".gist/videos/archive")
     on_disk = {p.stem.removeprefix("videomme-") for p in video_dir.glob("videomme-*.mp4")}
@@ -189,20 +211,26 @@ def describe_pools(long: pd.DataFrame) -> list[str]:
     for name in POOLS:
         pool = load_pool(name)
         if pool is None:
-            lines.append(f"| `{name}` | — | — | missing | — |")
+            lines.append(f"| `{name}` | — | — | not present | — | — |")
             continue
         vids = {row["videoID"] for row in pool}
-        found = sum(1 for row in pool if row["question_id"] in present_q)
-        have = len(vids & on_disk)
-        flag = "" if have == len(vids) else f" **({len(vids) - have} missing)**"
+        have = vids & on_disk
+        missing = vids - on_disk
+        gone = missing & dead
+        pending = missing - dead
+        lost_q = sum(1 for row in pool if row["videoID"] in gone)
+        dead_cell = f"**{len(gone)}** (−{lost_q}q)" if gone else "0"
         lines.append(
-            f"| `{name}` | {len(pool)} | {len(vids)} | {found}/{len(pool)} | "
-            f"{have}/{len(vids)}{flag} |"
+            f"| `{name}` | {len(pool)} | {len(vids)} | {len(have)}/{len(vids)} | "
+            f"{dead_cell} | {len(pending)} |"
         )
+
     lines += [
         "",
-        "A pool whose videos are not all downloaded will stop a pod run at the "
-        "fetch step, by design, rather than quietly changing n between conditions.",
+        "`fetch_videos.py` exits non-zero and names what is missing, so a pod run "
+        "stops at the fetch step rather than quietly changing n between conditions. "
+        "Dead ids live in `data/eval/videomme-unavailable.txt` and are excluded at "
+        "selection time, so a rebuilt pool picks replacements instead.",
         "",
     ]
     return lines
