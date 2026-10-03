@@ -1,3 +1,41 @@
+"""Scoring primitives the selector is built from.
+
+Provenance of each piece, so a reader can tell what is borrowed from what:
+
+* ``z_scores`` — ordinary standardisation, (x - mean) / sd. No source to cite;
+  it is textbook statistics. What is specific to this project is *why* it is
+  needed: CLIP and CLAP emit similarities on different scales (roughly 0.25-0.32
+  against 0.4-0.8), so comparing them raw would hand every evidence slot to
+  whichever encoder happens to output larger numbers. Standardising per modality
+  is what makes a joint competition between them meaningful.
+
+* ``temporal_similarity`` — a Gaussian (radial basis) kernel,
+  exp(-(dt)^2 / sigma^2). Again a standard form rather than a contribution; the
+  choice here is to express "too close together in time" as a smooth decay
+  instead of a hard window, so near-duplicate evidence is penalised in
+  proportion to how near it actually is. Consumed by the MMR redundancy term in
+  ``core.compressor`` and by the merge gate in ``core.tail_merging``.
+
+* ``text_similarity`` — Jaccard index over token sets (Jaccard, 1912). Used only
+  for merge decisions, never for ranking.
+
+* ``lexical_relevance`` — **own work, and deliberately crude.** It is the
+  fallback that runs when no model supplied ``saliency_score``; see the note on
+  that field in ``core.schemas``. The 0.75/0.25 split between overlap and
+  coverage was chosen by hand and has never been ablated, because in every
+  measured result CLIP and CLAP were supplying scores and this path was not
+  deciding anything.
+
+* ``STOPWORDS`` — **hand-written for this project, not taken from NLTK, spaCy or
+  any published stoplist**, and NLTK is not a dependency. It is deliberately
+  small: enough to stop function words and the two commonest question openers
+  from inflating overlap, with no extra dependency and no language model. Known
+  wart, recorded rather than hidden: it contains "how" and "what" but not "why",
+  "when", "where", "who" or "which", so in a "why did..." question the token
+  "why" survives and counts toward overlap. ``core.query_intent`` meanwhile
+  treats "why" as a meaningful signal. The two disagree about that word. It is
+  confined to the fallback path, so no measured result went through it.
+"""
 import math
 import re
 from collections.abc import Iterable

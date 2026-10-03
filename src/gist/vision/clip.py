@@ -1,3 +1,22 @@
+"""CLIP frame scoring.
+
+Model: Radford et al. (2021), "Learning transferable visual models from natural
+language supervision". Used as published; no fine-tuning, no modification.
+
+**The prompt template is standard CLIP practice, not an invention of this
+project.** CLIP was trained on image-caption pairs, so a bare question is out of
+distribution for its text encoder; wrapping it as a caption puts it back in. The
+exact wrapper used here is ``"a video frame showing: {query}"`` and it appears in
+two places — the live path in ``score_frames`` and the cached path in
+``embed_text``. They must stay byte-identical. When they diverged once, the two
+produced completely different frame rankings while both looked healthy, and
+``tests/test_stored_embedding_equivalence.py`` now pins them together.
+
+Why an external encoder supplies the importance signal at all: Wen et al. (2025),
+"Token pruning in multimodal large language models: are we solving the right
+problem?" showed attention-derived importance is a biased signal. Taking the
+signal from outside the model being compressed is the response to that finding.
+"""
 from pathlib import Path
 from typing import Any, TypeVar
 

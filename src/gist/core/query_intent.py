@@ -1,3 +1,18 @@
+"""Route a question into one of eight intents.
+
+**The term sets below are hand-built for this project.** They are not drawn from
+WordNet, a published question-taxonomy lexicon, or any frame-semantic resource.
+They were written by reading the evaluation questions and noting which words
+actually separated one kind of question from another.
+
+Rule-based on purpose. A model-based router would put a model's judgement inside
+the sampling frame of the evaluation it later takes part in, and its output could
+drift between runs for reasons unrelated to the method. A regex cannot drift, and
+every routing decision it makes can be read off the source.
+
+The eight intents drive task-aware selection in ``core.compressor`` and the
+per-category results table in the evaluation harness.
+"""
 import re
 from enum import StrEnum
 

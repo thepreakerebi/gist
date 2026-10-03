@@ -1,3 +1,21 @@
+"""CLAP audio-window scoring.
+
+Model: Wu et al. (2023), "Large-scale contrastive language-audio pretraining with
+feature fusion and keyword-to-caption augmentation". Used as published.
+
+CLAP is the audio counterpart to CLIP in this pipeline: it scores an audio window
+against the question directly, so a query like "a dog barking" can match a window
+containing no speech at all. That is why the audio pathway is not simply Whisper
+plus text matching.
+
+One local change, in ``_deterministic_truncation``, and it is a fix rather than a
+modification of the method. The published checkpoint defaults to
+``truncation="rand_trunc"``, which reduces any window longer than ten seconds to a
+*randomly chosen* ten-second excerpt. Two identical calls disagreed at embedding
+cosine 0.89 to 0.97, which makes any CLAP-scored result irreproducible. Feature
+extraction is now seeded, with the random state saved and restored so the seeding
+cannot leak into anything else.
+"""
 import wave
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -6,7 +24,6 @@ from typing import Any
 
 from gist.audio.errors import AudioTranscriptionError
 from gist.media.models import AudioWindow
-
 
 # ClapFeatureExtractor for the *unfused* checkpoint defaults to
 # truncation="rand_trunc": any window longer than 10 s is reduced to a RANDOM

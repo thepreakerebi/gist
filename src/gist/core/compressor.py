@@ -1,3 +1,39 @@
+"""The selector: turn a question plus a pool of candidates into kept evidence.
+
+Borrowed logic, and where it comes from:
+
+* **Maximal Marginal Relevance** — Carbonell & Goldstein (1998), "The use of MMR,
+  diversity-based reranking for reordering documents and producing summaries".
+  The formula in ``_mmr_score`` is theirs: score a candidate by its relevance
+  minus its similarity to what has already been chosen, and take the best
+  remaining one each round. What is specific to this project is the *redundancy*
+  term. Carbonell and Goldstein compare documents by content similarity; here the
+  comparison is a temporal kernel over timestamps, because pre-encoder redundancy
+  in video is overwhelmingly a matter of two moments being near each other rather
+  than two texts resembling each other.
+
+* **Standardise before competing** — ``_score_modality`` applies
+  ``core.scoring.z_scores`` per modality. Ordinary statistics; see that module
+  for why it is necessary here.
+
+* **Tail merging** — delegated to ``core.tail_merging``, which adapts ToMe
+  (Bolya et al., 2023). The citation and the adaptation are documented there.
+
+* **Why the importance signal comes from outside the model** — Wen et al. (2025)
+  showed attention-derived importance is biased. CLIP, CLAP and Whisper supply
+  the signal instead, and this module never inspects the downstream model.
+
+The ``_ensure_*`` coverage heuristics are **own work**: per-intent rules written
+by hand against the evaluation corpus. They sit behind the ``coverage_heuristics``
+flag precisely so their contribution can be measured rather than assumed, and
+``results/heuristics-ablation/`` is that measurement.
+
+The preset values in ``core.presets`` (lambda and sigma) were also chosen by hand.
+Their *shape* is principled — a smaller budget pairs with a lower lambda, since
+with few slots you cannot afford near-duplicates — but the specific numbers were
+not swept and no ablation varies them.
+"""
+
 from dataclasses import dataclass, replace
 
 from gist.core.decomposition import (
@@ -1522,6 +1558,13 @@ class GistCompressor:
         relevance_weight: float,
         temporal_sigma_seconds: float,
     ) -> float:
+        """MMR: relevance minus redundancy (Carbonell & Goldstein, 1998).
+
+        ``lambda * relevance - (1 - lambda) * max similarity to anything already
+        selected``. Their redundancy term compares document content; this one
+        compares timestamps through a Gaussian kernel, because the redundancy
+        being removed here is two moments sitting near each other in a video.
+        """
         if not selected:
             return item.normalized_score
 

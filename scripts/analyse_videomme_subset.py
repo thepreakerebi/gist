@@ -55,9 +55,11 @@ POOLS = (
 DEAD_IDS = Path("data/eval/videomme-unavailable.txt")
 
 # A question is counted as carrying an audio marker if its text names speech or
-# sound. This is a crude keyword test and is used only to characterise the
-# sample, never to select it. It will miss questions that need audio without
-# saying so, which is exactly why it was not used as a filter.
+# sound. **Own word list, not a published lexicon.** This is a crude keyword test
+# used only to characterise the sample, never to select it. It will miss questions
+# that need audio without saying so, which is exactly why it was not used as a
+# filter. The selection-side version, with the boilerplate and noun-sense
+# corrections, lives in scripts/build_videomme_pool.py.
 AUDIO_MARKERS = re.compile(
     r"\b(?:say|says|said|saying|mention|mentions|mentioned|speaker|narrator|"
     r"tell|tells|told|explain|explains|hear|heard|sound|sounds|music|voice|"

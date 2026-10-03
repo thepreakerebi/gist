@@ -62,6 +62,18 @@ import pandas as pd
 
 PARQUET = Path("data/videomme-real-subset/hf/videomme/test-00000-of-00001.parquet")
 
+# The three regexes below are **own work for this project**: not a published
+# lexicon, not a lexical resource, not borrowed from another benchmark's tooling.
+# They were derived empirically — an initial word list, then a hand review of all
+# 60 selected questions, which exposed two systematic errors and produced
+# BOILERPLATE and SHOW_AS_NOUN. That review changed the result materially: the
+# `both` bucket fell from 15 questions to 5.
+#
+# A keyword test is wrong in both directions. It misses questions needing audio
+# that never say so, and catches idioms such as "tell apart". That is why --review
+# prints every selected question and why this pool is not meant to be used unread.
+# A model-based classifier was rejected deliberately: it would place a model's
+# judgement inside the sampling frame of the evaluation the pool later serves.
 AUDIO_MARKERS = re.compile(
     r"\b(?:say|says|said|saying|mention|mentions|mentioned|speaker|narrator|"
     r"tell|tells|told|explain|explains|hear|heard|sound|sounds|music|voice|"

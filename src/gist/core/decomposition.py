@@ -1,5 +1,15 @@
-from enum import StrEnum
+"""Split a compound question into parts and infer each part's modality.
+
+**Rule-based and hand-written for this project.** No parser, no model, no
+published decomposition scheme. The same reasoning as ``core.query_intent``: a
+model here would sit inside the sampling frame of the evaluation this component
+is later measured in, and could drift between runs.
+
+Gated behind ``decompose_query`` in ``CompressionRequest``, so its contribution
+can be measured by switching it off.
+"""
 import re
+from enum import StrEnum
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field

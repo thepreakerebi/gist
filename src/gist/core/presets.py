@@ -1,3 +1,19 @@
+"""The three evidence budgets.
+
+**Hand-chosen for this project; not taken from any published configuration.**
+
+The shape is principled: a smaller budget pairs with a lower ``relevance_weight``
+(MMR's lambda), because with only a handful of slots you cannot afford two of them
+to be near-duplicates, so diversity must count for more. A smaller budget likewise
+pairs with a smaller ``temporal_sigma_seconds``, so "too close together" is judged
+on a tighter scale.
+
+The specific values were not swept, and no ablation varies lambda or sigma. The
+ablations vary the input signal and the post-processing instead. Stated here so
+the limitation is visible at the point of definition rather than only in the
+write-up.
+"""
+
 from dataclasses import dataclass
 from enum import StrEnum
 

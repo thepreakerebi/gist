@@ -1,3 +1,13 @@
+"""Speech transcription.
+
+Model: Radford et al. (2023), "Robust speech recognition via large-scale weak
+supervision", run through the faster-whisper implementation. Used as published.
+
+Transcription is the slowest stage in the pipeline by a wide margin, which is why
+results are cached to disk keyed by content hash. ``audio.dispatcher`` decides
+per window whether it is speech, and so worth sending here, or ambient sound, and
+so better scored by CLAP.
+"""
 import hashlib
 import json
 import os
