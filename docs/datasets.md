@@ -8,6 +8,27 @@ Two tiers, with different jobs. Neither replaces the other.
 
 ---
 
+## Seeing it: the EDA notebook
+
+`notebooks/01-dataset-eda.ipynb` renders this document's analysis as tables and
+charts — band sizes, task-type and domain distributions, measured video durations
+against the 30 minute floor, the contiguous-block selection drawn on the id axis,
+the audio-marker bias, and the balanced pool's composition.
+
+**It imports from the selection scripts rather than reimplementing them.** A
+notebook holding its own copy of the bucketing regexes would drift from the
+scripts the moment either changed, and the drifted copy is the one nobody runs in
+CI. One source of truth, two renderings: this file and `reports/videomme-subset.md`
+for text, the notebook for a reader.
+
+```bash
+uv pip install -e ".[notebooks]"
+uv run python notebooks/build_dataset_eda.py        # regenerate the cells
+uv run jupyter nbconvert --execute --inplace notebooks/01-dataset-eda.ipynb
+```
+
+Outputs are committed, so it reads on GitHub without being run.
+
 ## Tier 1 — Video-MME, for comparability
 
 A **subset of Video-MME's long split** (`lmms-lab/Video-MME`). The parquet comes
