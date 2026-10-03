@@ -144,11 +144,10 @@ plt.tight_layout(); plt.show()
 durations.describe().round(1).to_frame("minutes")
 """),
     md("""
-## 4. How the original subset was actually drawn
+## 4. How the original subset was drawn
 
-This is the part that was documented wrongly for a long time. The repository
-claimed the questions were "filtered to those requiring audio and video". They
-were not.
+The documentation claimed the questions were "filtered to those requiring audio
+and video". They were not.
 """),
     code("""
 pool_old = load_pool("videomme_av_all.json")
@@ -166,14 +165,14 @@ print(f"those ids exist in the benchmark: "
 fig, ax = plt.subplots(figsize=(10, 1.5))
 all_ids = sorted(long.video_id.astype(int).unique())
 ax.scatter(all_ids, [0] * len(all_ids), s=6, color=MUTED, label="long split (300)")
-ax.scatter(chosen, [0] * len(chosen), s=22, color=ACCENT, label="our subset (18)")
+ax.scatter(chosen, [0] * len(chosen), s=22, color=ACCENT, label="selected subset (18)")
 ax.set_yticks([]); ax.set_xlabel("video_id")
 ax.set_title("The subset is a contiguous block, not a selection", loc="left")
 ax.legend(frameon=False, loc="upper left", ncols=2)
 plt.tight_layout(); plt.show()
 """),
     md("""
-## 5. The bias nobody had noticed
+## 5. Modality balance of that subset
 
 Counting questions whose text names speech or sound, using the same keyword test
 the scripts use.
@@ -185,7 +184,7 @@ ids = {r["question_id"] for r in pool_old}
 old_sel = long[long.question_id.isin(ids)]
 rates = pd.Series({
     "all 900 long questions": long.question.str.contains(AUDIO_MARKERS).mean(),
-    "our original 51": old_sel.question.str.contains(AUDIO_MARKERS).mean(),
+    "the original 51": old_sel.question.str.contains(AUDIO_MARKERS).mean(),
 })
 
 fig, ax = plt.subplots(figsize=(5, 1.9))
@@ -196,11 +195,11 @@ plt.tight_layout(); plt.show()
 rates.map("{:.0%}".format).to_frame("audio-marker rate")
 """),
     md("""
-**The sample was audio-poorer than the benchmark it came from.** That bias runs
+The sample is audio-poorer than the benchmark it came from. That bias runs
 *against* the method: fewer questions where sound carries the answer means fewer
-chances for cross-modal arbitration to matter. A conservative bias is a safe one
-to report — but it is the wrong instrument for demonstrating the contribution,
-which is what section 6 fixes.
+chances for cross-modal arbitration to matter. It is a conservative bias, but the
+wrong instrument for demonstrating the contribution, which is what section 6
+addresses.
 """),
     md("""
 ## 6. The balanced pool
@@ -223,7 +222,7 @@ something seen. Getting to that number took two corrections to the keyword test:
   `both` bucket threefold.
 - **`SHOW_AS_NOUN`** — *reality shows*, *competition shows*. The noun, not the verb.
 
-Both are stripped before matching. The corrected count is the honest one.
+Both are stripped before matching.
 """),
     code("""
 pool = select(bucketed, target=60, tolerance=6, max_domain_share=0.34)
@@ -256,13 +255,12 @@ both = pool[pool.bucket == "both"][["video_id", "domain", "task_type", "question
 both.reset_index(drop=True)
 """),
     md("""
-These are the scarce resource and the ones that actually test the contribution:
-identify someone by what they are *wearing*, then answer from what they *say*.
+These are the questions that test the contribution directly: identify someone by
+what they are *wearing*, then answer from what they *say*.
 
-Together with the curated corpus — where screening 24 drafted candidates produced
-one usable case — this says something about the field rather than about this
-project: **questions genuinely requiring both modalities are rare even in
-benchmarks marketed as multimodal.**
+The curated corpus shows the same scarcity — screening 24 drafted candidates
+produced one usable case. Questions genuinely requiring both modalities are rare
+even in benchmarks built for multimodal evaluation.
 """),
     md("""
 ## 8. Link rot
@@ -293,16 +291,10 @@ pd.DataFrame(rows).set_index("pool")
 """),
     md("""
 A **dead** video caps a pool's n permanently; an **unfetched** one is a download
-away. Worth knowing which before renting a GPU.
+away — the distinction matters before provisioning a GPU.
 
----
-
-## What this notebook is for
-
-It renders the selection logic so a reader can see the distributions rather than
-take them on trust. The committed markdown report at `reports/videomme-subset.md`
-is the same analysis in text form, produced by the same functions, and is what CI
-and the pod runners read.
+`reports/videomme-subset.md` is the same analysis in text form, produced by the
+same functions.
 """),
 ]
 

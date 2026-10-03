@@ -28,8 +28,8 @@ encoder-projector pipelines map them into the LLM embedding space, producing Nv
 visual tokens"; "for the encoder tokens Xm of modality m, we retain Km tokens
 before the LLM". Its importance signal is the final encoder layer's attention,
 which cannot be read without running the encoder. Their term **"pre-LLM" means
-post-encoder**; Gist's "pre-encoder" means before both. Say this explicitly, and
-quote them rather than paraphrasing.
+post-encoder**; Gist's "pre-encoder" means before both. The distinction needs
+stating explicitly, quoting their text rather than paraphrasing it.
 
 **2. Their FLOPs exclude the encoders.** "Vision and audio encoders, modality
 projectors, textual tokens, token-selection operations, and the language-model

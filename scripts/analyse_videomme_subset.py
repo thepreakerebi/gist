@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Describe the Video-MME long split, and state exactly how our subset was drawn.
+"""Describe the Video-MME long split, and how the evaluation subset was drawn.
 
 Why this exists
 ---------------
@@ -11,7 +11,7 @@ video". **That claim was wrong**, and this script is what established it.
 What the selection actually was, reconstructed from the data:
 
   * the long split is `video_id` 601-900, 300 videos, 900 questions
-  * our subset is the contiguous block 867-887
+  * the subset is the contiguous block 867-887
   * three ids inside that block (874, 876, 878) are missing, and they exist in
     the benchmark, so they were lost to failed downloads rather than excluded
   * every question of every surviving video was kept, except video 867 (1 of 3)
@@ -86,7 +86,7 @@ def load_pool(name: str) -> list[dict[str, Any]] | None:
 def describe_population(long: pd.DataFrame) -> list[str]:
     ids = long["video_id"].astype(int)
     lines = [
-        "## The population we drew from",
+        "## The population",
         "",
         f"Video-MME's **long** split: **{ids.nunique()} videos**, "
         f"**{len(long)} questions**, `video_id` {ids.min()}-{ids.max()}.",
@@ -126,7 +126,7 @@ def describe_selection(long: pd.DataFrame, pool: list[dict[str, Any]]) -> list[s
     truncated = {v: (avail[v], kept[v]) for v in avail if avail[v] != kept[v]}
 
     lines = [
-        "## How our subset was actually drawn",
+        "## How the subset was drawn",
         "",
         f"**{len(chosen)} videos, {len(pool)} questions.**",
         "",
@@ -145,7 +145,7 @@ def describe_selection(long: pd.DataFrame, pool: list[dict[str, Any]]) -> list[s
     lines += [
         "",
         "**There was no audio-visual filtering.** The selection is a block of the "
-        "long split truncated by what downloaded. State it that way.",
+        "long split truncated by what downloaded.",
         "",
     ]
     return lines
@@ -166,16 +166,15 @@ def describe_audio_balance(long: pd.DataFrame, pool: list[dict[str, Any]]) -> li
         "| | Audio-marker rate |",
         "| :--- | ---: |",
         f"| All {len(long)} long questions | {pop_rate:.0%} |",
-        f"| Our {len(chosen)} questions | {sel_rate:.0%} |",
+        f"| The selected {len(chosen)} questions | {sel_rate:.0%} |",
         "",
     ]
     if sel_rate < pop_rate:
         lines += [
-            "**The sample is audio-poorer than the population it came from.** That "
+            "The sample is audio-poorer than the population it came from. That "
             "cuts against the method rather than for it: fewer questions where "
             "sound carries the answer means fewer chances for cross-modal "
-            "arbitration to show its value. A conservative bias is a safe one to "
-            "report, and it is the honest reading of these two numbers.",
+            "arbitration to show its value. It is a conservative bias.",
             "",
         ]
     return lines
@@ -269,7 +268,7 @@ def main() -> int:
     if pool is None:
         raise SystemExit(f"pool not found: {BENCHMARK_DIR / args.pool}")
 
-    report = ["# Video-MME: the population, and how our subset was drawn", ""]
+    report = ["# Video-MME: the population, and how the subset was drawn", ""]
     report += describe_population(long)
     report += describe_selection(long, pool)
     report += describe_audio_balance(long, pool)

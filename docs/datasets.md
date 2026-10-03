@@ -35,35 +35,33 @@ A **subset of Video-MME's long split** (`lmms-lab/Video-MME`). The parquet comes
 from HuggingFace via `scripts/prepare_videomme_subset.py`, filtered to the long
 duration band and fetched at 360p.
 
-### How the subset was actually drawn — corrected 2026-10-01
+### How the subset was drawn — corrected 2026-10-01
 
 An earlier version of this file said the questions were "filtered to those
-requiring audio **and** video". **That was wrong.** Reconstructed from the data by
+requiring audio **and** video". That was wrong. Reconstructed from the data by
 `scripts/analyse_videomme_subset.py`:
 
 - The long split is `video_id` 601–900: 300 videos, 900 questions.
-- Our subset is the **contiguous block 867–887**.
+- The subset is the **contiguous block 867–887**.
 - Ids 874, 876 and 878 are missing from inside that block. They exist in the
   benchmark, so they were lost to **failed downloads**, not excluded on purpose.
 - Every question of every surviving video was kept, except video 867 (1 of 3) and
   887 (2 of 3). That is why n is 51 rather than 54.
 
-So the sample is **an arbitrary contiguous block of the long split, truncated by
-download success.** No audio-visual criterion was ever applied, in code or by
-hand.
+So the sample is an arbitrary contiguous block of the long split, truncated by
+download success. No audio-visual criterion was applied, in code or by hand.
 
-Say it that way. An arbitrary block is a defensible sample precisely because
-nothing about the method influenced it; a hand-picked one would invite the
-question of how it was picked. What is not defensible is describing it as curated
-when it was not.
+An arbitrary block is a defensible sample because nothing about the method
+influenced it. Describing it as curated, which it was not, is the part that does
+not hold.
 
-**The sample is audio-poorer than the population**: 2% of our 51 questions name
+The sample is also audio-poorer than the population: 2% of the 51 questions name
 speech or sound, against 15% of all 900 long questions. That bias runs *against*
 the method — fewer questions where sound carries the answer means fewer chances
-for cross-modal arbitration to matter — so it is a conservative one to report.
+for cross-modal arbitration to matter — so it is conservative.
 
-Run `uv run python scripts/analyse_videomme_subset.py` to regenerate all of the
-above from the parquet.
+Run `uv run python scripts/analyse_videomme_subset.py` to regenerate this from
+the parquet.
 
 | Pool | Questions | Videos | Used by |
 | :--- | --------: | -----: | :------ |
