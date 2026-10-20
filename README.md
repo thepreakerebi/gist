@@ -688,3 +688,7 @@ raw video/audio
 - model adapters outside the core selector
 - explicit metrics in every compression response
 - tests around algorithmic behavior before GPU/model work
+
+## License
+
+Gist is released under the [Apache License 2.0](LICENSE). Copyright 2026 Elvis Preye Kerebi. Third-party models and the demo media clips are under their own terms; see [NOTICE](NOTICE). To cite Gist, use [CITATION.cff](CITATION.cff) or GitHub's "Cite this repository" button.

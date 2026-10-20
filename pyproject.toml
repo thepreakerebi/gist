@@ -7,6 +7,8 @@ name = "gist-compress"
 version = "0.1.0"
 description = "Audio-visual context compression layer for video LLMs."
 readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Elvis Preye Kerebi" }]
 requires-python = ">=3.11"
 dependencies = [
   "fastapi>=0.115.0",

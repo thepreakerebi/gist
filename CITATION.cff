@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use Gist in your research, please cite it as below."
+title: "Gist: Training-Free Pre-Encoder Audio-Visual Context Compression for Omni-Modal LLMs"
+type: software
+authors:
+  - family-names: Kerebi
+    given-names: Elvis Preye
+    affiliation: African Leadership University
+repository-code: "https://github.com/thepreakerebi/gist"
+license: Apache-2.0
+version: 0.1.0
+date-released: 2026-10-20
+keywords:
+  - token compression
+  - audio-visual LLM
+  - omni-modal
+  - training-free
+  - efficiency
