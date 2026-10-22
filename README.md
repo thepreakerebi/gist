@@ -10,17 +10,52 @@ Gist is an audio-visual context compression layer for video LLMs. The first impl
 
 The compression core stays independently testable: CLIP, CLAP, Whisper and the downstream Omni-LLM sit behind model adapters outside the selector, so the selection logic can be tested without them. Those adapters are implemented — the web demo and the benchmark runs all score real media through them.
 
-## Capstone Submission — Initial Software Demonstration
+## Capstone Submission — Final Version of the Product
 
-Submitted for ALU BSE Capstone, *Initial software product/solution demonstration* (due 2 October 2026). Everything in this section is a pointer into the rest of this README; nothing here is a summary that can drift from the code.
+Submitted for ALU BSE Capstone, *Final Version of the Product* (due 23 October 2026).
 
-**Repository:** https://github.com/thepreakerebi/gist
+| | |
+| :-- | :-- |
+| **Repository** | https://github.com/thepreakerebi/gist |
+| **Walkthrough video** | https://youtu.be/Q_6_BG6ncAk |
+| **Technical report (PDF)** | [`docs/Gist_Technical_Report.pdf`](docs/Gist_Technical_Report.pdf) — scope alignment, technical functionality, testing and results, code quality |
+| **Scope alignment table** | [`docs/scope-alignment.md`](docs/scope-alignment.md) — every planned feature, its status and the evidence for it |
 
 **Description.** Gist is a training-free, plug-and-play audio-visual context compression layer for Omni/AV-LLMs. A user adds a video once; Gist ingests it into frames and audio windows, scores every candidate against the user's question with CLIP (visual), CLAP (sound) and Whisper (speech), arbitrates a joint visual/audio budget with z-score MMR and a temporal-diversity kernel, and passes only the surviving seconds of evidence to the answering model. The distinguishing property is *where* the compression sits: Gist drops candidates **before the encoders run**, so it reduces encoder FLOPs and peak memory rather than only decoder work. The surveyed field of training-free omni-modal methods compresses post-encoder.
 
-### How to set up the environment and run it
+### Technical requirements
 
-Full detail is in [Quickstart](#quickstart); the two commands the demo needs are:
+| Component | Version used | Notes |
+| :-------- | :----------- | :---- |
+| Python | 3.12 (3.11 minimum) | `requires-python = ">=3.11"` |
+| uv | 0.10.12 | dependency resolution and lockfile (`uv.lock`) |
+| FFmpeg / ffprobe | 8.1 | frame sampling, audio windows, clip cutting |
+| PyTorch | 2.12 (CPU / Apple Silicon); 2.6.0 + CUDA 12.4 on the GPU pod | installed by the `vision`, `audio`, `sound` and `sota` extras |
+| Hugging Face Transformers | 5.12 locally; 5.13 on the GPU pod | CLIP, CLAP, Qwen2.5-Omni-7B |
+| faster-whisper | base, int8 | speech transcription (CPU) |
+| FastAPI / Uvicorn | FastAPI ≥ 0.115, Uvicorn ≥ 0.30 | HTTP API, OpenAPI docs at `/docs` |
+| PostgreSQL + pgvector | Postgres 18.6, pgvector 0.8.6 (Neon) | video library: metadata, transcripts, 512-d CLIP/CLAP embeddings, chat history |
+| Bun | 1.3 | frontend package manager and dev server |
+| Next.js / React | Next.js 16.2, React 19.2, Tailwind CSS 4, shadcn | `web/` |
+| Browser | Google Chrome (tested at 1440 × 900) | |
+
+**Hardware.** The API, ingestion and scoring run on CPU: development and every web-app result used an Apple M4 Mac with 16 GB RAM. A server needs about 4 GB RAM for CLIP (1.1 GB), CLAP (1.1 GB), faster-whisper base int8 (141 MB) and the torch environment. The accuracy benchmarks run Qwen2.5-Omni-7B unquantised (fp16) and need one 24 GB GPU; all reported runs used an NVIDIA RTX 4090 24 GB rented on RunPod.
+
+**External services.** `DATABASE_URL` (Postgres with pgvector) and `TWELVELABS_API_KEY` (the web app's answering model) go in `.env`; copy `.env.example`. No key is needed for the test suite or the CLI.
+
+### Installation
+
+```bash
+git clone https://github.com/thepreakerebi/gist.git && cd gist
+cp .env.example .env                 # fill in DATABASE_URL and TWELVELABS_API_KEY for the web app
+./scripts/sync-dev.sh                # uv sync with every model extra; a bare `uv sync` prunes torch/transformers
+brew install ffmpeg                  # or the platform equivalent
+
+uv run pytest                        # 538 passed, 8 skipped (model-loading tests)
+GIST_RUN_SLOW_MODEL_TESTS=1 uv run pytest   # also loads real CLIP, CLAP and Whisper: 546 passed
+```
+
+### Running
 
 ```bash
 # 1. API (CPU is fine; all scoring falls back to CPU automatically)
@@ -28,9 +63,44 @@ uv run uvicorn gist.api.app:app --port 8000     # http://localhost:8000/docs
 
 # 2. Frontend
 cd web && bun install && bun dev                # http://localhost:3000
+
+# Command line, no database or keys required
+uv run gist /absolute/path/to/video.mp4 --query "what does the speaker say about pricing?" --profile gist
 ```
 
-Keys go in `.env` (copy `.env.example`). The **Extractive** answerer needs no key at all, and if the API is unreachable the frontend replays a baked cached run, so the demo cannot fail live — see [Cached-run safety net](#cached-run-safety-net).
+If the API is unreachable the frontend replays a baked cached run — see [Cached-run safety net](#cached-run-safety-net). The first query after start-up loads CLIP and CLAP weights on CPU, which takes about two minutes.
+
+### Repository structure
+
+```text
+gist/
+├── src/gist/
+│   ├── core/          selection logic: scoring and z-scores, MMR with temporal kernel (compressor.py),
+│   │                  adaptive budget, tail merging, query decomposition and intent, presets
+│   ├── vision/        CLIP scorer, scene detection, OCR, spatial pruning
+│   ├── audio/         CLAP scorer, Whisper transcriber, speech/sound dispatcher
+│   ├── media/         FFmpeg ingestion, long-form plans, clip cutting
+│   ├── candidates/    candidate generation (baseline, hierarchical, moment fusion)
+│   ├── library/       once-per-video ingestion and stored-embedding query for the web app
+│   ├── db/            Postgres + pgvector schema and repository
+│   ├── api/           FastAPI app, routes and request/response schemas
+│   ├── gateway/       answering-model adapters (TwelveLabs, OpenAI, Claude, Hugging Face, Ollama) and evidence packages
+│   ├── eval/          benchmark runners, ablations, bootstrap intervals, efficiency and failure analysis
+│   ├── reports/       HTML and structured report rendering
+│   └── cli.py, pipeline.py, label*.py   command-line entry points
+├── tests/             74 test files: unit, API, integration and gated slow model tests
+├── web/               Next.js + shadcn frontend (library, chat, evidence timeline, clips)
+├── scripts/           benchmark, GPU-pod and data-preparation scripts
+├── results/           committed raw per-question output for every reported run
+├── data/              evaluation cases, frozen splits, extraction schemas
+├── notebooks/         dataset EDA notebook rendered from scripts/
+├── docs/              technical report, scope alignment, dataset description, screenshots
+└── pyproject.toml, uv.lock
+```
+
+### Scope alignment
+
+Of the proposal's planned features, the five ablatable compression components, the evaluation harness, the uniform and single-modality baselines, the OmniZip head-to-head and single-GPU execution are complete. Measured wall-clock and peak memory, the OmniScope head-to-head, the held-out split and the full-size corpus are partial. VideoLLaMA2 as a second answering model and the SigLIP scorer comparison were not implemented. The full table, with the evidence and the justification for each change, is in [`docs/scope-alignment.md`](docs/scope-alignment.md).
 
 ### Designs — application interfaces
 
@@ -46,7 +116,7 @@ Captured from the running application (`docs/screenshots/`):
 
 The run shown kept **12 of 129 candidates — 90.6% fewer tokens sent onward** — and still answered the visual question correctly, with the budget escalating to stage 2 because the first pass was not confident.
 
-### Initial performance metrics
+### Performance metrics
 
 Gist is **training-free**, so there is no loss curve, no learned weights and no precision/recall over a trained classifier. The metrics that matter are answer quality held against the budget spent. Raw per-question output for each run is committed under [`results/`](results/README.md).
 
@@ -60,6 +130,31 @@ Gist is **training-free**, so there is no loss curve, no learned weights and no 
 | n=18, Qwen2.5-Omni-7B fp16 | Gist-selected | 6/18 (33%) | 2.7 | 3.2 |
 
 Read honestly: Gist matches or edges the uniform baseline at roughly **3/8 of the visual budget**. The one-question gaps are well inside noise at these sample sizes — the pre-registered bootstrap in `gist.eval.bootstrap` exists so this is stated rather than glossed. The durable claim is structural: *matched accuracy at reduced compute*. A head-to-head against OmniZip, a per-intent heuristics ablation and a pooled-vs-split budget ablation are also committed under `results/`.
+
+**Cost on the 18-question set.** Frame and audio-window counts are measured; GFLOPs and tokens are derived from those counts and the published Qwen2.5-Omni encoder architecture, not profiled.
+
+| Condition | Frames | Audio windows | Encoder GFLOPs (derived) | Tokens (derived) | Saving vs dense |
+| :-------- | -----: | ------------: | -----------------------: | ---------------: | --------------: |
+| Dense, 64 frames | 64 | 120 | 313,345 | 102,544 | — |
+| Uniform, 8 frames | 8 | 8 | 23,376 | 7,568 | 92.5% |
+| Gist, as selected | 2.7 | 3.2 | 9,082 | 2,950 | 97.1% |
+
+Against the uniform 8-frame input that reached the same accuracy, Gist needed 36.7% less encoder computation. Wall-clock time and peak GPU memory have a measurement harness (`results/efficiency-measured/`) that has not yet been run, so no measured memory figure is claimed.
+
+**Head-to-head with OmniZip** (post-encoder, training-free, run through its own code on the same 18 questions, RTX 4090 24 GB): full context, OmniZip and Gist all scored 6/18. OmniZip's audio encoder tried to allocate about 16.8 GB on full-length videos and ran out of memory, so it only ran on 90-second clips; Gist ran the unquantised model on the full-length videos.
+
+**Ablation on 35 curated long-video cases** (pass rate, 95% paired bootstrap intervals in `results/heuristics-ablation/`): full Gist 74.3%; without the hand-written coverage rules 71.4%; without MMR diversity (score top-k) 28.6%; visual only 45.7%; transcript only 28.6%; uniform sampling 14.3%. Selected evidence hit the reference timestamp window in 86% of cases. Temporal-ordering questions failed in every condition.
+
+### Testing
+
+| Strategy | What it covers | Result |
+| :------- | :------------- | :----- |
+| Unit | selection logic, scoring, budget ladder, tail merging, decomposition, presets (`tests/`) | 538 passed, 8 skipped, 77% line coverage |
+| Integration | FastAPI endpoints via the test client; real CLIP, CLAP and Whisper loaded (`GIST_RUN_SLOW_MODEL_TESTS=1`); stored-embedding scores equal live scores to 1e-5 | 546 passed |
+| Functional / system | end-to-end ingestion and question answering in the web app on 36- and 49-minute recordings | grounded answers, adaptive escalation, one documented selection failure |
+| Validation / performance | benchmark runs against pre-registered thresholds of the proposal's Objective 3 | accuracy parity, 96.8% fewer encoded items than dense input, 86% timestamp hit rate, unquantised 7B on one 24 GB GPU |
+
+Details, environments and the failures found are in the [technical report](docs/Gist_Technical_Report.pdf).
 
 ### Deployment plan
 
@@ -75,27 +170,27 @@ The application is fully environment-configurable already (`DATABASE_URL`, `TWEL
 
 ### Video demo
 
-**https://youtu.be/Q_6_BG6ncAk** (5:54, unlisted)
+**https://youtu.be/Q_6_BG6ncAk** (unlisted)
 
-A walkthrough of the running application, focused on demonstrating functionality rather than on research background.
+A walkthrough of the running application: ingestion, scoring, evidence selection, answers, testing and performance.
 
 ## Live Web Demo
 
 A presentation-facing web app (`web/`, Next.js + shadcn) streams the pipeline live: type a query on any short video, watch CLIP/CLAP/Whisper score every frame and audio window against it, see the set collapse to the salient few (MMR + temporal kernel), and get an answer from the compressed evidence.
 
-**Integrity boundary (important):** the live demo's answer is produced by a hosted multimodal LLM (OpenAI `gpt-4.1-mini` or Claude), selectable in the UI, **for demo reliability only**. The capstone paper's measured efficiency/FLOP claims come from **Qwen2.5-Omni-7B run offline** — a closed API cannot measure encoder FLOPs, so no efficiency number in the paper comes from this API. The demo *shows the mechanism*; the paper *measures the claim*. The token figures in the demo UI are estimated from the compressed evidence, and the UI states this.
+**Integrity boundary (important):** the web app's answer is produced by a hosted video model, TwelveLabs Pegasus 1.5 (`GIST_ANSWERER`, default `twelvelabs`), **for demo reliability only**, and it receives only the clips Gist selected, joined into one short video, never the whole recording. The capstone paper's measured efficiency/FLOP claims come from **Qwen2.5-Omni-7B run offline** — a closed API cannot measure encoder FLOPs, so no efficiency number in the paper comes from this API. The demo *shows the mechanism*; the paper *measures the claim*. The token figures in the demo UI are estimated from the compressed evidence, and the UI states this.
 
 ### Run locally
 
 ```bash
 # API (CPU; all scoring falls back to CPU automatically)
-uvicorn gist.api.app:app --port 8000
+uv run uvicorn gist.api.app:app --port 8000
 
 # Frontend (Bun)
 cd web && bun install && bun dev   # http://localhost:3000
 ```
 
-For the OpenAI/Claude answerers, copy `.env.example` to `.env` (gitignored) and fill in `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`; the API loads it at startup via python-dotenv, and real environment variables take precedence. (Legacy `.gist/.openai_key` / `.gist/.anthropic_key` files are still honored as a fallback.) The **Extractive** answerer needs no key. If the API is unreachable, the frontend transparently replays a pre-baked cached run (see below) so a live demo never breaks.
+Copy `.env.example` to `.env` (gitignored) and fill in `DATABASE_URL` and `TWELVELABS_API_KEY`; the API loads it at startup via python-dotenv, and real environment variables take precedence. `GIST_ANSWERER=openai|claude|extractive` switches the answerer, but the OpenAI and Claude adapters currently receive transcript text and no frames, so use TwelveLabs for visual questions. If the API is unreachable, the frontend transparently replays a pre-baked cached run (see below) so a live demo never breaks.
 
 ### Cached-run safety net
 
@@ -300,11 +395,18 @@ gist-extraction-smoke \
 ## Quickstart
 
 ```bash
+./scripts/sync-dev.sh          # uv sync with every extra
+uv run pytest
+uv run uvicorn gist.api.app:create_app --factory --reload
+```
+
+With pip instead of uv:
+
+```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 pytest
-uvicorn gist.api.app:create_app --factory --reload
 ```
 
 Optional CLIP visual scoring dependencies:

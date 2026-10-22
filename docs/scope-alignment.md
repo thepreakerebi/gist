@@ -1,0 +1,38 @@
+# Scope alignment
+
+Planned features from the approved capstone proposal (Section 1.3.1 objectives, Section 1.5 scope, Table 2 phase deliverables), mapped to what the repository implements. Measured figures come from the runs committed under [`results/`](../results/README.md).
+
+## Feature table
+
+| # | Planned feature | Intended purpose | Status | Evidence |
+| :-: | :-------------- | :--------------- | :----- | :------- |
+| 1 | Media ingestion and candidate extraction | Turn a video into sampled frames and audio windows once, so no later question re-processes it | Completed | `src/gist/media/`, `src/gist/library/ingest.py`; 128 frames and 30 s audio windows per video, progress persisted to the database; `tests/test_media_ingestion.py`, `tests/test_longform.py` |
+| 2 | Cross-modal contrastive saliency (CLIP, CLAP, Whisper) | Score each candidate against the question with a signal that exists before the answering model's encoders run | Completed | `src/gist/vision/clip.py`, `src/gist/audio/clap.py`, `src/gist/audio/whisper.py`, `src/gist/audio/dispatcher.py`; CLAP made deterministic (seeded excerpt); `tests/test_clip_scorer.py`, `tests/test_clap.py`, `tests/test_dispatcher.py` |
+| 3 | Joint z-score MMR with a temporal kernel | Put sight and sound on one scale and pick evidence that is relevant without repeating the same moment | Completed | `src/gist/core/scoring.py`, `src/gist/core/compressor.py`; removing diversity drops the curated pass rate from 74.3% to 28.6% (`results/heuristics-ablation/`); `tests/test_scoring.py`, `tests/test_compressor.py` |
+| 4 | Tail merging | Keep a summary of low-ranked near-duplicates instead of dropping them | Completed, off by default | `src/gist/core/tail_merging.py` with a hard temporal gate; `tests/test_tail_merging.py`. No reported result uses it |
+| 5 | Query decomposition and intent routing | Split compound questions and send each part to the modality it is about | Completed (rule-based) | `src/gist/core/decomposition.py`, `src/gist/core/query_intent.py`; `tests/test_decomposition.py`, `tests/test_query_intent.py` |
+| 6 | Confidence-routed adaptive budget | Spend more evidence only when the first selection looks weak | Completed | Budget ladder 6 → 12 → 24 items in `src/gist/core/compressor.py`, presets in `src/gist/core/presets.py`; `tests/test_budget_ladder.py`; visible in the web app as "budget escalated to stage 2" |
+| 7 | Timestamped, inspectable evidence artefact | Let a user check what the model was shown, and separate selection failures from reasoning failures | Completed | `src/gist/gateway/evidence_package.py`; evidence list with clip, source span and reason in the web app (`docs/screenshots/04-answer-and-evidence.jpg`) |
+| 8 | Answer generation from the selected evidence | Produce the answer from compressed evidence only | Completed | Qwen2.5-Omni-7B offline for every measured result (`scripts/av_bench_7b_fp16.py`); TwelveLabs Pegasus 1.5 in the web app, fed only the selected clips (`src/gist/gateway/twelvelabs.py`). The OpenAI and Claude adapters receive transcript text and no frames, so they are not used for visual questions |
+| 9 | Measurement harness | Quantify accuracy, cost and grounding with confidence intervals | Completed | `src/gist/eval/` (benchmark runners, ablation, bootstrap, efficiency, failure analysis); raw per-question output in `results/` |
+| 10 | Baselines: uniform, visual-only, transcript-only, dense | Show what Gist is compared against at equal or larger budgets | Completed | Uniform 8 frames vs Gist on Video-MME, n = 51 and n = 18 (`results/n51-4bit/`, `results/runpod-fp16/`); visual-only, transcript-only, uniform and score top-k in the 35-case ablation |
+| 11 | Five-way component ablation | Show which component carries the result | Completed | `results/heuristics-ablation/`, `results/split-budget-ablation/`, 95% paired bootstrap intervals |
+| 12 | Head-to-head with post-encoder methods | Compare against the published training-free methods | Partial | OmniZip run through its own code: all conditions 6/18, OmniZip ran out of memory on full-length video (`results/runpod-omnizip-h2h/`). OmniScope harness built, not run (`results/runpod-omniscope-h2h/`). OmniPack reimplemented and unit tested because its repository contains no code; not yet run (`results/omnipack-replication/`) |
+| 13 | Unquantised 7B omni model on one 24 GB GPU | Show feasibility at consumer hardware | Completed | Qwen2.5-Omni-7B fp16 with CLIP, CLAP and Whisper on an RTX 4090 24 GB, no out-of-memory failure (`results/runpod-fp16/`) |
+| 14 | Measured wall-clock time and peak GPU memory | Replace derived FLOPs with measured cost | Partial | Harness written and costed (`results/efficiency-measured/`, `src/gist/eval/profiling.py`); not yet executed. Current cost figures are derived from measured item counts |
+| 15 | Evaluation corpus of about 40 long recordings and about 200 cases | Enough cases for stable estimates across question types | Partial | 7 genuine hour-plus recordings, 35 curated cases, plus 51 Video-MME questions over 18 videos (`docs/datasets.md`) |
+| 16 | Held-out split executed once on a frozen configuration | An estimate not tuned on its own test data | Partial | 12-case split frozen in `data/eval/splits/`; deliberately not yet run |
+| 17 | Public web demonstrator | Let a reviewer submit a question and inspect the evidence | Partial | Complete and working locally (`web/`, `src/gist/api/`); public deployment is planned for the week before the defense (README, Deployment plan) |
+| 18 | VideoLLaMA2-7B as a second answering model | Check that results hold for a second model | Not implemented | |
+| 19 | SigLIP as an alternative visual scorer | Compare calibration against CLIP | Not implemented | |
+| 20 | Benchmarks beyond Video-MME (MUSIC-AVQA, AVQA, WorldSense) | Sound-event and cross-modal cases | Not implemented | |
+
+## Justification for scope changes
+
+- **Corpus size (15).** The planned corpus shrank to seven recordings after an integrity check. One source listed as 61 minutes turned out to be a 12-minute film repeated five times, and it was removed. Video-MME's long split caps at 60 minutes, so it cannot supply hour-plus recordings. Cases are written by hand with reference timestamps, and that limited how fast the corpus could grow.
+- **Benchmarks (20).** AVQA clips average about 10 seconds and MUSIC-AVQA clips about 60 seconds. A method that compresses long video has nothing to remove on clips that short, so neither tests the claim. WorldSense was dropped for the same scheduling reason as item 18.
+- **Second answering model and SigLIP (18, 19).** GPU time went to the OmniZip head-to-head and the ablations instead, because those test the central claim directly. Gist never reads the answering model's internals, so swapping that model does not change the selection. The second model is therefore a check on generality rather than a test of the method.
+- **Measured efficiency, OmniScope and the held-out split (12, 14, 16).** All three are built and costed, at about $2.50 of GPU time in total. The held-out split is run last on purpose, after the configuration is final, so it stays untouched by tuning.
+- **OmniPack (12).** OmniPack is the strongest published method, but its repository contained only a README as of September 2026. Instead of comparing against numbers from its paper, the method was reimplemented from the paper.
+- **Public deployment (17).** Deployment is scheduled for the week before the defense, so a server does not drift or run up cost before it is needed. The frontend replays a recorded run if the API is unreachable.
+- **User study.** Outside the four-month scope, as stated in the proposal (Section 1.5).
