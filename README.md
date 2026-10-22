@@ -18,7 +18,7 @@ Submitted for ALU Mission Capstone, *Final Version of the Product* (due 23 Octob
 | :-- | :-- |
 | **Repository** | https://github.com/thepreakerebi/gist |
 | **Walkthrough video** | https://youtu.be/Q_6_BG6ncAk |
-| **Technical report (PDF)** | [`docs/Gist_Technical_Report.pdf`](docs/Gist_Technical_Report.pdf) — scope alignment, technical functionality, testing and results, code quality |
+| **Technical report (PDF)** | https://drive.google.com/file/d/1R2R95hpZR54pH9dWlRwwmzN0IdNpY0zU/view?usp=sharing (also in the repository at [`docs/Gist_Technical_Report.pdf`](docs/Gist_Technical_Report.pdf)) — scope alignment, technical functionality, testing and results, code quality |
 | **Scope alignment table** | [`docs/scope-alignment.md`](docs/scope-alignment.md) — every planned feature, its status and the evidence for it |
 
 **Description.** Gist is a training-free, plug-and-play audio-visual context compression layer for Omni/AV-LLMs. A user adds a video once; Gist ingests it into frames and audio windows, scores every candidate against the user's question with CLIP (visual), CLAP (sound) and Whisper (speech), arbitrates a joint visual/audio budget with z-score MMR and a temporal-diversity kernel, and passes only the surviving seconds of evidence to the answering model. The distinguishing property is *where* the compression sits: Gist drops candidates **before the encoders run**, so it reduces encoder FLOPs and peak memory rather than only decoder work. The surveyed field of training-free omni-modal methods compresses post-encoder.
@@ -154,7 +154,7 @@ Against the uniform 8-frame input that reached the same accuracy, Gist needed 36
 | Functional / system | end-to-end ingestion and question answering in the web app on 36- and 49-minute recordings | grounded answers, adaptive escalation, one documented selection failure |
 | Validation / performance | benchmark runs against pre-registered thresholds of the proposal's Objective 3 | accuracy parity, 96.8% fewer encoded items than dense input, 86% timestamp hit rate, unquantised 7B on one 24 GB GPU |
 
-Details, environments and the failures found are in the [technical report](docs/Gist_Technical_Report.pdf).
+Details, environments and the failures found are in the [technical report](https://drive.google.com/file/d/1R2R95hpZR54pH9dWlRwwmzN0IdNpY0zU/view?usp=sharing).
 
 ### Deployment plan
 
