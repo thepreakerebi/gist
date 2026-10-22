@@ -3,12 +3,12 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
+from slow_utils import require_slow_model_tests
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.whisper import FasterWhisperTranscriber
 from gist.media.models import AudioWindow, ExtractedFrame
 from gist.vision.clip import HuggingFaceClipFrameScorer
-from slow_utils import require_slow_model_tests
 
 
 @pytest.mark.slow

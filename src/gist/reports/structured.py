@@ -5,8 +5,7 @@ import json
 from html import escape
 from io import StringIO
 from pathlib import Path
-from typing import TYPE_CHECKING
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from gist.gateway.structured import StructuredExtractionResponse

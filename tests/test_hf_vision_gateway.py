@@ -1,6 +1,6 @@
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
 
 from gist.gateway.hf_vision import build_messages, extract_pipeline_text
 

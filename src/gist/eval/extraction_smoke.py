@@ -1,10 +1,9 @@
 import argparse
-import json
 from pathlib import Path
 
 from gist.eval.extraction import (
-    ExtractionEvalCase,
     ExpectedExtractionItem,
+    ExtractionEvalCase,
     render_extraction_eval_markdown,
     run_extraction_eval_cases,
 )

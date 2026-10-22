@@ -30,6 +30,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from gist.audio.whisper import TranscriptQuality
 from gist.core.answering import answer_from_evidence, verify_answer_claims
 from gist.core.compressor import GistCompressor
 from gist.core.evidence_pruning import (
@@ -40,15 +41,15 @@ from gist.core.evidence_pruning import (
     prune_weakly_grounded_evidence,
 )
 from gist.core.modes import AudioScoringMode, VisualScoringMode
-from gist.core.query_intent import QueryIntent, route_query_intent
-from gist.core.quality_gate import apply_quality_gate
 from gist.core.presets import PRESETS, CompressionPreset
+from gist.core.quality_gate import apply_quality_gate
+from gist.core.query_intent import QueryIntent, route_query_intent
 from gist.core.schemas import (
     Candidate,
-    Modality,
     CompressionMetrics,
     CompressionRequest,
     CompressionResponse,
+    Modality,
 )
 from gist.core.token_estimation import TokenEstimatorProfile, estimate_tokens
 from gist.eval.baselines import _score_topk_select, _uniform_select
@@ -58,7 +59,6 @@ from gist.eval.quality import (
     evaluate_quality_case,
     load_quality_cases,
 )
-from gist.audio.whisper import TranscriptQuality
 from gist.media.longform import ProcessingMode
 from gist.pipeline import LocalCompressionPipeline, _with_raw_reduction_metrics
 

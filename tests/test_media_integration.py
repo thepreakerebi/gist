@@ -6,7 +6,6 @@ import pytest
 
 from gist.media.ingestion import MediaIngestor
 
-
 pytestmark = pytest.mark.skipif(
     shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
     reason="ffmpeg and ffprobe are required for media integration tests",

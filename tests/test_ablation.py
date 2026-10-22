@@ -6,14 +6,13 @@ from gist.core.presets import CompressionPreset
 from gist.core.schemas import Candidate, CompressionRequest
 from gist.eval.ablation import (
     MODES,
-    ModeOutcome,
     AblationCaseResult,
+    ModeOutcome,
     _compress_mode,
     _summarize,
     _uniform_mode,
     render_ablation_markdown,
     resolve_case_config,
-    run_ablation_suite,
 )
 from gist.eval.quality import QualityCase, load_quality_cases
 

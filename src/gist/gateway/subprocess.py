@@ -1,7 +1,7 @@
 import json
 import subprocess
-from pathlib import Path
 import threading
+from pathlib import Path
 from typing import Any
 
 from gist.gateway.context import render_evidence_context

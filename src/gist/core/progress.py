@@ -1,7 +1,6 @@
-from collections.abc import Callable
 import sys
 import time
-
+from collections.abc import Callable
 
 ProgressCallback = Callable[[str], None]
 

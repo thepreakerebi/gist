@@ -1,11 +1,10 @@
 import json
-from pathlib import Path
 import tempfile
+from pathlib import Path
 from typing import Any
 
 from gist.gateway.openai_vision import sample_evidence_frames
 from gist.gateway.prompt import build_video_answer_prompt
-
 
 DEFAULT_HF_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
 

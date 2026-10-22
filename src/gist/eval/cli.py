@@ -1,11 +1,11 @@
 import argparse
-from pathlib import Path
 import shlex
+from pathlib import Path
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.token_estimation import TokenEstimatorProfile
-from gist.eval.benchmarks import BenchmarkName, SOTA_BENCHMARK_VARIANTS, load_benchmark_jsonl
+from gist.eval.benchmarks import SOTA_BENCHMARK_VARIANTS, BenchmarkName, load_benchmark_jsonl
 from gist.eval.dataset import load_jsonl_dataset
 from gist.eval.reporting import render_html_report, render_markdown_report
 from gist.eval.runner import EvalRunner

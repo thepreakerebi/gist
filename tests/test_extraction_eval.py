@@ -2,8 +2,8 @@ import json
 from pathlib import Path
 
 from gist.eval.extraction import (
-    ExtractionEvalCase,
     ExpectedExtractionItem,
+    ExtractionEvalCase,
     evaluate_extraction_case,
     main,
     render_extraction_eval_markdown,

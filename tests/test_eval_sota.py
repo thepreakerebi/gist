@@ -2,10 +2,8 @@ import json
 import subprocess
 import sys
 
-import pytest
-
-from gist.core.presets import CompressionPreset
 import gist.eval.cli as eval_cli
+from gist.core.presets import CompressionPreset
 from gist.eval.schemas import EvalVariant
 from gist.eval.sota import run
 

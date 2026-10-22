@@ -4,7 +4,6 @@ from urllib import error, request
 from gist.gateway.evidence_package import build_evidence_prompt
 from gist.gateway.schemas import GatewayRequest, GatewayResponse
 
-
 DEFAULT_OLLAMA_URL = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3.2:3b"
 

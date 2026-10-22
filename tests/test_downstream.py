@@ -13,8 +13,8 @@ from gist.eval.downstream import (
     _to_selected,
     render_downstream_markdown,
 )
-from gist.gateway.evidence_package import build_evidence_prompt
 from gist.eval.quality import load_quality_cases
+from gist.gateway.evidence_package import build_evidence_prompt
 
 
 def _audio(i: int, ts: float, text: str) -> Candidate:

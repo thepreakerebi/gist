@@ -2,10 +2,9 @@ from html import escape
 from pathlib import Path
 
 from gist.core.answering import WHY_ANSWER_TERMS
-from gist.core.scoring import text_similarity
 from gist.core.schemas import CompressionResponse, Modality, SelectedCandidate
+from gist.core.scoring import text_similarity
 from gist.media.models import IngestedVideo
-
 
 MOMENT_GROUP_SECONDS = 15.0
 MAX_DISPLAY_MOMENTS = 6

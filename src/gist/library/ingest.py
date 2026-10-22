@@ -204,7 +204,7 @@ _OCR_MIN_MEAN_TOKEN_LENGTH = 3.5
 # Nature"), so these are not counted against the short-token share. Without the
 # exemption the gate rejected genuine slide titles.
 _OCR_FUNCTION_WORDS = frozenset(
-    "a an and as at be by do for from he i in is it of on or so the to we with".split()
+    "a an and as at be by do for from he i in is it of on or so the to we with".split()  # noqa: SIM905
 )
 
 

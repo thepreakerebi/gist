@@ -1,9 +1,8 @@
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from gist.core.query_intent import QueryIntent
 from gist.core.schemas import Modality, SelectedCandidate
-
 
 DEFAULT_CLIP_DURATION_SECONDS = 8.0
 MAX_CLIP_DURATION_SECONDS = 12.0

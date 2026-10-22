@@ -22,13 +22,13 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
+from gist.api.demo import _load_api_key
 from gist.core.presets import CompressionPreset
 from gist.db import connection as db
 from gist.db import repository as repo
-from gist.api.demo import _load_api_key
 from gist.gateway.hosted_answerer import answer_with_hosted_llm
-from gist.gateway.twelvelabs import ClipSource, answer_with_twelvelabs
 from gist.gateway.schemas import GatewayRequest
+from gist.gateway.twelvelabs import ClipSource, answer_with_twelvelabs
 from gist.library import ingest as ingest_service
 from gist.library import media
 from gist.library import query as query_service

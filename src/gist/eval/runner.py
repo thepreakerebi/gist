@@ -1,6 +1,6 @@
-from pathlib import Path
 import re
 import time
+from pathlib import Path
 
 from gist.core.compressor import GistCompressor
 from gist.core.presets import CompressionPreset
@@ -16,6 +16,7 @@ from gist.eval.answers import answer_score
 from gist.eval.baselines import score_topk_baseline, uniform_baseline
 from gist.eval.metrics import timestamp_hit_rate
 from gist.eval.schemas import (
+    BaselineResult,
     EvalExample,
     EvalExampleResult,
     EvalReport,
@@ -23,7 +24,6 @@ from gist.eval.schemas import (
     EvalSummary,
     EvalVariant,
     EvalVariantSummary,
-    BaselineResult,
     GistVariantResult,
 )
 from gist.gateway.base import LlmGateway
@@ -38,7 +38,6 @@ from gist.vision.spatial import (
     write_spatial_mask_overlay,
     write_spatial_mask_preview,
 )
-
 
 DEFAULT_VARIANTS = [
     EvalVariant(name="gist_fixed_balanced", preset=CompressionPreset.BALANCED),

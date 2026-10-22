@@ -1,7 +1,6 @@
 import json
-from pathlib import Path
 
-from gist.core.schemas import SelectedCandidate, Modality
+from gist.core.schemas import Modality, SelectedCandidate
 from gist.eval.benchmark_videomme import (
     CONDITIONS,
     BenchConditionResult,

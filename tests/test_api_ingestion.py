@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 
 from gist.api.app import create_app
 
-
 pytestmark = pytest.mark.skipif(
     shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None,
     reason="ffmpeg and ffprobe are required for ingestion API tests",

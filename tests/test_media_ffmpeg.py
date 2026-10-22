@@ -53,18 +53,17 @@ def test_extract_audio_windows_returns_empty_when_video_has_no_audio(tmp_path: P
     video_path.write_bytes(b"fake")
     processor = FfmpegMediaProcessor()
 
-    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
-        with patch.object(
-            processor,
-            "probe",
-            return_value=processor._parse_metadata(
-                {
-                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
-                    "format": {"duration": "3.0"},
-                }
-            ),
-        ):
-            windows = processor.extract_audio_windows(video_path, tmp_path / "audio")
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"), patch.object(
+        processor,
+        "probe",
+        return_value=processor._parse_metadata(
+            {
+                "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                "format": {"duration": "3.0"},
+            }
+        ),
+    ):
+        windows = processor.extract_audio_windows(video_path, tmp_path / "audio")
 
     assert windows == []
 
@@ -80,23 +79,21 @@ def test_extract_frames_reuses_existing_outputs_and_removes_stale_files(tmp_path
     stale.write_bytes(b"stale")
     processor = FfmpegMediaProcessor()
 
-    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
-        with patch.object(
-            processor,
-            "probe",
-            return_value=processor._parse_metadata(
-                {
-                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
-                    "format": {"duration": "4.0"},
-                }
-            ),
-        ):
-            with patch.object(processor, "_run", side_effect=_writing_run) as run:
-                frames = processor.extract_frames(
-                    video_path=video_path,
-                    output_dir=output_dir,
-                    sample_count=2,
-                )
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"), patch.object(
+        processor,
+        "probe",
+        return_value=processor._parse_metadata(
+            {
+                "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                "format": {"duration": "4.0"},
+            }
+        ),
+    ), patch.object(processor, "_run", side_effect=_writing_run) as run:
+        frames = processor.extract_frames(
+            video_path=video_path,
+            output_dir=output_dir,
+            sample_count=2,
+        )
 
     assert [frame.path.name for frame in frames] == ["frame_0000.jpg", "frame_0001.jpg"]
     assert stale.exists() is False
@@ -123,23 +120,21 @@ def test_extract_frames_skips_frames_that_fail_to_write(tmp_path: Path) -> None:
             return
         Path(command[-1]).write_bytes(b"frame")
 
-    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
-        with patch.object(
-            processor,
-            "probe",
-            return_value=processor._parse_metadata(
-                {
-                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
-                    "format": {"duration": "6.0"},
-                }
-            ),
-        ):
-            with patch.object(processor, "_run", side_effect=run_writes_all_but_one):
-                frames = processor.extract_frames(
-                    video_path=video_path,
-                    output_dir=output_dir,
-                    sample_count=3,
-                )
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"), patch.object(
+        processor,
+        "probe",
+        return_value=processor._parse_metadata(
+            {
+                "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                "format": {"duration": "6.0"},
+            }
+        ),
+    ), patch.object(processor, "_run", side_effect=run_writes_all_but_one):
+        frames = processor.extract_frames(
+            video_path=video_path,
+            output_dir=output_dir,
+            sample_count=3,
+        )
 
     # The undecodable frame is skipped; the others survive.
     assert [frame.path.name for frame in frames] == ["frame_0000.jpg", "frame_0002.jpg"]
@@ -151,24 +146,22 @@ def test_extract_frames_raises_when_no_frames_extracted(tmp_path: Path) -> None:
     output_dir = tmp_path / "frames"
     processor = FfmpegMediaProcessor()
 
-    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
-        with patch.object(
-            processor,
-            "probe",
-            return_value=processor._parse_metadata(
-                {
-                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
-                    "format": {"duration": "6.0"},
-                }
-            ),
-        ):
-            with patch.object(processor, "_run", side_effect=lambda command: None):
-                with pytest.raises(MediaProcessingError, match="no frames could be extracted"):
-                    processor.extract_frames(
-                        video_path=video_path,
-                        output_dir=output_dir,
-                        sample_count=3,
-                    )
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"), patch.object(
+        processor,
+        "probe",
+        return_value=processor._parse_metadata(
+            {
+                "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                "format": {"duration": "6.0"},
+            }
+        ),
+    ), patch.object(processor, "_run", side_effect=lambda command: None):
+        with pytest.raises(MediaProcessingError, match="no frames could be extracted"):
+            processor.extract_frames(
+                video_path=video_path,
+                output_dir=output_dir,
+                sample_count=3,
+            )
 
 
 def test_extract_audio_windows_reuses_existing_outputs_and_removes_stale_files(
@@ -184,26 +177,24 @@ def test_extract_audio_windows_reuses_existing_outputs_and_removes_stale_files(
     stale.write_bytes(b"stale")
     processor = FfmpegMediaProcessor()
 
-    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
-        with patch.object(
-            processor,
-            "probe",
-            return_value=processor._parse_metadata(
-                {
-                    "streams": [
-                        {"codec_type": "video", "avg_frame_rate": "30/1"},
-                        {"codec_type": "audio"},
-                    ],
-                    "format": {"duration": "4.0"},
-                }
-            ),
-        ):
-            with patch.object(processor, "_run") as run:
-                windows = processor.extract_audio_windows(
-                    video_path=video_path,
-                    output_dir=output_dir,
-                    window_seconds=2.0,
-                )
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"), patch.object(
+        processor,
+        "probe",
+        return_value=processor._parse_metadata(
+            {
+                "streams": [
+                    {"codec_type": "video", "avg_frame_rate": "30/1"},
+                    {"codec_type": "audio"},
+                ],
+                "format": {"duration": "4.0"},
+            }
+        ),
+    ), patch.object(processor, "_run") as run:
+        windows = processor.extract_audio_windows(
+            video_path=video_path,
+            output_dir=output_dir,
+            window_seconds=2.0,
+        )
 
     assert [window.path.name for window in windows] == ["audio_0000.wav", "audio_0001.wav"]
     assert stale.exists() is False
@@ -217,24 +208,22 @@ def test_extract_clip_clamps_to_video_bounds(tmp_path: Path) -> None:
     video_path.write_bytes(b"fake")
     processor = FfmpegMediaProcessor()
 
-    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"):
-        with patch.object(
-            processor,
-            "probe",
-            return_value=processor._parse_metadata(
-                {
-                    "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
-                    "format": {"duration": "5.0"},
-                }
-            ),
-        ):
-            with patch.object(processor, "_run") as run:
-                result = processor.extract_clip(
-                    video_path=video_path,
-                    output_path=output_path,
-                    center_seconds=4.5,
-                    duration_seconds=8.0,
-                )
+    with patch("gist.media.ffmpeg.shutil.which", return_value="/usr/bin/tool"), patch.object(
+        processor,
+        "probe",
+        return_value=processor._parse_metadata(
+            {
+                "streams": [{"codec_type": "video", "avg_frame_rate": "30/1"}],
+                "format": {"duration": "5.0"},
+            }
+        ),
+    ), patch.object(processor, "_run") as run:
+        result = processor.extract_clip(
+            video_path=video_path,
+            output_path=output_path,
+            center_seconds=4.5,
+            duration_seconds=8.0,
+        )
 
     command = run.call_args.args[0]
     assert result == output_path

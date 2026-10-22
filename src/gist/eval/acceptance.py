@@ -7,8 +7,8 @@ from typing import Annotated
 from pydantic import BaseModel, Field
 
 from gist.eval.quality import (
-    QualityReport,
     QualityCaseDraft,
+    QualityReport,
     draft_quality_case,
     draft_quality_cases_from_root,
     load_quality_cases,

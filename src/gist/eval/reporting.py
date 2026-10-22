@@ -1,10 +1,9 @@
-from html import escape
 from dataclasses import dataclass
+from html import escape
 from pathlib import Path
 
 from gist.core.schemas import Modality
 from gist.eval.schemas import EvalReport
-
 
 MAX_RENDERED_EVIDENCE_CLIPS = 3
 ANSWER_LIKELIHOOD_KEEP_RATIO = 0.55

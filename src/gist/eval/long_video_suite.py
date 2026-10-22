@@ -1,8 +1,8 @@
 import argparse
 import json
 import re
-import shutil
 import shlex
+import shutil
 import subprocess
 import sys
 from collections import Counter
@@ -18,8 +18,8 @@ from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.query_intent import QueryIntent
 from gist.eval.quality import (
-    QualityCaseDraft,
     QualityCase,
+    QualityCaseDraft,
     QualityReport,
     draft_quality_case,
     load_quality_cases,
@@ -2124,7 +2124,7 @@ def _proposal_source_score(category: QueryIntent, case: QualityCase, payload: di
             score += 3
         if str(compression.get("audio_scorer_used") or "").lower() == AudioScoringMode.WHISPER.value:
             score += 2
-    elif category == QueryIntent.VISUAL_OBJECT_ACTION and "visual" in modalities:
+    elif category == QueryIntent.VISUAL_OBJECT_ACTION and "visual" in modalities:  # noqa: SIM114
         score += 5
     elif category == QueryIntent.SPEECH_SEMANTIC and "audio" in modalities:
         score += 5

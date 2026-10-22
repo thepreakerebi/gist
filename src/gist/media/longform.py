@@ -1,6 +1,6 @@
+import math
 from dataclasses import dataclass
 from enum import StrEnum
-import math
 
 
 class ProcessingMode(StrEnum):

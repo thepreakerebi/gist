@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 
-from gist.audio.errors import AudioTranscriptionError
 from gist.api.schemas import (
     LocalVideoCompressionRequest,
     LocalVideoCompressionResponse,
     MediaIngestionRequest,
 )
+from gist.audio.errors import AudioTranscriptionError
 from gist.core.compressor import GistCompressor
 from gist.core.schemas import CompressionRequest, CompressionResponse
 from gist.media.ingestion import MediaIngestor

@@ -20,7 +20,6 @@ cost across conditions.
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 from pydantic import BaseModel
@@ -40,7 +39,7 @@ from gist.eval.baselines import _uniform_select
 from gist.eval.judge import JudgeError, LlmJudge
 from gist.eval.quality import QualityCase, _load_compression, _term_recall, load_quality_cases
 from gist.gateway.evidence_package import build_evidence_prompt
-from gist.gateway.ollama import DEFAULT_OLLAMA_MODEL, OllamaGatewayError, OllamaTextGateway
+from gist.gateway.ollama import DEFAULT_OLLAMA_MODEL, OllamaTextGateway
 from gist.gateway.schemas import GatewayRequest
 from gist.pipeline import LocalCompressionPipeline
 

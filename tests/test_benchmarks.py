@@ -2,8 +2,8 @@ from pathlib import Path
 
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.eval.benchmarks import (
-    BenchmarkName,
     SOTA_BENCHMARK_VARIANTS,
+    BenchmarkName,
     benchmark_readiness_issues,
     load_benchmark_jsonl,
     resolve_benchmark_video_paths,

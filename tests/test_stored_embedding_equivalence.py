@@ -15,11 +15,11 @@ ranking (top-5 overlap 1/5) while looking perfectly healthy in isolation.
 from pathlib import Path
 
 import pytest
+from slow_utils import require_slow_model_tests
 
 from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.media.models import ExtractedFrame
 from gist.vision.clip import HuggingFaceClipFrameScorer
-from slow_utils import require_slow_model_tests
 
 # Tolerance for float32 accumulation differences between a fused matmul and a
 # Python dot product. Observed difference on real frames is ~6e-08.

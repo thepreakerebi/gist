@@ -17,7 +17,6 @@ from gist.reports.structured import (
     render_structured_extraction_markdown,
 )
 
-
 STRUCTURED_EXTRACTION_VERSION = "gist.structured-extraction.v1"
 SCHEMA_FILE_PATTERN = "*.schema.json"
 EXTRACTION_PRESETS = {

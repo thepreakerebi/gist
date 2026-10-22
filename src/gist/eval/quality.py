@@ -14,7 +14,7 @@ from gist.core.evidence_pruning import annotate_evidence_support
 from gist.core.modes import AudioScoringMode, VisualScoringMode
 from gist.core.presets import CompressionPreset
 from gist.core.query_intent import QueryIntent
-from gist.core.schemas import CompressionResponse, Modality
+from gist.core.schemas import CompressionResponse
 from gist.eval.evidence_counts import audio_evidence_count, visual_evidence_count
 from gist.eval.regression import TimeRange
 from gist.gateway.structured import (
