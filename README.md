@@ -12,7 +12,7 @@ The compression core stays independently testable: CLIP, CLAP, Whisper and the d
 
 ## Capstone Submission — Final Version of the Product
 
-Submitted for ALU BSE Capstone, *Final Version of the Product* (due 23 October 2026).
+Submitted for ALU Mission Capstone, *Final Version of the Product* (due 23 October 2026).
 
 | | |
 | :-- | :-- |
