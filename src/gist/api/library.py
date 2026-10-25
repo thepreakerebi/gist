@@ -44,7 +44,7 @@ _active_lock = threading.Lock()
 # The wording of the privacy notice at /privacy that a consent was given against.
 # Bump it whenever the notice changes what a user agrees to, so every stored
 # consent can still be matched to the text that was on screen at the time.
-CONSENT_VERSION = "2026-10-25"
+CONSENT_VERSION = "2026-10-25.2"
 
 
 class AddVideoRequest(BaseModel):

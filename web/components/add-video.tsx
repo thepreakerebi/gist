@@ -101,11 +101,11 @@ export function AddVideo({ onAdded }: { onAdded: (video: Video) => void }) {
           className="mt-1 size-4 shrink-0 accent-primary"
         />
         <label htmlFor="video-consent">
-          I have the right to process this video. I understand that Gist keeps its
-          transcript and the questions I ask, and sends the few clips it selects to
-          TwelveLabs to write each answer.{" "}
+          I am allowed to use this video. I know Gist keeps the words spoken in it
+          and my questions. It sends a few seconds of the video to another company,
+          TwelveLabs, to write each answer.{" "}
           <Link href="/privacy" className="text-foreground underline underline-offset-4">
-            Read the privacy notice
+            Read what this means
           </Link>
           .
         </label>
