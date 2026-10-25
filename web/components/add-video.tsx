@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 
 import type { Video } from "@/lib/library";
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
  */
 export function AddVideo({ onAdded }: { onAdded: (video: Video) => void }) {
   const [url, setUrl] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -23,15 +25,16 @@ export function AddVideo({ onAdded }: { onAdded: (video: Video) => void }) {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     const trimmed = url.trim();
-    if (!trimmed || busy) return;
+    if (!trimmed || !agreed || busy) return;
 
     setBusy(true);
     setError(null);
     setNote(null);
     try {
-      const { video, started } = await addVideo(trimmed);
+      const { video, started } = await addVideo(trimmed, agreed);
       onAdded(video);
       setUrl("");
+      setAgreed(false);
       if (!started) setNote("Already in your library.");
     } catch (err) {
       setError(
@@ -68,7 +71,7 @@ export function AddVideo({ onAdded }: { onAdded: (video: Video) => void }) {
         />
         <button
           type="submit"
-          disabled={busy || url.trim().length === 0}
+          disabled={busy || !agreed || url.trim().length === 0}
           className={cn(
             "inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-all",
             "bg-primary text-primary-foreground hover:opacity-90",
@@ -83,6 +86,29 @@ export function AddVideo({ onAdded }: { onAdded: (video: Video) => void }) {
           )}
           <span>{busy ? "Adding" : "Add"}</span>
         </button>
+      </div>
+
+      {/* Consent is asked for at the moment of adding, not once per visit: each
+          video is a separate decision about material someone else may own or
+          appear in, and the selected clips leave this server to be answered. */}
+      <div className="mt-3 flex items-start gap-2.5 text-sm leading-relaxed text-muted-foreground">
+        <input
+          id="video-consent"
+          type="checkbox"
+          checked={agreed}
+          onChange={(event) => setAgreed(event.target.checked)}
+          disabled={busy}
+          className="mt-1 size-4 shrink-0 accent-primary"
+        />
+        <label htmlFor="video-consent">
+          I have the right to process this video. I understand that Gist keeps its
+          transcript and the questions I ask, and sends the few clips it selects to
+          TwelveLabs to write each answer.{" "}
+          <Link href="/privacy" className="text-foreground underline underline-offset-4">
+            Read the privacy notice
+          </Link>
+          .
+        </label>
       </div>
 
       {error && (

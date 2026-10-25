@@ -73,22 +73,33 @@ class VideoRecord:
 # ---------------------------------------------------------------- videos ----
 
 
-def create_video(youtube_url: str, *, title: str, youtube_id: str | None = None) -> VideoRecord:
+def create_video(
+    youtube_url: str,
+    *,
+    title: str,
+    youtube_id: str | None = None,
+    consent_version: str,
+) -> VideoRecord:
     """Register a video as pending ingestion, or return the existing row.
 
     Re-submitting a URL already in the library is the common case (a user pastes
-    a link they forgot they had), so this is an upsert rather than an error.
+    a link they forgot they had), so this is an upsert rather than an error. The
+    consent is refreshed on a re-submit, because it is the latest agreement that
+    covers the processing about to happen.
     """
 
     with cursor() as cur:
         cur.execute(
             """
-            insert into videos (youtube_url, youtube_id, title, duration_seconds, status)
-            values (%(url)s, %(yid)s, %(title)s, 0, 'pending')
-            on conflict (youtube_url) do update set youtube_url = excluded.youtube_url
+            insert into videos (youtube_url, youtube_id, title, duration_seconds, status,
+                                consent_given_at, consent_version)
+            values (%(url)s, %(yid)s, %(title)s, 0, 'pending', now(), %(consent)s)
+            on conflict (youtube_url) do update set
+                consent_given_at = excluded.consent_given_at,
+                consent_version  = excluded.consent_version
             returning *
             """,
-            {"url": youtube_url, "yid": youtube_id, "title": title},
+            {"url": youtube_url, "yid": youtube_id, "title": title, "consent": consent_version},
         )
         return VideoRecord.from_row(cur.fetchone())
 

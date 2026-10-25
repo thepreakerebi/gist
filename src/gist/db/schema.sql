@@ -36,9 +36,17 @@ create table if not exists videos (
     audio_window_count  integer     not null default 0,
     transcript          text,
     error               text,
+    -- When the person who added the video confirmed they may process it and
+    -- accepted the privacy notice, and which version of that notice it was.
+    consent_given_at    timestamptz,
+    consent_version     text,
     created_at          timestamptz not null default now(),
     ingested_at         timestamptz
 );
+
+-- Databases created before consent was recorded.
+alter table videos add column if not exists consent_given_at timestamptz;
+alter table videos add column if not exists consent_version  text;
 
 create index if not exists videos_status_idx     on videos (status);
 create index if not exists videos_created_at_idx on videos (created_at desc);

@@ -50,12 +50,13 @@ export default function LibraryPage() {
   // Retry re-adds the same URL after discarding the failed record, rather than
   // mutating it in place: ingestion state, artifacts and the conversation all
   // hang off the row, and a clean record is easier to reason about than a
-  // half-populated one that failed partway through.
+  // half-populated one that failed partway through. The consent given when the
+  // video was first added covers the retry, since nothing about it has changed.
   const retry = useCallback(
     async (video: Video) => {
       await deleteVideo(video.id);
       drop(video.id);
-      const { video: fresh } = await addVideo(video.url);
+      const { video: fresh } = await addVideo(video.url, true);
       upsert(fresh);
       watch(fresh.id);
     },
@@ -175,6 +176,12 @@ export default function LibraryPage() {
           </ul>
         )}
       </section>
+
+      <footer className="mt-20 border-t border-border/70 pt-6 text-sm text-muted-foreground">
+        <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+          Privacy and terms of use
+        </Link>
+      </footer>
     </main>
   );
 }

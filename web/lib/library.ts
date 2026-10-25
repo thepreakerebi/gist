@@ -146,13 +146,19 @@ export async function getVideo(id: string): Promise<VideoDetail> {
   }
 }
 
+/**
+ * Add a video to the library. `consent` records that the person adding it may
+ * process it and has accepted the privacy notice; the API refuses the request
+ * without it.
+ */
 export async function addVideo(
   url: string,
+  consent: boolean,
 ): Promise<{ video: Video; started: boolean }> {
   const response = await fetch(apiUrl("/v1/library/videos"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, consent }),
   });
   return jsonOrThrow<{ video: Video; started: boolean }>(response);
 }

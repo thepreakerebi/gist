@@ -41,8 +41,17 @@ _active: set[str] = set()
 _active_lock = threading.Lock()
 
 
+# The wording of the privacy notice at /privacy that a consent was given against.
+# Bump it whenever the notice changes what a user agrees to, so every stored
+# consent can still be matched to the text that was on screen at the time.
+CONSENT_VERSION = "2026-10-25"
+
+
 class AddVideoRequest(BaseModel):
     url: str = Field(min_length=1)
+    # Checked here as well as in the browser: the web form is only one client,
+    # and a request that skips it must not be able to start an ingestion.
+    consent: bool = Field(default=False, validate_default=True)
 
     @field_validator("url")
     @classmethod
@@ -51,6 +60,15 @@ class AddVideoRequest(BaseModel):
         if not url.startswith(("http://", "https://")):
             raise ValueError("provide a full http(s) video URL")
         return url
+
+    @field_validator("consent")
+    @classmethod
+    def _require_consent(cls, value: bool) -> bool:
+        if not value:
+            raise ValueError(
+                "confirm you have the right to process this video and accept the privacy notice"
+            )
+        return value
 
 
 # Which model answers when the client does not say. TwelveLabs reads the selected
@@ -156,6 +174,7 @@ def add_video(request: AddVideoRequest) -> dict[str, Any]:
         request.url,
         title=media.youtube_id(request.url) or request.url,
         youtube_id=media.youtube_id(request.url),
+        consent_version=CONSENT_VERSION,
     )
     _start_ingestion(record.id, request.url)
     return {"video": _video_payload(record), "started": True}
