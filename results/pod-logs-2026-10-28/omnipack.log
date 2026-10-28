@@ -1,0 +1,229 @@
+51 questions across 18 videos
+ratios=[0.25, 0.2, 0.15, 0.1] stage2=True layer=18
+device: NVIDIA GeForce RTX 4090 25 GB, torch 2.6.0+cu124, CUDA 12.4
+You have video processor config saved in `preprocessor.json` file which is deprecated. Video processor configs should be saved in their own `video_preprocessor.json` file. You can rename the file or load and save the processor back which renames it automatically. Loading from `preprocessor.json` will be removed in v5.0.
+Unrecognized keys in `rope_scaling` for 'rope_type'='default': {'mrope_section'}
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards:  20%|██        | 1/5 [00:04<00:19,  4.80s/it]Loading checkpoint shards:  40%|████      | 2/5 [00:07<00:10,  3.62s/it]Loading checkpoint shards:  60%|██████    | 3/5 [00:10<00:06,  3.20s/it]Loading checkpoint shards:  80%|████████  | 4/5 [00:11<00:02,  2.49s/it]Loading checkpoint shards: 100%|██████████| 5/5 [00:11<00:00,  2.34s/it]
+resident after load: 17.87 GB
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+qwen-vl-utils using decord to read video.
+Unused or unrecognized kwargs: return_tensors, images.
+ZLRyTFIZOIs: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+control: full arm reproduces stock generate exactly
+867-3 gold=B full=BY omnipack_r0.25=BY omnipack_r0.2=BY omnipack_r0.15=BY omnipack_r0.1=BY
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+eZ5lFBPpRkM: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+868-1 gold=A full=Cn omnipack_r0.25=Cn omnipack_r0.2=Cn omnipack_r0.15=Cn omnipack_r0.1=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+868-2 gold=B full=Cn omnipack_r0.25=An omnipack_r0.2=An omnipack_r0.15=An omnipack_r0.1=An
+Unused or unrecognized kwargs: return_tensors, images.
+868-3 gold=C full=Bn omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=Bn omnipack_r0.1=Bn
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xe17cfc00] mmco: unref short failure
+[h264 @ 0xe17cfc00] mmco: unref short failure
+[h264 @ 0xe17cfc00] mmco: unref short failure
+[h264 @ 0xe17cfc00] mmco: unref short failure
+[h264 @ 0xe17cfc00] mmco: unref short failure
+[h264 @ 0xe17cfc00] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+NagvWwLvRik: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+869-1 gold=C full=An omnipack_r0.25=An omnipack_r0.2=An omnipack_r0.15=An omnipack_r0.1=An
+Unused or unrecognized kwargs: return_tensors, images.
+869-2 gold=D full=Cn omnipack_r0.25=Cn omnipack_r0.2=Cn omnipack_r0.15=Cn omnipack_r0.1=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+869-3 gold=A full=Dn omnipack_r0.25=Dn omnipack_r0.2=Dn omnipack_r0.15=Dn omnipack_r0.1=Dn
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xe15d4c40] mmco: unref short failure
+[h264 @ 0xe15d4c40] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Fibq4aA-GVc: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+870-1 gold=B full=Dn omnipack_r0.25=An omnipack_r0.2=An omnipack_r0.15=An omnipack_r0.1=An
+Unused or unrecognized kwargs: return_tensors, images.
+870-2 gold=C full=An omnipack_r0.25=An omnipack_r0.2=An omnipack_r0.15=An omnipack_r0.1=An
+Unused or unrecognized kwargs: return_tensors, images.
+870-3 gold=D full=DY omnipack_r0.25=DY omnipack_r0.2=DY omnipack_r0.15=DY omnipack_r0.1=DY
+SKIP ZkhAbUGoD18 (no video)
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+ZP-Y2S750KY: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+872-1 gold=D full=Cn omnipack_r0.25=Cn omnipack_r0.2=Cn omnipack_r0.15=Cn omnipack_r0.1=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+872-2 gold=A full=AY omnipack_r0.25=AY omnipack_r0.2=AY omnipack_r0.15=AY omnipack_r0.1=AY
+Unused or unrecognized kwargs: return_tensors, images.
+872-3 gold=C full=CY omnipack_r0.25=An omnipack_r0.2=An omnipack_r0.15=An omnipack_r0.1=An
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+t23Zi0DBSiI: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+873-1 gold=A full=AY omnipack_r0.25=AY omnipack_r0.2=AY omnipack_r0.15=AY omnipack_r0.1=AY
+Unused or unrecognized kwargs: return_tensors, images.
+873-2 gold=D full=DY omnipack_r0.25=DY omnipack_r0.2=DY omnipack_r0.15=DY omnipack_r0.1=DY
+Unused or unrecognized kwargs: return_tensors, images.
+873-3 gold=C full=Bn omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=Bn omnipack_r0.1=Bn
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+4IenX7OHumk: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+875-1 gold=B full=BY omnipack_r0.25=BY omnipack_r0.2=BY omnipack_r0.15=BY omnipack_r0.1=BY
+Unused or unrecognized kwargs: return_tensors, images.
+875-2 gold=A full=Dn omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=Bn omnipack_r0.1=Bn
+Unused or unrecognized kwargs: return_tensors, images.
+875-3 gold=D full=DY omnipack_r0.25=DY omnipack_r0.2=DY omnipack_r0.15=DY omnipack_r0.1=DY
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+5WIdIs3A9Ok: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+877-1 gold=A full=AY omnipack_r0.25=AY omnipack_r0.2=AY omnipack_r0.15=AY omnipack_r0.1=AY
+Unused or unrecognized kwargs: return_tensors, images.
+877-2 gold=D full=Cn omnipack_r0.25=Cn omnipack_r0.2=Cn omnipack_r0.15=Cn omnipack_r0.1=An
+Unused or unrecognized kwargs: return_tensors, images.
+877-3 gold=B full=BY omnipack_r0.25=BY omnipack_r0.2=BY omnipack_r0.15=BY omnipack_r0.1=An
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xa3a6d640] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+zAXbdzvCeV8: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+879-1 gold=A full=Bn omnipack_r0.25=AY omnipack_r0.2=AY omnipack_r0.15=AY omnipack_r0.1=Dn
+Unused or unrecognized kwargs: return_tensors, images.
+879-2 gold=C full=CY omnipack_r0.25=CY omnipack_r0.2=CY omnipack_r0.15=CY omnipack_r0.1=CY
+Unused or unrecognized kwargs: return_tensors, images.
+879-3 gold=D full=DY omnipack_r0.25=DY omnipack_r0.2=DY omnipack_r0.15=DY omnipack_r0.1=DY
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xe1c23940] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+eZ2Rt2DVGdU: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+880-1 gold=B full=BY omnipack_r0.25=BY omnipack_r0.2=BY omnipack_r0.15=BY omnipack_r0.1=BY
+Unused or unrecognized kwargs: return_tensors, images.
+880-2 gold=A full=Bn omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=Bn omnipack_r0.1=Bn
+Unused or unrecognized kwargs: return_tensors, images.
+880-3 gold=B full=BY omnipack_r0.25=BY omnipack_r0.2=BY omnipack_r0.15=BY omnipack_r0.1=BY
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0x488c6700] mmco: unref short failure
+[h264 @ 0x488c6700] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+goyWFUzCqF4: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+881-1 gold=B full=BY omnipack_r0.25=BY omnipack_r0.2=BY omnipack_r0.15=BY omnipack_r0.1=Dn
+Unused or unrecognized kwargs: return_tensors, images.
+881-2 gold=C full=Dn omnipack_r0.25=Dn omnipack_r0.2=Dn omnipack_r0.15=Dn omnipack_r0.1=Dn
+Unused or unrecognized kwargs: return_tensors, images.
+881-3 gold=A full=Dn omnipack_r0.25=Dn omnipack_r0.2=Dn omnipack_r0.15=Dn omnipack_r0.1=Dn
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0x4141b900] mmco: unref short failure
+[h264 @ 0x4141b900] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+qVZOKel-gpE: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+882-1 gold=D full=Bn omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=DY omnipack_r0.1=DY
+Unused or unrecognized kwargs: return_tensors, images.
+882-2 gold=B full=Cn omnipack_r0.25=An omnipack_r0.2=An omnipack_r0.15=An omnipack_r0.1=An
+Unused or unrecognized kwargs: return_tensors, images.
+882-3 gold=C full=CY omnipack_r0.25=CY omnipack_r0.2=CY omnipack_r0.15=CY omnipack_r0.1=CY
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+2LDriAWltwM: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+883-1 gold=A full=AY omnipack_r0.25=AY omnipack_r0.2=AY omnipack_r0.15=AY omnipack_r0.1=AY
+Unused or unrecognized kwargs: return_tensors, images.
+883-2 gold=D full=Cn omnipack_r0.25=Cn omnipack_r0.2=Cn omnipack_r0.15=An omnipack_r0.1=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+883-3 gold=B full=An omnipack_r0.25=An omnipack_r0.2=Dn omnipack_r0.15=Cn omnipack_r0.1=Cn
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+0kRsiSdDFYg: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+884-1 gold=C full=An omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=CY omnipack_r0.1=Bn
+Unused or unrecognized kwargs: return_tensors, images.
+884-2 gold=A full=Bn omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=Bn omnipack_r0.1=Bn
+Unused or unrecognized kwargs: return_tensors, images.
+884-3 gold=D full=DY omnipack_r0.25=DY omnipack_r0.2=DY omnipack_r0.15=DY omnipack_r0.1=DY
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+EhLOdDfaC7Y: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+885-1 gold=B full=Cn omnipack_r0.25=BY omnipack_r0.2=BY omnipack_r0.15=BY omnipack_r0.1=BY
+Unused or unrecognized kwargs: return_tensors, images.
+885-2 gold=C full=CY omnipack_r0.25=CY omnipack_r0.2=CY omnipack_r0.15=CY omnipack_r0.1=CY
+Unused or unrecognized kwargs: return_tensors, images.
+885-3 gold=A full=Dn omnipack_r0.25=Dn omnipack_r0.2=Dn omnipack_r0.15=Dn omnipack_r0.1=Dn
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+elprD1hnDyU: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+886-1 gold=D full=DY omnipack_r0.25=DY omnipack_r0.2=DY omnipack_r0.15=DY omnipack_r0.1=DY
+Unused or unrecognized kwargs: return_tensors, images.
+886-2 gold=B full=BY omnipack_r0.25=Dn omnipack_r0.2=Dn omnipack_r0.15=Dn omnipack_r0.1=Dn
+Unused or unrecognized kwargs: return_tensors, images.
+886-3 gold=C full=Dn omnipack_r0.25=Dn omnipack_r0.2=Dn omnipack_r0.15=Dn omnipack_r0.1=Dn
+/root/op452/lib/python3.12/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+proINILL4X4: 2304 visual + 7500 audio tokens
+Unused or unrecognized kwargs: return_tensors, images.
+887-1 gold=A full=AY omnipack_r0.25=AY omnipack_r0.2=AY omnipack_r0.15=AY omnipack_r0.1=AY
+Unused or unrecognized kwargs: return_tensors, images.
+887-2 gold=D full=Bn omnipack_r0.25=Bn omnipack_r0.2=Bn omnipack_r0.15=Bn omnipack_r0.1=Bn
+RESULT_FULL: 22/48 (46%)
+RESULT_OMNIPACK_R0.25: 22/48 (46%)
+RESULT_OMNIPACK_R0.2: 22/48 (46%)
+RESULT_OMNIPACK_R0.15: 24/48 (50%)
+RESULT_OMNIPACK_R0.1: 20/48 (42%)
+MEASUREMENTS: /tmp/omnipack_measurements.jsonl
+OMNIPACK_H2H_DONE

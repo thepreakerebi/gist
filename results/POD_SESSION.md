@@ -147,3 +147,51 @@ runpodctl send /root/results.tgz
 On the Mac, run `runpodctl receive <code>` inside the repo. Then **terminate** the
 pod (Stop is not enough). Commit everything under `results/` from the Mac. Commits
 go out as thepreakerebi, with no attribution trailer.
+
+## Outcome, 2026-10-28
+
+One RTX 4090 Secure Cloud pod at $0.89/hr, about 1 h 40 min, **$1.00 total**.
+
+**Efficiency, n=18** (`efficiency-measured/measured.md`):
+
+| Condition | Median answer s | Activation GB (median) |
+| :-- | --: | --: |
+| `full`, uniform 8 frames + 4 windows | 1.20 | 1.722 |
+| `gist` | 0.88 (1.37x) | 1.216 (29.4% less) |
+
+- `dense` (64 frames, 107–115 windows) OOMed on all 6 questions attempted on 24 GB.
+  Those rows are in `efficiency-measured/dense-oom/`.
+- That arm was dropped from the run of record. After a dense OOM, the following
+  `full` and `gist` arms also OOMed, so their numbers were contaminated.
+- One `gist` answer (869-2, 1 frame) OOMed in the run of record. That run kept
+  CLIP, CLAP and Whisper resident beside the 7B model.
+
+**Decision rule: `select` exceeds the saving.** Gist's selection costs a median
+12.2 s per question (6.9–66 s). The first question on a video pays Whisper over the
+whole track. It saves 0.32 s of answer time against the uniform baseline. Per query,
+against a cheap uniform baseline, Gist is not a wall-clock saving. What the
+measurement supports is memory, and fitting where dense does not. The selection
+cost is largely per video and cached, so it amortises across queries on a library,
+but this run does not measure by how much.
+
+**OmniPack reimplementation, n=48** (`omnipack-replication/omnipack_h2h_results.jsonl`):
+
+| Arm | Correct | Relative to `full` |
+| :-- | --: | --: |
+| `full` | 22/48 (46%) | 100% |
+| ratio 0.25 | 22/48 (46%) | 100% |
+| ratio 0.20 | 22/48 (46%) | 100% |
+| ratio 0.15 | 24/48 (50%) | 109% |
+| ratio 0.10 | 20/48 (42%) | 91% |
+
+- The control arm reproduced stock generate token for token.
+- Retention sits near the paper's 98%, within the noise of 48 questions. This is
+  a reimplementation under seven assumptions, not OmniPack.
+
+**Found only on the GPU, all fixed before the runs of record:**
+- torchvision decoded whole videos into RAM, so the pod switched to decord.
+- CLIP frame scoring did not truncate long questions.
+- Single-call vision and audio encoding OOMed. Encoding is now chunk-aligned,
+  which is exact (max diff 0.0 on CPU).
+
+Logs are in `pod-logs-2026-10-28/`.

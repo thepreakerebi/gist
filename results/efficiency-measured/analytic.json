@@ -1,0 +1,39 @@
+{
+  "profile": "qwen2.5-omni-7b",
+  "baseline": "full baseline",
+  "conditions": [
+    {
+      "condition": "full baseline",
+      "frames": 64,
+      "audio_windows": 120,
+      "vision_gflops": 42615.48,
+      "audio_gflops": 270729.22,
+      "system_gflops": 313344.69,
+      "downstream_tokens": 102544,
+      "system_gflops_saving_pct": 0.0,
+      "token_saving_pct": 0.0
+    },
+    {
+      "condition": "uniform-K",
+      "frames": 8,
+      "audio_windows": 8,
+      "vision_gflops": 5326.93,
+      "audio_gflops": 18048.61,
+      "system_gflops": 23375.55,
+      "downstream_tokens": 7568,
+      "system_gflops_saving_pct": 92.5,
+      "token_saving_pct": 92.6
+    },
+    {
+      "condition": "gist-K",
+      "frames": 8,
+      "audio_windows": 4,
+      "vision_gflops": 5326.93,
+      "audio_gflops": 9024.31,
+      "system_gflops": 14351.24,
+      "downstream_tokens": 4568,
+      "system_gflops_saving_pct": 95.4,
+      "token_saving_pct": 95.5
+    }
+  ]
+}
