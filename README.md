@@ -139,7 +139,9 @@ Read honestly: Gist matches or edges the uniform baseline at roughly **3/8 of th
 | Uniform, 8 frames | 8 | 8 | 23,376 | 7,568 | 92.5% |
 | Gist, as selected | 2.7 | 3.2 | 9,082 | 2,950 | 97.1% |
 
-Against the uniform 8-frame input that reached the same accuracy, Gist needed 36.7% less encoder computation. Wall-clock time and peak GPU memory have a measurement harness (`results/efficiency-measured/`) that has not yet been run, so no measured memory figure is claimed.
+Against the uniform 8-frame input that reached the same accuracy, Gist needed 36.7% less encoder computation (derived analytically from the measured counts).
+
+**Measured cost** (RTX 4090, fp16, n=18, `results/efficiency-measured/`): Gist's answer stage took a median 0.88 s against 1.20 s for uniform 8 frames, 1.37x faster, with 29.4% less activation memory (1.22 vs 1.72 GB). Dense 64-frame input exhausted the 24 GB card on every attempt. Selection is not free: CLIP, CLAP and Whisper scoring took a median 12.2 s per question, mostly from transcribing the full audio track on the first question per video. On a single question Gist is therefore slower end to end than uniform sampling; the saving depends on reusing per-video scoring across many questions, which has not been measured.
 
 **Head-to-head with OmniZip** (post-encoder, training-free, run through its own code on the same 18 questions, RTX 4090 24 GB): full context, OmniZip and Gist all scored 6/18. OmniZip's audio encoder tried to allocate about 16.8 GB on full-length videos and ran out of memory, so it only ran on 90-second clips; Gist ran the unquantised model on the full-length videos.
 
