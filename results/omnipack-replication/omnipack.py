@@ -11,7 +11,8 @@ Everything here is written from the paper's description. Where the paper
 specifies a value, that value is used and cited. Where it does not, a default is
 chosen, marked **ASSUMPTION** in the code, and listed in RUN.md. Results from
 this file must be labelled "our reimplementation", never "OmniPack", because the
-four assumptions below are ours and not theirs.
+assumptions are ours and not theirs. A1-A4 below concern the method; A5-A7,
+on wiring it into the model, live in the runner. All seven are in RUN.md.
 
 Assumptions, also tabulated in RUN.md:
 
@@ -80,8 +81,12 @@ def attention_centrality(attn: torch.Tensor) -> torch.Tensor:
 
     `attn` is (heads, N, N) or (N, N) as produced by Softmax(QK^T/sqrt(d)).
     Centrality is the mean over queries of the attention paid *to* each token,
-    averaged over heads.
+    averaged over heads. A 1-D `attn` is taken as centrality already reduced,
+    which is what the runner passes: the encoders attend within windows and
+    chunks, so the full N x N matrix never exists and is never materialised.
     """
+    if attn.dim() == 1:
+        return attn
     if attn.dim() == 3:
         attn = attn.mean(dim=0)
     return attn.mean(dim=0)
@@ -152,14 +157,16 @@ def importance(
 
 def positional_coords(
     *, modality: str, n: int, frames: int | None = None, patches: int | None = None,
-    device: torch.device | None = None,
+    grid_w: int | None = None, device: torch.device | None = None,
 ) -> torch.Tensor:
     """ASSUMPTION A3: coordinates whose Euclidean distance is d_pos.
 
     Audio is a normalized time index. Video is (normalized frame index,
-    normalized patch row, normalized patch column) on a square-ish grid. Each
-    axis is normalized to [0,1] independently, per the paper's note that
-    distances are "independently normalized to [0,1] within each modality".
+    normalized patch row, normalized patch column). `grid_w` is the patch grid
+    width; without it the grid is taken as square, which is wrong for 16:9
+    video, so the runner always passes it. Each axis is normalized to [0,1]
+    independently, per the paper's note that distances are "independently
+    normalized to [0,1] within each modality".
     """
     device = device or torch.device("cpu")
     if modality == "audio":
@@ -167,16 +174,17 @@ def positional_coords(
         return (t / max(n - 1, 1)).unsqueeze(1)
     if frames is None or patches is None:
         raise ValueError("visual positions need frames and patches")
-    side = int(patches ** 0.5) or 1
+    width = grid_w or int(patches ** 0.5) or 1
+    height = max(-(-patches // width), 1)
     f = torch.arange(frames, device=device, dtype=torch.float32).repeat_interleave(patches)
     p = torch.arange(patches, device=device, dtype=torch.float32).repeat(frames)
-    row = torch.div(p, side, rounding_mode="floor")
-    col = p % side
+    row = torch.div(p, width, rounding_mode="floor")
+    col = p % width
     return torch.stack(
         [
             f / max(frames - 1, 1),
-            row / max(side - 1, 1),
-            col / max(side - 1, 1),
+            row / max(height - 1, 1),
+            col / max(width - 1, 1),
         ],
         dim=1,
     )
@@ -228,6 +236,7 @@ def stage1_compress(
     retention: float,
     frames: int | None = None,
     patches: int | None = None,
+    grid_w: int | None = None,
 ) -> Stage1Result:
     """Pre-LLM (post-encoder) compression: dual selection, then merging."""
     n = embeds.shape[0]
@@ -242,7 +251,8 @@ def stage1_compress(
     normed_scores = minmax(scores)
 
     coords = positional_coords(
-        modality=modality, n=n, frames=frames, patches=patches, device=embeds.device
+        modality=modality, n=n, frames=frames, patches=patches, grid_w=grid_w,
+        device=embeds.device,
     )
     dpos = positional_distance(coords).to(embeds.dtype)
 

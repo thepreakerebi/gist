@@ -1,7 +1,10 @@
 # Head to head against a reimplementation of OmniPack
 
-**Status: implementation written and unit tested; the calibration and head-to-head
-runs are not yet done.** Both need a GPU.
+**Status: implementation complete and exercised end to end on CPU; not yet run on
+a GPU.** `smoke_cpu.py` runs the real runner against a tiny random-weight
+Qwen2.5-Omni built from the checkpoint's own config. In that run the `full` arm
+reproduces stock `generate` token for token. The session plan, setup script and
+budget are in [`../POD_SESSION.md`](../POD_SESSION.md).
 
 **This is not OmniPack.** It is our implementation of the method described in
 Su et al., arXiv:2608.03812, written because the authors released no code. Every
@@ -47,12 +50,14 @@ the caption.** Wall clock and peak memory do this naturally -- you cannot run a
 vision tower without spending the time and the memory. Use the same measurement
 harness as `results/efficiency-measured/`.
 
-## The four assumptions
+## The seven assumptions
 
 The paper specifies more than most: every hyperparameter has a value, and DPC-KNN
-is given in full in Appendix B.1. Four details are missing. Each is marked
-**ASSUMPTION** in `omnipack.py` and must be listed in any table caption or
-appendix that reports these numbers.
+is given in full in Appendix B.1. Four details of the method are missing (A1-A4,
+marked **ASSUMPTION** in `omnipack.py`). Three more concern wiring it into the
+model and are unstated because the authors released no code (A5-A7, in
+`omnipack_h2h.py`). All seven must be listed in any table caption or appendix that
+reports these numbers.
 
 | # | Gap | What the paper says | Our default |
 | - | :-- | :------------------ | :---------- |
@@ -60,6 +65,9 @@ appendix that reports these numbers.
 | A2 | How attention centrality and variation signals combine | cues "are added to" the centrality vector; no coefficients; video's two variation terms have no stated relative weight | unweighted sum of normalized signals |
 | A3 | `d_pos` has no formula | "normalized temporal distance for audio or spatiotemporal distance for video", each "independently normalized to [0,1]" | audio: normalized time index; video: Euclidean over normalized (frame, row, column) |
 | A4 | Pooling for `q` and `p` | "mean-pool"; simple vs attention-weighted unstated | simple mean |
+| A5 | What "insertion layer 18" means | a layer index, no convention stated | compress the input of layer index 18, so 18 layers see the full sequence |
+| A6 | Attention centrality where the encoder never forms an N x N matrix | "final encoder layer's attention" | mean attention received within each attention segment (a temporal patch for vision, a fixed chunk for audio), then mapped through the 2x2 patch merger and the audio pair pooling |
+| A7 | Positions of tokens that survive compression | unstated | each kept token keeps its original multimodal rope position; nothing is renumbered |
 
 Paper-specified values used as given: eta_v=0.25, eta_a=0.35, lambda=0.20,
 tau_v=0.10, tau_a=0.05, zeta=0.10, DPC-KNN k=7, inner retention 50%, insertion
@@ -82,7 +90,7 @@ Two outcomes, both publishable:
 - **Lands near their number.** The comparison is credible. Say what the gap is
   and move on to the head to head.
 - **Does not land near it.** Report that the published method does not reproduce
-  from its description under four documented assumptions. This is a *stronger*
+  from its description under seven documented assumptions. This is a *stronger*
   result than an accuracy row, and it is the honest one.
 
 Either way the finding does not depend on Gist winning anything.
@@ -119,51 +127,43 @@ larger than the encoding it saves, the framing of the whole contribution changes
 and that would reshape what this comparison needs to show. There is no sense
 paying for a head to head whose caption you might have to rewrite.
 
-## First run: it is a debugging session, not a measurement session
+## First run
 
-Every other runner under `results/` was written against a live pod. This one was
-not, because OmniPack shipped no code to borrow a working harness from. Three
-functions in `omnipack_h2h.py` are deliberately left raising `NotImplementedError`
-rather than guessed:
+The three model-facing functions that used to raise `NotImplementedError` are now
+written. They target transformers 4.52.3, the pin OmniZip and OmniScope share, and
+were read from its source rather than guessed:
 
-| Function | What it must do |
-| :------- | :-------------- |
-| `build_inputs` | processor inputs for one video plus prompt, at the configured frames and max_pixels |
-| `encode` | run both towers, return visual and audio token tensors plus `frames`, `patches`, `media_span`, `text_span` |
-| `generate` | splice compressed embeddings into `inputs_embeds` and generate |
+| Function | What it does |
+| :------- | :----------- |
+| `build_inputs` | processor inputs for one video plus prompt; frames and audio are decoded once per video by `load_media` |
+| `encode` | both towers through the thinker's own `get_video_features` / `get_audio_features`, with a pre-hook on each tower's last attention layer that reads the centrality OmniPack's importance needs (A6) |
+| `generate` | a hand-written prefill and greedy decode. Stage 2 shortens the sequence at the insertion layer, and the rope tables and per-layer KV cache are rebuilt for it |
 
-They are unimplemented on purpose. Their correct form depends on the transformers
-version installed on the pod -- the processor's video and audio keyword names,
-whether the visual tower takes `grid_thw` positionally, and where media tokens
-land in the prompt all moved between releases. A guess would produce a file that
-looks finished and fails three layers from the cause, burning pod time.
+Stage 2 is not a hook on a stock forward pass. Shortening the sequence inside one
+invalidates the causal mask, the rope tables and every later layer's cache at once.
+Here each layer's cache simply holds however many tokens that layer saw, which is
+correct for decoding: a one-token query attends to all of its layer's cache.
 
-Fill them in against the installed version, using OmniScope's
-`tools/qwenomni_prune_inference.py` as the worked example: it does exactly this,
-for the same checkpoint, and is already cloned for the OmniScope head to head.
+**The control is checked automatically.** On the first question the `full` arm is
+compared token for token against stock `thinker.generate`. If the answers differ,
+the run stops with `FATAL`. If only the tokens differ, it prints the fp16-noise line
+and carries on. If the control is wrong, nothing downstream means anything.
 
-Order for the first session:
+**Cost structure.** The encoders and stage 1 never see the question. So `encode`
+and `select` are measured once per video, and every arm and question reuses them.
+That is a property of OmniPack's design, not a shortcut: it is why its stage-1
+output can be cached per video.
 
-1. Implement the three functions. Confirm `decoder_layers` finds the layer list.
-2. **Run the `full` arm alone and check it reproduces stock Qwen answers.** If the
-   control arm is wrong, nothing downstream means anything. This is the single
-   most important check in the session.
-3. Run stage 1 only, `OMNIPACK_STAGE2=0`. Confirm the token counts in the `select`
-   records match the retention ratio.
-4. Enable stage 2. The hook prunes mid-forward, which changes sequence length and
-   invalidates the attention mask, position ids and KV cache for later layers; it
-   fires on prefill only. **This is the part of the implementation most likely to
-   be wrong.** If answers degrade sharply or generation breaks, fall back to
-   stage 1 only and say so in the write-up rather than shipping a broken stage 2.
-5. Only then calibrate, then sweep.
+What the CPU test cannot prove is CUDA-specific behaviour, fp16 numerics and
+memory. `bash results/pod_session.sh plumb` covers those on one video before the
+full run. If stage 2 misbehaves on the GPU, run `OMNIPACK_STAGE2=0` and caption the
+result as stage 1 only. That half carries the placement argument.
 
-A stage-1-only result is still publishable. It is the half of the method that
-carries the placement argument, and the honest caption says stage 2 was not
-validated.
+**n is 48, not 51.** Video `ZkhAbUGoD18` has been removed from YouTube (checked
+2026-10-28), taking 3 questions with it. `fetch_videos.py` reports this; record the
+effective n beside every number.
 
 ## What is not done here
 
-- The three model-shaped functions above, and therefore any execution at all.
-- Validation of the stage 2 hook against a live forward pass.
-- Calibration against the paper's reported numbers.
-- The head to head and the ratio sweep.
+- Any GPU execution, and therefore calibration, the head to head and the sweep.
+- Validation of stage 2 in fp16 against a real model.

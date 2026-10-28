@@ -36,6 +36,12 @@ $5 for a re-run.
 
 ## 2. Setup
 
+**Use [`../POD_SESSION.md`](../POD_SESSION.md).** It runs this and the OmniPack
+head to head in one session, through `results/pod_session.sh`, with versions
+pinned to what the CPU smoke test passed on: torch 2.6.0, transformers 5.13.0
+(the fp16 run's version) and PyAV 13.1.0. The manual steps below are kept for
+reference.
+
 ```bash
 cd /root
 git clone https://github.com/thepreakerebi/gist.git

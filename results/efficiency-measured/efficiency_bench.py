@@ -62,6 +62,12 @@ MEASF = os.environ.get("GIST_MEASUREMENTS", "/tmp/efficiency_measurements.jsonl"
 RESF = os.environ.get("GIST_RESULTS", "/tmp/efficiency_answers.jsonl")
 VIDDIR = os.environ.get("GIST_VIDEOS", "/content/vids")
 SKIP_DENSE = os.environ.get("GIST_SKIP_DENSE") == "1"
+# Pod defaults. Overridden only to smoke-test the plumbing on a laptop with a
+# tiny random Omni; nothing measured that way is a result.
+MID = os.environ.get("QWEN_MODEL_PATH", "Qwen/Qwen2.5-Omni-7B")
+WORK = Path(os.environ.get("GIST_WORK", "/content"))
+WHISPER_DEVICE = os.environ.get("GIST_WHISPER_DEVICE", "cuda")
+OMNI_DEVICE_MAP = os.environ.get("GIST_OMNI_DEVICE_MAP", "auto")
 
 FRAME_BUDGET, AUDIO_BUDGET, NCAND, WIN = 8, 4, 64, 30
 
@@ -83,15 +89,17 @@ log = MeasurementLog(MEASF, device=device)
 clip = HuggingFaceClipFrameScorer()
 clap = HuggingFaceClapAudioScorer()
 whisper = FasterWhisperTranscriber(
-    model_size="tiny", device="cuda", compute_type="float16", beam_size=1
+    model_size="tiny",
+    device=WHISPER_DEVICE,
+    compute_type="float16" if WHISPER_DEVICE == "cuda" else "int8",
+    beam_size=1,
 )
 disp = SpeechSoundDispatcher(clap=clap, transcriber=whisper)
 
 print("loading Omni...", flush=True)
-MID = "Qwen/Qwen2.5-Omni-7B"
 proc = Qwen2_5OmniProcessor.from_pretrained(MID)
 model = Qwen2_5OmniForConditionalGeneration.from_pretrained(
-    MID, torch_dtype=torch.float16, device_map="auto", enable_audio_output=False
+    MID, torch_dtype=torch.float16, device_map=OMNI_DEVICE_MAP, enable_audio_output=False
 ).eval()
 print("Omni ready", flush=True)
 
@@ -130,15 +138,20 @@ def omni_answer(query, opts, imgs, auds):
     inputs = proc(
         text=text, audio=audio_in, images=image_in, return_tensors="pt", padding=True
     ).to(next(model.parameters()).device)
+    # `thinker_max_new_tokens`, not `max_new_tokens`: the top-level Omni generate
+    # sets the thinker's limit to 1024 first and a shared kwarg never overrides
+    # it, so the plain spelling is silently ignored and inflates `answer` timing.
     with torch.no_grad():
-        out = model.generate(**inputs, max_new_tokens=8, do_sample=False, return_audio=False)
+        out = model.generate(
+            **inputs, thinker_max_new_tokens=8, do_sample=False, return_audio=False
+        )
     ans = proc.batch_decode(out[:, inputs["input_ids"].shape[1] :], skip_special_tokens=True)[0]
     match = re.search(r"[ABCD]", ans.upper())
     return match.group(0) if match else "?"
 
 
 def prep_video(vid):
-    fd, ad = Path(f"/content/fr_{vid}"), Path(f"/content/au_{vid}")
+    fd, ad = WORK / f"fr_{vid}", WORK / f"au_{vid}"
     video = f"{VIDDIR}/videomme-{vid}.mp4"
     cached = (
         fd.exists()
