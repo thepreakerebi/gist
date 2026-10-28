@@ -1,8 +1,11 @@
 # Measured efficiency: wall clock and peak GPU memory
 
-**Status: not yet run.** The runner is written and tested; it needs an NVIDIA GPU,
-which the development MacBook does not have. Everything below is copy and paste
-onto a RunPod pod.
+**Status: run on an RTX 4090 on 28 October 2026.** Results are in `measured.md` and
+`efficiency_measurements.jsonl`; the dense arm's out-of-memory rows are in
+`dense-oom/`. The GPU run timed selection through the live scorers, which re-encode
+every candidate per question; `cached_selection.py` measures selection with
+per-video caching, as the method is designed to run. Outcome in
+[`../POD_SESSION.md`](../POD_SESSION.md). The recipe below is kept for re-runs.
 
 ## Why this run exists
 

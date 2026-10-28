@@ -1,10 +1,12 @@
 # Head to head against a reimplementation of OmniPack
 
-**Status: implementation complete and exercised end to end on CPU; not yet run on
-a GPU.** `smoke_cpu.py` runs the real runner against a tiny random-weight
-Qwen2.5-Omni built from the checkpoint's own config. In that run the `full` arm
-reproduces stock `generate` token for token. The session plan, setup script and
-budget are in [`../POD_SESSION.md`](../POD_SESSION.md).
+**Status: run on an RTX 4090 on 28 October 2026, n=48.** Uncompressed 22/48; ratios
+0.25, 0.20, 0.15 and 0.10 scored 22, 22, 24 and 20. The `full` arm reproduced stock
+`generate` token for token on the GPU. The per-question answers are in
+`omnipack_h2h_results.jsonl` and the stage timings in `omnipack_measurements.jsonl`;
+the outcome and caveats are in [`../POD_SESSION.md`](../POD_SESSION.md). Before the
+run, `smoke_cpu.py` exercised the runner end to end on a tiny random-weight
+Qwen2.5-Omni built from the checkpoint's own config.
 
 **This is not OmniPack.** It is our implementation of the method described in
 Su et al., arXiv:2608.03812, written because the authors released no code. Every
@@ -165,5 +167,7 @@ effective n beside every number.
 
 ## What is not done here
 
-- Any GPU execution, and therefore calibration, the head to head and the sweep.
-- Validation of stage 2 in fp16 against a real model.
+- Calibration on the paper's own benchmark at full scale. What exists is relative
+  retention on 48 questions (91 to 109 percent of uncompressed), which is
+  consistent with the paper's 98 percent but too small to confirm it.
+- A comparison against OmniPack's own code, which does not exist.

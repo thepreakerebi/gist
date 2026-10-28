@@ -32,6 +32,12 @@ On these *same 18 questions*, Gist scored 6/18 (33%) at ~2.7 frames
   (pre-encoder compression), so it never materializes the dense footprint and ran
   unquantized on 24 GB with room to spare.
 
+  Note (2026-10-28): the 90-second trim reflects how OmniZip's released code calls
+  its audio encoder, over the whole track at once. The encoder attends only within
+  two-second chunks, so encoding in aligned segments gives identical output and
+  fits; the OmniPack runner does this. The measured cost difference is in
+  `results/efficiency-measured/`.
+
 At matched accuracy, Gist's pre-encoder selection saves the dual-encoder FLOPs
 that OmniZip still pays — the capstone's structural thesis.
 

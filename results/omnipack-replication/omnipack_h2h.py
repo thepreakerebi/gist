@@ -1,12 +1,10 @@
 """Head to head: uniform baseline against our reimplementation of OmniPack.
 
-**Not yet executed on a GPU.** Every other runner under `results/` was written
-against a live pod; this one could not be, because OmniPack released no code to
-borrow a working harness from. The model-facing code below was written against
-the transformers 4.52.3 source and exercised end to end on CPU against a tiny,
-randomly initialised Qwen2.5-Omni built from the real config
-(`smoke_cpu.py`). That proves the plumbing, not the numbers. Read the "First
-run" section of RUN.md before starting the pod session.
+Run on an RTX 4090 on 28 October 2026; results are in this directory. OmniPack
+released no code to borrow a working harness from, so the model-facing code below
+was written against the transformers 4.52.3 source and exercised end to end on CPU
+against a tiny, randomly initialised Qwen2.5-Omni built from the real config
+(`smoke_cpu.py`) before any GPU time was spent.
 
 **This is not OmniPack.** It is our implementation of the published description,
 under the seven assumptions tabulated in RUN.md (A1-A4 in `omnipack.py`, A5-A7
