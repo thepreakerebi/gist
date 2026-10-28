@@ -85,6 +85,11 @@ USE_STAGE2 = os.environ.get("OMNIPACK_STAGE2", "1") == "1"
 # this many layers see the full sequence.
 INNER_LAYER = int(os.environ.get("OMNIPACK_INNER_LAYER", str(INNER_LAYER_QWEN_7B)))
 VERIFY_CONTROL = os.environ.get("OMNIPACK_VERIFY", "1") == "1"
+# The audio tower attends only within 2 s chunks (n_window), so encoding the
+# track in segments aligned to those chunks is exact, not an approximation, and
+# keeps attention memory flat. One call over a long track allocated 5 GB and
+# ran a 24 GB card out of memory on the first pod session.
+AUDIO_SEGMENT_SECONDS = int(os.environ.get("OMNIPACK_AUDIO_SEGMENT_SECONDS", "30"))
 MAX_NEW_TOKENS = 8
 
 # The pod default. `smoke_cpu.py` overrides both to exercise the plumbing on a
@@ -239,6 +244,7 @@ class EncoderAttentionProbe:
         return per_token[torch.argsort(window_index.to(per_token.device))]
 
     def audio_centrality(self, aftercnn_lens: torch.Tensor) -> torch.Tensor:
+        """For the most recent audio-tower call only; `encode` calls per segment."""
         pieces = []
         for chunk in self.audio_received.split(aftercnn_lens.tolist()):
             usable = (chunk.shape[0] // 2) * 2
@@ -306,9 +312,8 @@ def encode(model, inputs):
 
     with torch.no_grad(), EncoderAttentionProbe(thinker) as probe:
         visual = thinker.get_video_features(pixels, grid)
-        audio = thinker.get_audio_features(features, feature_attention_mask=feature_mask)
+        audio, audio_centrality = encode_audio(thinker, probe, features, feature_mask)
 
-    aftercnn, _ = thinker.audio_tower._get_feat_extract_output_lengths(feature_mask.sum(-1))
     merge = thinker.visual.spatial_merge_size
     frames = int(grid[0, 0])
     grid_h, grid_w = int(grid[0, 1]) // merge, int(grid[0, 2]) // merge
@@ -317,7 +322,7 @@ def encode(model, inputs):
         "patches": grid_h * grid_w,
         "grid_w": grid_w,
         "visual_centrality": probe.visual_centrality(grid),
-        "audio_centrality": probe.audio_centrality(aftercnn),
+        "audio_centrality": audio_centrality,
     }
     if info["visual_centrality"].shape[0] != visual.shape[0]:
         die(f"visual centrality {info['visual_centrality'].shape[0]} != tokens {visual.shape[0]}")
@@ -326,6 +331,33 @@ def encode(model, inputs):
     if visual.shape[0] != frames * grid_h * grid_w:
         die("visual token count does not match the grid; stage 1 would misread the layout")
     return visual, audio, info
+
+
+def audio_segment_frames(thinker) -> int:
+    """Mel frames per segment: a whole number of the tower's attention chunks.
+
+    A multiple of 4 chunks keeps every segment's post-CNN length even, so the
+    tower's pair pooling never straddles a segment boundary.
+    """
+    chunk = 2 * thinker.audio_tower.n_window
+    per_second = 100  # Whisper features: 10 ms hop
+    chunks = max(1, (AUDIO_SEGMENT_SECONDS * per_second) // chunk)
+    return chunk * max(4, chunks - chunks % 4)
+
+
+def encode_audio(thinker, probe, features, feature_mask):
+    """The audio tower over the valid frames, segment by segment."""
+    length = int(feature_mask[0].sum())
+    valid = features[0, :, :length]
+    step = audio_segment_frames(thinker)
+    tokens, centrality = [], []
+    for start in range(0, length, step):
+        segment = valid[:, start:start + step].unsqueeze(0)
+        mask = torch.ones(1, segment.shape[-1], dtype=feature_mask.dtype, device=segment.device)
+        tokens.append(thinker.get_audio_features(segment, feature_attention_mask=mask))
+        aftercnn, _ = thinker.audio_tower._get_feat_extract_output_lengths(mask.sum(-1))
+        centrality.append(probe.audio_centrality(aftercnn))
+    return torch.cat(tokens), torch.cat(centrality)
 
 
 @dataclass
@@ -537,13 +569,25 @@ def _stop_ids(model, processor) -> set[int]:
     return stop
 
 
-def stock_generate(model, processor, inputs) -> list[int]:
-    """The reference the `full` arm is checked against: unmodified HF generate."""
+def stock_generate(model, processor, inputs, seq: Sequence | None = None) -> list[int]:
+    """The reference the `full` arm is checked against: unmodified HF generate.
+
+    With `seq`, stock generate is handed the already-encoded embeddings instead
+    of pixels and mel features, so it skips the encoders and checks exactly the
+    part this file replaces: the rope positions, prefill and decode. That keeps
+    the check itself from running out of memory on a long audio track, which a
+    single stock audio-tower call does on a 24 GB card.
+    """
     thinker = model.thinker
     device = thinker.device
     batch = {k: (v.to(device) if hasattr(v, "to") else v) for k, v in inputs.items()}
-    for key in ("pixel_values_videos", "input_features"):
-        batch[key] = batch[key].to(DTYPE)
+    if seq is not None:
+        batch.pop("pixel_values_videos")
+        batch.pop("input_features")
+        batch["inputs_embeds"] = seq.embeds
+    else:
+        for key in ("pixel_values_videos", "input_features"):
+            batch[key] = batch[key].to(DTYPE)
     with torch.no_grad():
         out = thinker.generate(
             **batch,
@@ -553,12 +597,13 @@ def stock_generate(model, processor, inputs) -> list[int]:
             repetition_penalty=1.0,
             eos_token_id=sorted(_stop_ids(model, processor)),
         )
-    return out[0, batch["input_ids"].shape[1]:].tolist()
+    prompt = batch["input_ids"].shape[1]
+    return (out[0, prompt:] if out.shape[1] > prompt else out[0]).tolist()
 
 
-def check_control(model, processor, inputs, tokens: list[int], answer: str) -> None:
+def check_control(model, processor, inputs, seq, tokens: list[int], answer: str) -> None:
     """Stop the run unless the `full` arm reproduces stock generation."""
-    reference = stock_generate(model, processor, inputs)
+    reference = stock_generate(model, processor, inputs, seq)
     if reference == tokens:
         print("control: full arm reproduces stock generate exactly", flush=True)
         return
@@ -692,7 +737,7 @@ def main() -> int:
                         continue
 
                     if condition == "full" and not verified:
-                        check_control(model, processor, inputs, tokens, answer)
+                        check_control(model, processor, inputs, seq, tokens, answer)
                         verified = True
 
                 except Exception as exc:  # noqa: BLE001 - logged, run continues
