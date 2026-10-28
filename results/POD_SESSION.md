@@ -187,7 +187,9 @@ run those query-independent encoders once per video.
 - Per question, cached selection is the same order as the 0.32 s answer-stage
   saving. The dominant cost is ingesting a video, which every question about that
   video shares.
-- Not yet measured: the cached path on the same GPU as the answer stage.
+- Selection was timed on a laptop CPU, which is where the product runs it; a GPU
+  could only lower the figure. Not yet measured: how ingestion cost is shared across
+  many questions per video.
 
 **OmniPack reimplementation, n=48** (`omnipack-replication/omnipack_h2h_results.jsonl`):
 
