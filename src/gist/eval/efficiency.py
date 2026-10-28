@@ -83,8 +83,10 @@ PROFILES = {"qwen2.5-omni-7b": _qwen_omni_profile()}
 
 class ConditionCost(BaseModel):
     condition: str
-    frames: int
-    audio_windows: int
+    # Floats because a selector's count is a mean over questions (2.7 frames),
+    # and rounding it to the budget cap misstates the cost.
+    frames: float
+    audio_windows: float
     vision_gflops: float
     audio_gflops: float
     system_gflops: float
@@ -103,10 +105,12 @@ class EfficiencyReport(BaseModel):
         path.write_text(self.model_dump_json(indent=2))
 
 
-def _cost(condition: str, frames: int, windows: int, profile: EncoderProfile) -> ConditionCost:
+def _cost(condition: str, frames: float, windows: float, profile: EncoderProfile) -> ConditionCost:
     vision_g = frames * profile.vision_gflops_per_frame
     audio_g = windows * profile.audio_gflops_per_window
-    tokens = frames * profile.vision_tokens_per_frame + windows * profile.audio_tokens_per_window
+    tokens = round(
+        frames * profile.vision_tokens_per_frame + windows * profile.audio_tokens_per_window
+    )
     return ConditionCost(
         condition=condition, frames=frames, audio_windows=windows,
         vision_gflops=round(vision_g, 2), audio_gflops=round(audio_g, 2),
@@ -115,7 +119,7 @@ def _cost(condition: str, frames: int, windows: int, profile: EncoderProfile) ->
 
 
 def build_report(
-    conditions: dict[str, tuple[int, int]],
+    conditions: dict[str, tuple[float, float]],
     profile: EncoderProfile,
     baseline: str,
 ) -> EfficiencyReport:
@@ -151,7 +155,7 @@ def render_markdown(report: EfficiencyReport) -> str:
     for c in report.conditions:
         saving = "—" if c.system_gflops_saving_pct is None else f"{c.system_gflops_saving_pct:.1f}%"
         lines.append(
-            f"| {c.condition} | {c.frames} | {c.audio_windows} | {c.system_gflops:,.0f} "
+            f"| {c.condition} | {c.frames:g} | {c.audio_windows:g} | {c.system_gflops:,.0f} "
             f"| {c.downstream_tokens:,} | {saving} |"
         )
     return "\n".join(lines) + "\n"
@@ -335,12 +339,12 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
     parser.add_argument("--profile", default="qwen2.5-omni-7b", choices=list(PROFILES))
-    parser.add_argument("--baseline-frames", type=int, default=64)
-    parser.add_argument("--baseline-audio-windows", type=int, default=120)
-    parser.add_argument("--uniform-frames", type=int, default=8)
-    parser.add_argument("--uniform-audio-windows", type=int, default=8)
-    parser.add_argument("--gist-frames", type=int, default=8)
-    parser.add_argument("--gist-audio-windows", type=int, default=4)
+    parser.add_argument("--baseline-frames", type=float, default=64)
+    parser.add_argument("--baseline-audio-windows", type=float, default=120)
+    parser.add_argument("--uniform-frames", type=float, default=8)
+    parser.add_argument("--uniform-audio-windows", type=float, default=8)
+    parser.add_argument("--gist-frames", type=float, default=8)
+    parser.add_argument("--gist-audio-windows", type=float, default=4)
     parser.add_argument(
         "--from-vision-report",
         type=Path,
@@ -408,7 +412,7 @@ def main(argv: list[str] | None = None) -> int:
     for c in report.conditions:
         saving = "" if c.system_gflops_saving_pct is None else f" saving={c.system_gflops_saving_pct:.1f}%"
         print(
-            f"{c.condition}: frames={c.frames} windows={c.audio_windows} "
+            f"{c.condition}: frames={c.frames:g} windows={c.audio_windows:g} "
             f"system_gflops={c.system_gflops:,.0f} tokens={c.downstream_tokens:,}{saving}"
         )
 

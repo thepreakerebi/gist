@@ -4,8 +4,8 @@
   "conditions": [
     {
       "condition": "full baseline",
-      "frames": 64,
-      "audio_windows": 120,
+      "frames": 64.0,
+      "audio_windows": 120.0,
       "vision_gflops": 42615.48,
       "audio_gflops": 270729.22,
       "system_gflops": 313344.69,
@@ -15,25 +15,25 @@
     },
     {
       "condition": "uniform-K",
-      "frames": 8,
-      "audio_windows": 8,
-      "vision_gflops": 5326.93,
-      "audio_gflops": 18048.61,
-      "system_gflops": 23375.55,
-      "downstream_tokens": 7568,
-      "system_gflops_saving_pct": 92.5,
-      "token_saving_pct": 92.6
-    },
-    {
-      "condition": "gist-K",
-      "frames": 8,
-      "audio_windows": 4,
+      "frames": 8.0,
+      "audio_windows": 4.0,
       "vision_gflops": 5326.93,
       "audio_gflops": 9024.31,
       "system_gflops": 14351.24,
       "downstream_tokens": 4568,
       "system_gflops_saving_pct": 95.4,
       "token_saving_pct": 95.5
+    },
+    {
+      "condition": "gist-K",
+      "frames": 2.778,
+      "audio_windows": 3.167,
+      "vision_gflops": 1849.78,
+      "audio_gflops": 7145.0,
+      "system_gflops": 8994.77,
+      "downstream_tokens": 2920,
+      "system_gflops_saving_pct": 97.1,
+      "token_saving_pct": 97.2
     }
   ]
 }
