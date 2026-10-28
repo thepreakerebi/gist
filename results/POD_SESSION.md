@@ -166,13 +166,28 @@ One RTX 4090 Secure Cloud pod at $0.89/hr, about 1 h 40 min, **$1.00 total**.
 - One `gist` answer (869-2, 1 frame) OOMed in the run of record. That run kept
   CLIP, CLAP and Whisper resident beside the 7B model.
 
-**Decision rule: `select` exceeds the saving.** Gist's selection costs a median
-12.2 s per question (6.9–66 s). The first question on a video pays Whisper over the
-whole track. It saves 0.32 s of answer time against the uniform baseline. Per query,
-against a cheap uniform baseline, Gist is not a wall-clock saving. What the
-measurement supports is memory, and fitting where dense does not. The selection
-cost is largely per video and cached, so it amortises across queries on a library,
-but this run does not measure by how much.
+**Decision rule: the GPU run's `select` timed the wrong path.** It recorded a median
+12.2 s per question (6.9–66 s) against 0.32 s of answer time saved. But
+`efficiency_bench.gist_select` calls the live scorers, which re-encode every frame and
+audio window for every question and cache only Whisper transcripts. Gist is built to
+run those query-independent encoders once per video.
+
+`cached_selection.py` measured both paths on a laptop CPU over the same 18 questions
+(`cached_selection.jsonl`):
+
+| Path | Per video | Per question |
+| :-- | --: | --: |
+| live, as the GPU run timed it | transcripts only | median 11.5 s |
+| cached, as designed | median 88 s (58–160 s), almost all Whisper | median 1.26 s (0.13–9.2 s) |
+
+- The cached path reproduced the live scores to within 4e-7 and selected identical
+  evidence on 18 of 18 questions.
+- Once warm, a question costs 30–70 ms of text embedding and 7–24 ms of compressor.
+  The median is raised by first-call warm-up.
+- Per question, cached selection is the same order as the 0.32 s answer-stage
+  saving. The dominant cost is ingesting a video, which every question about that
+  video shares.
+- Not yet measured: the cached path on the same GPU as the answer stage.
 
 **OmniPack reimplementation, n=48** (`omnipack-replication/omnipack_h2h_results.jsonl`):
 

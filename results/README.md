@@ -13,7 +13,7 @@ table row whose raw data existed only on one laptop.
 | `runpod-omnizip-h2h/` | Head to head against OmniZip, the training-free method Gist was actually benchmarked against | yes |
 | `heuristics-ablation/` | Per-intent heuristics on vs off, 39 cases, plus `bootstrap-dev.md` on the frozen dev split | yes |
 | `split-budget-ablation/` | Pooled vs split-then-rank allocation *inside* Gist | yes |
-| `efficiency-measured/` | Wall clock and peak GPU memory, RTX 4090, n=18. Answer stage 1.37x faster and 29.4% less activation memory than uniform; selection costs a median 12.2 s per question. Outcome in `POD_SESSION.md` | yes |
+| `efficiency-measured/` | Wall clock and peak GPU memory, RTX 4090, n=18. Answer stage 1.37x faster and 29.4% less activation memory than uniform. Selection costs a median 88 s per video to ingest, then 1.26 s per question from cached embeddings (`cached_selection.py`). Outcome in `POD_SESSION.md` | yes |
 | `runpod-omniscope-h2h/` | Head to head against OmniScope, the closest published method to Gist | **no** |
 | `omnipack-replication/` | A reimplementation of OmniPack, written because the authors released no code. Ratio sweep at n=48: 22/22/24/20 correct against 22 uncompressed | yes |
 | `fetch_videos.py` | Shared video fetcher for every runner above | — |
