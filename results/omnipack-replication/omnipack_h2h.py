@@ -90,6 +90,10 @@ VERIFY_CONTROL = os.environ.get("OMNIPACK_VERIFY", "1") == "1"
 # keeps attention memory flat. One call over a long track allocated 5 GB and
 # ran a 24 GB card out of memory on the first pod session.
 AUDIO_SEGMENT_SECONDS = int(os.environ.get("OMNIPACK_AUDIO_SEGMENT_SECONDS", "30"))
+# The same holds for vision: windowed blocks attend inside one frame and the
+# full-attention blocks inside one temporal patch, never across. A single call
+# over 16 temporal patches allocated 5 GB for the attention scores alone.
+VISUAL_SEGMENT_GRIDS = int(os.environ.get("OMNIPACK_VISUAL_SEGMENT_GRIDS", "4"))
 MAX_NEW_TOKENS = 8
 
 # The pod default. `smoke_cpu.py` overrides both to exercise the plumbing on a
@@ -311,7 +315,7 @@ def encode(model, inputs):
     feature_mask = inputs["feature_attention_mask"].to(device)
 
     with torch.no_grad(), EncoderAttentionProbe(thinker) as probe:
-        visual = thinker.get_video_features(pixels, grid)
+        visual, visual_centrality = encode_video(thinker, probe, pixels, grid)
         audio, audio_centrality = encode_audio(thinker, probe, features, feature_mask)
 
     merge = thinker.visual.spatial_merge_size
@@ -321,7 +325,7 @@ def encode(model, inputs):
         "frames": frames,
         "patches": grid_h * grid_w,
         "grid_w": grid_w,
-        "visual_centrality": probe.visual_centrality(grid),
+        "visual_centrality": visual_centrality,
         "audio_centrality": audio_centrality,
     }
     if info["visual_centrality"].shape[0] != visual.shape[0]:
@@ -331,6 +335,22 @@ def encode(model, inputs):
     if visual.shape[0] != frames * grid_h * grid_w:
         die("visual token count does not match the grid; stage 1 would misread the layout")
     return visual, audio, info
+
+
+def encode_video(thinker, probe, pixels, grid):
+    """The vision tower a few temporal patches at a time. Exact: see above."""
+    if grid.shape[0] != 1:
+        die("one video per prompt expected")
+    t, h, w = (int(v) for v in grid[0])
+    per_grid = h * w
+    tokens, centrality = [], []
+    for start in range(0, t, VISUAL_SEGMENT_GRIDS):
+        count = min(VISUAL_SEGMENT_GRIDS, t - start)
+        part = pixels[start * per_grid:(start + count) * per_grid]
+        part_grid = torch.tensor([[count, h, w]], device=grid.device, dtype=grid.dtype)
+        tokens.append(thinker.get_video_features(part, part_grid))
+        centrality.append(probe.visual_centrality(part_grid))
+    return torch.cat(tokens), torch.cat(centrality)
 
 
 def audio_segment_frames(thinker) -> int:
