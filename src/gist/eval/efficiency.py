@@ -161,7 +161,7 @@ def render_markdown(report: EfficiencyReport) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _conditions_from_vision_report(path: Path) -> dict[str, tuple[int, int]]:
+def _conditions_from_vision_report(path: Path) -> dict[str, tuple[float, float]]:
     """Pull per-condition frame counts from a vision-benchmark report.
 
     Audio windows are 0 in that (frames-only) setting; use CLI args to add audio.
@@ -169,7 +169,7 @@ def _conditions_from_vision_report(path: Path) -> dict[str, tuple[int, int]]:
     data = json.loads(path.read_text())
     out: dict[str, tuple[int, int]] = {}
     for cond, summ in data.get("summaries", {}).items():
-        out[cond] = (int(round(summ.get("avg_frames", 0))), 0)
+        out[cond] = (float(summ.get("avg_frames", 0)), 0)
     return out
 
 
