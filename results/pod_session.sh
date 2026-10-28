@@ -23,6 +23,12 @@
 # 0.21, PyAV 14+ breaks torchvision's video reader (`metadata_errors`), and
 # librosa 1.0 can no longer read the audioread handle qwen-omni-utils passes it
 # in the 4.52.3 env. Both failures were hit in the CPU smoke tests, not guessed.
+#
+# decord is not optional either. Without it qwen-vl-utils falls back to
+# torchvision, which decodes the *whole* video into RAM before sampling 32
+# frames; an hour-long Video-MME video exceeded the pod's 62 GB limit and the
+# runner was killed. With decord the same video peaks at 3.2 GB. Found on the
+# first pod session, 2026-10-28.
 
 set -euo pipefail
 
@@ -59,7 +65,10 @@ setup() {
 
   pip install -q torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
   pip install -q -e '.[vision,audio,sound,sota]' \
-    "transformers==5.13.0" soundfile librosa qwen-omni-utils "av==13.1.0" yt-dlp
+    "transformers==5.13.0" soundfile librosa qwen-omni-utils "av==13.1.0" yt-dlp decord
+  # torchaudio ships with the image, pinned to the image's torch; it would
+  # fail to import against 2.6 and nothing here uses it.
+  pip uninstall -y -q torchaudio || true
 
   # virtualenv rather than `python -m venv`: Ubuntu's system Python often lacks
   # ensurepip, and that failure would only show up on the pod.
@@ -80,6 +89,7 @@ setup() {
   for q in videomme_av6.json videomme_av_all.json; do
     [ -f "$DATA/$q" ] || echo "MISSING $DATA/$q: receive the bundle from the Mac (POD_SESSION.md step 3)"
   done
+  [ -f "$DATA/videomme_av_all.json" ] || { echo "SETUP_DONE (videos not checked yet)"; return 0; }
   python - <<PY
 import json, pathlib
 rows = json.loads(pathlib.Path("$DATA/videomme_av_all.json").read_text())

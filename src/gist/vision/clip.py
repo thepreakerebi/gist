@@ -61,11 +61,15 @@ class HuggingFaceClipFrameScorer:
 
         for batch_paths in _chunks(image_paths, self.batch_size):
             images = [self._load_image(path) for path in batch_paths]
+            # truncation=True as in embed_text: CLIP's text tower takes 77
+            # tokens, and a long Video-MME question otherwise raises instead of
+            # being scored. Queries under the limit are unaffected.
             inputs = self._processor(
                 text=[text_prompt],
                 images=images,
                 return_tensors="pt",
                 padding=True,
+                truncation=True,
             )
             inputs = {key: value.to(self._model.device) for key, value in inputs.items()}
 
