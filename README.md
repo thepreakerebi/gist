@@ -136,7 +136,7 @@ Read honestly: Gist matches or edges the uniform baseline at roughly **3/8 of th
 | Condition | Frames | Audio windows | Encoder GFLOPs (derived) | Tokens (derived) | Saving vs dense |
 | :-------- | -----: | ------------: | -----------------------: | ---------------: | --------------: |
 | Dense, 64 frames | 64 | 120 | 313,345 | 102,544 | — |
-| Uniform, 8 frames | 8 | 8 | 23,376 | 7,568 | 92.5% |
+| Uniform, 8 frames | 8 | 4 | 14,351 | 4,568 | 95.4% |
 | Gist, as selected | 2.7 | 3.2 | 9,082 | 2,950 | 97.1% |
 
 Against the uniform 8-frame input that reached the same accuracy, Gist needed 36.7% less encoder computation (derived analytically from the measured counts).
