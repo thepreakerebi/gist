@@ -6,6 +6,9 @@
 #   bash results/pod_session.sh plumb        # ~5 min: both CUDA paths, one video
 #   bash results/pod_session.sh efficiency   # results/efficiency-measured/
 #   bash results/pod_session.sh omnipack     # results/omnipack-replication/
+#   bash results/pod_session.sh h2h_plumb    # ~5 min: the Gist-vs-OmniPack runner on one video
+#   bash results/pod_session.sh h2h          # results/gist-vs-omnipack/: timed run of record
+#   bash results/pod_session.sh h2h_flops    # FLOP-counting pass, two videos
 #   bash results/pod_session.sh collect      # tar everything worth keeping
 #
 # Run each step under nohup (see POD_SESSION.md) so a dropped web terminal does
@@ -76,6 +79,8 @@ setup() {
   [ -d "$SIDE" ] || python -m virtualenv -q --system-site-packages "$SIDE"
   "$SIDE/bin/pip" install -q "transformers==4.52.3" "librosa==0.10.2.post1" \
     "av==13.1.0" qwen-omni-utils
+  # NVML energy counter for gist.eval.profiling; both envs see it.
+  pip install -q nvidia-ml-py
 
   python -c "import torch; assert torch.cuda.is_available(), 'no CUDA'; print('cuda ok:', torch.cuda.get_device_name(0))"
   python -c "from gist.eval.profiling import DeviceInfo; print(DeviceInfo.capture().describe())"
@@ -148,6 +153,31 @@ omnipack() {
   cp /tmp/omnipack_measurements.jsonl /tmp/omnipack_h2h_results.jsonl results/omnipack-replication/
 }
 
+h2h_run() {
+  # $1: output dir, rest: extra env assignments
+  local out="$1"; shift
+  rm -rf "$out"
+  cd "$REPO"
+  env H2H_OUT="$out" H2H_WORK=/root/h2h_work GIST_VIDEOS="$VIDS" "$@" \
+    "$SIDE/bin/python" results/gist-vs-omnipack/h2h.py "${H2H_QFILE:-$DATA/videomme_av_all.json}"
+}
+
+h2h_plumb() {
+  h2h_run /root/h2h_plumb H2H_MAX_VIDEOS=1 2>&1 | tee "$LOGS/h2h_plumb.log"
+  grep -h "exactness\|control:\|FATAL\|ERR\|OOM\|H2H_DONE" "$LOGS/h2h_plumb.log" || true
+}
+
+h2h() {
+  h2h_run /root/h2h 2>&1 | tee "$LOGS/h2h.log"
+  mkdir -p results/gist-vs-omnipack
+  cp /root/h2h/measurements.jsonl /root/h2h/answers.jsonl results/gist-vs-omnipack/
+}
+
+h2h_flops() {
+  h2h_run /root/h2h_flops H2H_COUNT_FLOPS=1 H2H_MAX_VIDEOS=2 H2H_PRODUCT_WHISPER=0 2>&1 | tee "$LOGS/h2h_flops.log"
+  cp /root/h2h_flops/measurements_flops.jsonl /root/h2h_flops/answers_flops.jsonl results/gist-vs-omnipack/
+}
+
 fetch() {
   # Fallback only. The bundle from the Mac is the primary route, because
   # YouTube may refuse a datacenter address.
@@ -158,7 +188,7 @@ fetch() {
 collect() {
   cd "$REPO"
   tar czf /root/results.tgz \
-    results/efficiency-measured results/omnipack-replication "$LOGS" 2>/dev/null || true
+    results/efficiency-measured results/omnipack-replication results/gist-vs-omnipack "$LOGS" 2>/dev/null || true
   ls -lh /root/results.tgz
   echo "Send it home:  runpodctl send /root/results.tgz"
 }
@@ -169,6 +199,9 @@ case "${1:-}" in
   plumb) plumb ;;
   efficiency) efficiency ;;
   omnipack) omnipack ;;
+  h2h_plumb) h2h_plumb ;;
+  h2h) h2h ;;
+  h2h_flops) h2h_flops ;;
   collect) collect ;;
-  *) echo "usage: $0 {setup|fetch|plumb|efficiency|omnipack|collect}"; exit 2 ;;
+  *) echo "usage: $0 {setup|fetch|plumb|efficiency|omnipack|h2h_plumb|h2h|h2h_flops|collect}"; exit 2 ;;
 esac

@@ -6,6 +6,7 @@ from gist.eval.profiling import (
     DeviceInfo,
     MeasurementLog,
     StageMeasurement,
+    cuda_available,
     is_out_of_memory,
     load_measurements,
     measure,
@@ -108,3 +109,30 @@ def test_sink_fires_once_on_the_success_path_too():
         pass
     assert len(seen) == 1
     assert seen[0].extra["condition"] == "gist"
+
+
+def test_count_flops_tallies_a_matmul_exactly():
+    torch = pytest.importorskip("torch")
+    a, b = torch.ones(8, 16), torch.ones(16, 4)
+    with measure("encode", count_flops=True) as rec:
+        a @ b
+    assert rec.flops == 2 * 8 * 16 * 4
+
+
+def test_flops_and_energy_stay_none_unless_available():
+    with measure("answer") as rec:
+        pass
+    assert rec.flops is None
+    if not cuda_available():
+        assert rec.energy_j is None
+
+
+def test_notes_sit_beside_stages_without_being_read_as_stages(tmp_path):
+    path = tmp_path / "m.jsonl"
+    log = MeasurementLog(path, device=DeviceInfo(available=False))
+    log.note("idle_power", watts=21.5)
+    with log.measure("answer"):
+        pass
+    _, stages = load_measurements(path)
+    assert [s.stage for s in stages] == ["answer"]
+    assert '"idle_power"' in path.read_text()

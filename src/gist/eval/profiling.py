@@ -32,6 +32,20 @@ losing the rest of a paid run to it.
 *Torch is optional here.* With no torch, or torch without CUDA, the timers still
 work and the memory fields stay ``None``. The harness can therefore be exercised
 end to end on a laptop before a pod is paid for.
+
+Two later additions, for comparing methods whose costs fall in different places:
+
+*Energy comes from the GPU's own counter.* NVML exposes the board's cumulative
+energy in millijoules since driver load, so a stage's energy is the difference
+across it, read after the synchronise. It covers everything the card did,
+including work outside PyTorch such as CTranslate2's Whisper, which a PyTorch
+FLOP counter cannot see. CPU energy is not available inside a container, so CPU
+work is reported as time only.
+
+*FLOPs are counted, not derived, when asked.* ``count_flops=True`` runs the
+block under ``torch.utils.flop_counter.FlopCounterMode``, which tallies matrix
+multiplies, convolutions and attention per dispatched op. The counter slows the
+block down, so a counted pass is a separate pass and its timings are not used.
 """
 
 from __future__ import annotations
@@ -63,6 +77,48 @@ def _torch() -> Any | None:
 
 def _round_gb(num_bytes: int | None) -> float | None:
     return None if num_bytes is None else round(num_bytes / _BYTES_PER_GB, 3)
+
+
+_NVML_HANDLE: Any | None = None
+_NVML_TRIED = False
+
+
+def _nvml_handle() -> Any | None:
+    """Device 0's NVML handle, or None where NVML or the energy counter is absent."""
+    global _NVML_HANDLE, _NVML_TRIED
+    if _NVML_TRIED:
+        return _NVML_HANDLE
+    _NVML_TRIED = True
+    try:
+        import pynvml
+
+        pynvml.nvmlInit()
+        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+        pynvml.nvmlDeviceGetTotalEnergyConsumption(handle)
+    except Exception:  # noqa: BLE001 - no NVML, no GPU, or a board without the counter
+        return None
+    _NVML_HANDLE = handle
+    return handle
+
+
+def gpu_energy_mj() -> int | None:
+    """Cumulative board energy in millijoules, or None if it cannot be read."""
+    handle = _nvml_handle()
+    if handle is None:
+        return None
+    import pynvml
+
+    return int(pynvml.nvmlDeviceGetTotalEnergyConsumption(handle))
+
+
+def idle_power_w(seconds: float = 10.0) -> float | None:
+    """Mean board power while nothing runs, so stage energy can be read above idle."""
+    start = gpu_energy_mj()
+    if start is None:
+        return None
+    time.sleep(seconds)
+    end = gpu_energy_mj()
+    return round((end - start) / 1000.0 / seconds, 2)
 
 
 def cuda_available() -> bool:
@@ -134,6 +190,8 @@ class StageMeasurement:
     peak_allocated_gb: float | None = None
     peak_reserved_gb: float | None = None
     activation_gb: float | None = None
+    energy_j: float | None = None
+    flops: int | None = None
     oom: bool = False
     error: str | None = None
     extra: dict[str, Any] = field(default_factory=dict)
@@ -158,6 +216,7 @@ def measure(
     stage: str,
     *,
     suppress_oom: bool = True,
+    count_flops: bool = False,
     sink: Callable[[StageMeasurement], Any] | None = None,
     **extra: Any,
 ) -> Iterator[StageMeasurement]:
@@ -185,6 +244,14 @@ def measure(
         record.resident_gb = _round_gb(torch.cuda.memory_allocated())
         torch.cuda.reset_peak_memory_stats()
 
+    counter = None
+    if count_flops and torch is not None:
+        from torch.utils.flop_counter import FlopCounterMode
+
+        counter = FlopCounterMode(display=False)
+        counter.__enter__()
+
+    energy_start = gpu_energy_mj() if on_gpu else None
     start = time.perf_counter()
     failure: BaseException | None = None
     try:
@@ -195,7 +262,13 @@ def measure(
         failure = exc
         record.error = f"{type(exc).__name__}: {exc}"[:400]
         record.oom = is_out_of_memory(exc)
+    finally:
+        if counter is not None:
+            counter.__exit__(None, None, None)
+            record.flops = int(counter.get_total_flops())
     record.wall_seconds = round(time.perf_counter() - start, 4)
+    if energy_start is not None:
+        record.energy_j = round((gpu_energy_mj() - energy_start) / 1000.0, 3)
 
     if on_gpu:
         record.peak_allocated_gb = _round_gb(torch.cuda.max_memory_allocated())
@@ -221,6 +294,11 @@ class MeasurementLog:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         header = {"record": DEVICE_RECORD, **asdict(self.device)}
         self.path.write_text(json.dumps(header) + "\n")
+
+    def note(self, kind: str, **data: Any) -> None:
+        """A non-stage line, e.g. idle power, kept beside the stages it explains."""
+        with self.path.open("a") as handle:
+            handle.write(json.dumps({"record": kind, **data}) + "\n")
 
     def append(self, record: StageMeasurement) -> StageMeasurement:
         self.records.append(record)
@@ -251,6 +329,6 @@ def load_measurements(path: str | Path) -> tuple[DeviceInfo | None, list[StageMe
         kind = payload.get("record", STAGE_RECORD)
         if kind == DEVICE_RECORD:
             device = DeviceInfo(**{k: v for k, v in payload.items() if k != "record"})
-        else:
+        elif kind == STAGE_RECORD:
             stages.append(StageMeasurement.from_json(payload))
     return device, stages

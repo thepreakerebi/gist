@@ -16,6 +16,7 @@ cosine 0.89 to 0.97, which makes any CLAP-scored result irreproducible. Feature
 extraction is now seeded, with the random state saved and restored so the seeding
 cannot leak into anything else.
 """
+import inspect
 import wave
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -75,6 +76,7 @@ class HuggingFaceClapAudioScorer:
         self._processor: Any | None = None
         self._torch: Any | None = None
         self._numpy: Any | None = None
+        self._audio_kwarg = "audio"
 
     def score_windows(self, windows: list[AudioWindow], query: str) -> dict[Path, float]:
         if not windows:
@@ -112,7 +114,7 @@ class HuggingFaceClapAudioScorer:
             with _deterministic_truncation(self._numpy, self._torch):
                 inputs = self._processor(
                     text=list(prompts),
-                    audio=audio_arrays,
+                    **{self._audio_kwarg: audio_arrays},
                     sampling_rate=48000,
                     return_tensors="pt",
                     padding=True,
@@ -153,7 +155,7 @@ class HuggingFaceClapAudioScorer:
             audio_arrays = [self._resample_48k(self._read_wav(window.path)) for window in batch]
             with _deterministic_truncation(self._numpy, self._torch):
                 inputs = self._processor(
-                    audio=audio_arrays,
+                    **{self._audio_kwarg: audio_arrays},
                     sampling_rate=48000,
                     return_tensors="pt",
                     padding=True,
@@ -214,6 +216,10 @@ class HuggingFaceClapAudioScorer:
         self._numpy = numpy
         self._torch = torch
         self._processor = ClapProcessor.from_pretrained(self.model_name)
+        # transformers 5 calls the argument `audio`; 4.x, the pin the OmniPack
+        # harness shares, calls it `audios` and silently drops `audio`.
+        params = inspect.signature(self._processor.__call__).parameters
+        self._audio_kwarg = "audios" if "audios" in params else "audio"
         self._model = ClapModel.from_pretrained(self.model_name).to(selected_device)
         self._model.eval()
 
