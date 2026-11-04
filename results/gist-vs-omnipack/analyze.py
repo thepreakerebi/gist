@@ -302,10 +302,12 @@ def main() -> int:
             and r["peak_reserved_gb"] is not None
         ]
         table[m]["peak_reserved_gb"] = max(peaks) if peaks else None
+        # Every stage the method pays for, Gist's scorers and OmniPack's stage 1 included.
+        own = set(per_video_stages(m)) | set(per_question_stages(m))
         acts = [
             r["activation_gb"]
             for r in stages
-            if r["stage"] in ("answer", "encode_units", "encode")
+            if r["stage"] in own
             and (
                 method_of(r) == m
                 or (r["stage"] == "encode" and (m == "full" or m.startswith("omnipack")))
@@ -314,15 +316,19 @@ def main() -> int:
         ]
         table[m]["max_activation_gb"] = max(acts) if acts else None
 
-    def n_star(a, b, metric):
-        """Questions per video beyond which `a` costs less in total than `b`."""
+    def crossover(a, b, metric):
+        """When does `a` cost less in total than `b`, as questions per video grow?"""
         pva, pqa = table[a][f"video_{metric}"], table[a][f"question_{metric}"]
         pvb, pqb = table[b][f"video_{metric}"], table[b][f"question_{metric}"]
         if None in (pva, pqa, pvb, pqb):
-            return None
-        if pqa >= pqb:
-            return "never" if pva >= pvb else "always"
-        return max(0.0, (pva - pvb) / (pqb - pqa))
+            return "n/a"
+        dv, dq = pva - pvb, pqa - pqb  # a minus b, per video and per question
+        if dq == 0:
+            return "always" if dv < 0 else "never"
+        n = -dv / dq
+        if dq < 0:  # a is cheaper per question: wins once enough questions amortise dv
+            return "always" if n <= 1 else f"beyond {n:.1f} questions"
+        return "never" if n <= 1 else f"up to {n:.1f} questions"
 
     product = [r for r in stages if r["stage"] == "gist_whisper_product"]
     evalw = [r for r in stages if r["stage"] == "gist_whisper"]
@@ -340,6 +346,16 @@ def main() -> int:
         f"Idle board power: {idle} W.",
         "",
     ]
+    vnotes = notes.get("video") or []
+    if vnotes:
+        lines += [
+            f"Audio heard by every arm: {min(v['audio_seconds'] for v in vnotes):.0f} to "
+            f"{max(v['audio_seconds'] for v in vnotes):.0f} s of videos lasting "
+            f"{min(v['video_seconds'] for v in vnotes) / 60:.0f} to "
+            f"{max(v['video_seconds'] for v in vnotes) / 60:.0f} min; the 32 frames span the "
+            "whole video.",
+            "",
+        ]
     lines += [
         "## Accuracy",
         "",
@@ -383,7 +399,7 @@ def main() -> int:
         else "",
         "",
         "| Method | Per video: GPU s | J | TFLOPs | Per question: GPU s | J | TFLOPs "
-        "| Peak reserved GB |",
+        "| Max working memory GB |",
         "| :-- | --: | --: | --: | --: | --: | --: | --: |",
     ]
     for m in methods:
@@ -392,11 +408,13 @@ def main() -> int:
             f"| {m} | {fmt(t['video_seconds'], 'seconds')} | {fmt(t['video_energy_j'], 'j')} | "
             f"{fmt(t['video_flops'], 'flops')} | {fmt(t['question_seconds'], 'seconds')} | "
             f"{fmt(t['question_energy_j'], 'j')} | {fmt(t['question_flops'], 'flops')} | "
-            f"{t['peak_reserved_gb'] if t['peak_reserved_gb'] is not None else 'n/a'} |"
+            f"{t['max_activation_gb'] if t['max_activation_gb'] is not None else 'n/a'} |"
         )
     lines.append("")
     lines += [
-        "## Break-even: questions per video beyond which Gist costs less in total",
+        "## When Gist costs less in total",
+        "",
+        "Total cost for n questions about one video is per-video cost + n x per-question cost.",
         "",
         "| Against | GPU time | Energy | FLOPs |",
         "| :-- | :-- | :-- | :-- |",
@@ -404,14 +422,8 @@ def main() -> int:
     for m in methods:
         if m in ("gist", "uniform"):
             continue
-        row = [n_star("gist", m, k) for k in ("seconds", "energy_j", "flops")]
-        lines.append(
-            f"| {m} | "
-            + " | ".join(
-                "n/a" if v is None else (v if isinstance(v, str) else f"{v:.1f}") for v in row
-            )
-            + " |"
-        )
+        row = [crossover("gist", m, k) for k in ("seconds", "energy_j", "flops")]
+        lines.append(f"| {m} | " + " | ".join(row) + " |")
     lines.append("")
     if product and evalw:
         lines += [
@@ -428,7 +440,22 @@ def main() -> int:
             "",
         ]
     ex = notes.get("exactness")
-    if ex:
+    ex_file = DIR / "exactness.txt"
+    if ex_file.exists():
+        lines += [
+            "## Encoding only the chosen units",
+            "",
+            "Relative error of the visual tokens against an fp32 reference (exactness.txt):",
+            "",
+            "```",
+            *ex_file.read_text().strip().splitlines(),
+            "```",
+            "",
+            "In fp32, encoding one temporal patch at a time equals encoding four at a time "
+            "(1e-5); in fp16 both paths sit about 2% from fp32. Audio is identical.",
+            "",
+        ]
+    elif ex:
         lines += [
             "Exactness: encoding only the chosen units matched the full encoding to max |diff| "
             f"{ex[0]['visual_max_abs_diff']:.3g} (visual) and "
@@ -484,11 +511,19 @@ def main() -> int:
                 capsize=3,
                 color="#c0392b" if arm == "gist" else "#555555",
             )
+            offsets = {
+                "full": (-14, 6),
+                "uniform": (-44, -12),
+                "omnipack_r0.15": (6, 4),
+                "omnipack_r0.2": (6, -12),
+                "omnipack_r0.25": (6, 6),
+                "gist": (8, -12),
+            }
             ax.annotate(
                 arm.replace("omnipack_r", "OmniPack "),
                 (x, ci.point * 100),
                 textcoords="offset points",
-                xytext=(4, 4),
+                xytext=offsets.get(arm, (4, 4)),
                 fontsize=7,
             )
         ax.set_xscale("log")

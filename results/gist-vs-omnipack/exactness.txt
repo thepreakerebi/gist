@@ -1,0 +1,6 @@
+EXACT ZLRyTFIZOIs visual max_abs 0.9609 rel_fro 1.37e-02 min_cos 0.969626 max_abs_value 24.47
+EXACT ZLRyTFIZOIs audio max_abs 0.0 rel_fro 0.00e+00 min_cos 1.0 max_abs_value 9.2
+EXACT eZ5lFBPpRkM visual max_abs 2.2075 rel_fro 2.38e-02 min_cos 0.859806 max_abs_value 25.12
+EXACT eZ5lFBPpRkM audio max_abs 0.0 rel_fro 0.00e+00 min_cos 1.0 max_abs_value 15.19
+FP32REF ZLRyTFIZOIs fp32 4v1 1.49e-05 | fp16 groups-of-4 vs fp32 1.73e-02 | fp16 one-at-a-time vs fp32 1.70e-02
+FP32REF eZ5lFBPpRkM fp32 4v1 1.66e-05 | fp16 groups-of-4 vs fp32 2.32e-02 | fp16 one-at-a-time vs fp32 2.76e-02

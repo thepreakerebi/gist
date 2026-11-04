@@ -90,6 +90,9 @@ setup() {
 
   # ~16 GB. Shared by both envs through the default Hugging Face cache.
   python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen2.5-Omni-7B')"
+  # Gist's scorers. CLIP's processor loads with local_files_only, so on a fresh
+  # pod it fails unless the repo is already cached (found 2026-11-04).
+  python -c "from huggingface_hub import snapshot_download as s; [s(m) for m in ('openai/clip-vit-base-patch32', 'laion/clap-htsat-unfused', 'sentence-transformers/all-MiniLM-L6-v2')]"
 
   for q in videomme_av6.json videomme_av_all.json; do
     [ -f "$DATA/$q" ] || echo "MISSING $DATA/$q: receive the bundle from the Mac (POD_SESSION.md step 3)"

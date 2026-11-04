@@ -1,0 +1,26 @@
+51 questions across 18 videos from videomme_av_all.json
+[1/18] ZLRyTFIZOIs: fetching https://www.youtube.com/watch?v=ZLRyTFIZOIs
+[2/18] eZ5lFBPpRkM: fetching https://www.youtube.com/watch?v=eZ5lFBPpRkM
+[3/18] NagvWwLvRik: fetching https://www.youtube.com/watch?v=NagvWwLvRik
+[4/18] Fibq4aA-GVc: fetching https://www.youtube.com/watch?v=Fibq4aA-GVc
+[5/18] ZkhAbUGoD18: fetching https://www.youtube.com/watch?v=ZkhAbUGoD18
+    FAILED: ERROR: [youtube] ZkhAbUGoD18: This video is unavailable
+[6/18] ZP-Y2S750KY: fetching https://www.youtube.com/watch?v=ZP-Y2S750KY
+[7/18] t23Zi0DBSiI: fetching https://www.youtube.com/watch?v=t23Zi0DBSiI
+[8/18] 4IenX7OHumk: fetching https://www.youtube.com/watch?v=4IenX7OHumk
+[9/18] 5WIdIs3A9Ok: fetching https://www.youtube.com/watch?v=5WIdIs3A9Ok
+[10/18] zAXbdzvCeV8: fetching https://www.youtube.com/watch?v=zAXbdzvCeV8
+[11/18] eZ2Rt2DVGdU: fetching https://www.youtube.com/watch?v=eZ2Rt2DVGdU
+[12/18] goyWFUzCqF4: fetching https://www.youtube.com/watch?v=goyWFUzCqF4
+[13/18] qVZOKel-gpE: fetching https://www.youtube.com/watch?v=qVZOKel-gpE
+[14/18] 2LDriAWltwM: fetching https://www.youtube.com/watch?v=2LDriAWltwM
+[15/18] 0kRsiSdDFYg: fetching https://www.youtube.com/watch?v=0kRsiSdDFYg
+[16/18] EhLOdDfaC7Y: fetching https://www.youtube.com/watch?v=EhLOdDfaC7Y
+[17/18] elprD1hnDyU: fetching https://www.youtube.com/watch?v=elprD1hnDyU
+[18/18] proINILL4X4: fetching https://www.youtube.com/watch?v=proINILL4X4
+
+17/18 videos available
+MISSING 1 videos, which removes 3 of 51 questions:
+  ZkhAbUGoD18  (3 questions)  https://www.youtube.com/watch?v=ZkhAbUGoD18
+
+Effective n for this run is 48, not 51. Record that number with the results.

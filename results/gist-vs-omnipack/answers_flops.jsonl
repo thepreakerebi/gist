@@ -1,0 +1,4 @@
+{"qid": "867-3", "video": "ZLRyTFIZOIs", "gold": "B", "full": "B", "omnipack_r0.25": "B", "omnipack_r0.2": "B", "omnipack_r0.15": "B", "omnipack_r0.1": "B", "gist": "B", "uniform": "B", "gist_units": [[0, 2, 3, 4, 5, 6, 7], []]}
+{"qid": "868-1", "video": "eZ5lFBPpRkM", "gold": "A", "full": "C", "omnipack_r0.25": "C", "omnipack_r0.2": "C", "omnipack_r0.15": "C", "omnipack_r0.1": "C", "gist": "C", "uniform": "C", "gist_units": [[0, 2, 6], [0, 5, 9]]}
+{"qid": "868-2", "video": "eZ5lFBPpRkM", "gold": "B", "full": "C", "omnipack_r0.25": "A", "omnipack_r0.2": "A", "omnipack_r0.15": "A", "omnipack_r0.1": "A", "gist": "A", "uniform": "A", "gist_units": [[6, 7, 10], [0, 7]]}
+{"qid": "868-3", "video": "eZ5lFBPpRkM", "gold": "C", "full": "B", "omnipack_r0.25": "B", "omnipack_r0.2": "B", "omnipack_r0.15": "B", "omnipack_r0.1": "B", "gist": "B", "uniform": "B", "gist_units": [[2, 7, 15], [0, 7, 9]]}
