@@ -87,6 +87,8 @@ AUDIO_CAP_SECONDS = int(os.environ.get("H2H_AUDIO_CAP_SECONDS", "0"))
 STAGE1_CHUNK_SECONDS = int(os.environ.get("H2H_STAGE1_CHUNK_SECONDS", "0"))
 # Arms whose prefill would exceed the language model's context are recorded, not run.
 MAX_CONTEXT_OVERRIDE = int(os.environ.get("H2H_MAX_CONTEXT", "0"))
+# Smoke tests only: check the memory-light assemble against op.assemble on every call.
+CHECK_ASSEMBLE = os.environ.get("H2H_CHECK_ASSEMBLE") == "1"
 
 # Gist's selection exactly as in every earlier Gist result (efficiency_bench.py).
 FRAME_BUDGET, AUDIO_BUDGET = 8, 4
@@ -159,6 +161,48 @@ def stage1_audio(audio, centrality, ratio: float, chunk_tokens: int):
         before += out.n_before
         after += out.n_after
     return Stage1Result(torch.cat(embeds), torch.cat(kept), before, after)
+
+
+def assemble(model, layout, visual, audio, visual_keep=None, audio_keep=None):
+    """`op.assemble` without materialising the whole prompt first.
+
+    Same output, token for token: only the positions an arm keeps are embedded.
+    With whole-video input the prompt holds ~80k placeholders, and embedding all
+    of them before discarding most ran a 24 GB card out of memory on the longest
+    videos for every arm alike (2026-11-04).
+    """
+    ids = layout.input_ids
+    device = ids.device
+    keep = torch.ones(ids.shape[1], dtype=torch.bool, device=device)
+
+    def chosen(positions, kept):
+        if kept is None:
+            return positions
+        keep[positions] = False
+        picked = positions[kept.to(positions.device)]
+        keep[picked] = True
+        return picked
+
+    video = chosen(layout.video, visual_keep)
+    audio_pos = chosen(layout.audio, audio_keep)
+    selected = keep.nonzero(as_tuple=True)[0]
+    remap = torch.cumsum(keep.long(), dim=0) - 1
+    embeds = model.thinker.get_input_embeddings()(ids[:, selected]).clone()
+    embeds[0, remap[video]] = visual.to(embeds.device, embeds.dtype)
+    embeds[0, remap[audio_pos]] = audio.to(embeds.device, embeds.dtype)
+    seq = op.Sequence(
+        embeds=embeds,
+        position_ids=layout.position_ids[:, :, selected],
+        video=remap[video],
+        audio=remap[audio_pos],
+        query=remap[layout.query],
+    )
+    if CHECK_ASSEMBLE:
+        ref = op.assemble(model, layout, visual, audio, visual_keep, audio_keep)
+        for name in ("embeds", "position_ids", "video", "audio", "query"):
+            if not torch.equal(getattr(seq, name), getattr(ref, name)):
+                op.die(f"assemble differs from op.assemble in {name}")
+    return seq
 
 
 def keep_index(units: list[int], sizes: list[int]) -> torch.Tensor:
@@ -547,7 +591,14 @@ def main() -> int:
                 )
                 a_out = stage1_audio(audio, info["audio_centrality"], ratio, chunk_tokens)
                 rec.extra.update(visual_after=v_out.n_after, audio_after=a_out.n_after)
+            # Cast now rather than at splice time: same values, half the memory.
+            v_out.embeds = v_out.embeds.to(op.DTYPE)
+            a_out.embeds = a_out.embeds.to(op.DTYPE)
             compressed[ratio] = (v_out, a_out)
+        full_fits = int(first["input_ids"].shape[1]) <= max_context
+        if not full_fits and torch.cuda.is_available():
+            # Only the exactness check still reads the full encodings; keep them off the GPU.
+            visual, audio = visual.cpu(), audio.cpu()
 
         for item in questions:
             qid = item["question_id"]
@@ -600,8 +651,16 @@ def main() -> int:
                 if exactness_checked or not (pp and ss):
                     continue
                 v_sel, a_sel, vk, ak = unit_tokens[arm]
-                vdiff = float((v_sel.float() - visual[vk.to(visual.device)].float()).abs().max())
-                adiff = float((a_sel.float() - audio[ak.to(audio.device)].float()).abs().max())
+                vdiff = float(
+                    (v_sel.float().to(visual.device) - visual[vk.to(visual.device)].float())
+                    .abs()
+                    .max()
+                )
+                adiff = float(
+                    (a_sel.float().to(audio.device) - audio[ak.to(audio.device)].float())
+                    .abs()
+                    .max()
+                )
                 log.note(
                     "exactness",
                     video=vid,
@@ -623,14 +682,7 @@ def main() -> int:
                 op.generate(
                     model,
                     processor,
-                    op.assemble(
-                        model,
-                        layout,
-                        v_sel,
-                        a_sel,
-                        vk.to(layout.video.device),
-                        ak.to(layout.audio.device),
-                    ),
+                    assemble(model, layout, v_sel, a_sel, vk, ak),
                     None,
                 )
                 warmed = True
@@ -642,10 +694,21 @@ def main() -> int:
                 try:
                     stats = None
                     if arm == "full":
-                        seq = op.assemble(model, layout, visual, audio)
+                        length = int(layout.input_ids.shape[1])
+                        if length > max_context:
+                            log.note(
+                                "over_context",
+                                qid=qid,
+                                arm=arm,
+                                tokens=length,
+                                max_context=max_context,
+                            )
+                            log_line(f"{qid} {arm}: {length} tokens > {max_context}; not run")
+                            continue
+                        seq = assemble(model, layout, visual, audio)
                     elif arm.startswith("omnipack"):
                         v_out, a_out = compressed[float(arm.split("_r")[1])]
-                        seq = op.assemble(
+                        seq = assemble(
                             model,
                             layout,
                             v_out.embeds,
@@ -656,14 +719,7 @@ def main() -> int:
                         stats = op.Stage2Stats() if op.USE_STAGE2 else None
                     else:
                         v_sel, a_sel, vk, ak = unit_tokens[arm]
-                        seq = op.assemble(
-                            model,
-                            layout,
-                            v_sel,
-                            a_sel,
-                            vk.to(layout.video.device),
-                            ak.to(layout.audio.device),
-                        )
+                        seq = assemble(model, layout, v_sel, a_sel, vk, ak)
                     if seq.embeds.shape[1] > max_context:
                         log.note(
                             "over_context",

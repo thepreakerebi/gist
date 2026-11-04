@@ -80,6 +80,7 @@ def main() -> int:
         H2H_RATIOS="0.25,0.10",
         H2H_SCORER_DEVICE="cpu",
         H2H_COUNT_FLOPS=os.environ.get("H2H_COUNT_FLOPS", "0"),
+        H2H_CHECK_ASSEMBLE="1",
     )
     if long_mode:
         os.environ.update(
