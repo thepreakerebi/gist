@@ -352,8 +352,18 @@ def main() -> int:
             f"Audio heard by every arm: {min(v['audio_seconds'] for v in vnotes):.0f} to "
             f"{max(v['audio_seconds'] for v in vnotes):.0f} s of videos lasting "
             f"{min(v['video_seconds'] for v in vnotes) / 60:.0f} to "
-            f"{max(v['video_seconds'] for v in vnotes) / 60:.0f} min; the 32 frames span the "
-            "whole video.",
+            f"{max(v['video_seconds'] for v in vnotes) / 60:.0f} min; "
+            f"the {vnotes[0]['frames']} frames span the whole video.",
+            "",
+        ]
+    over = notes.get("over_context") or []
+    if over:
+        arms_over = sorted({o["arm"] for o in over})
+        toks = sorted(o["tokens"] for o in over)
+        lines += [
+            f"Not run because the prefill would exceed the model's "
+            f"{over[0]['max_context']:,}-token context: {', '.join(arms_over)} "
+            f"({len(over)} question-arms; {toks[0]:,} to {toks[-1]:,} tokens).",
             "",
         ]
     lines += [

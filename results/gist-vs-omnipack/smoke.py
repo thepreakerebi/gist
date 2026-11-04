@@ -36,6 +36,12 @@ def main() -> int:
     # time, so Gist keeps a subset of units and the splice path is exercised.
     import subprocess
 
+    # H2H_SMOKE_LONG=1 exercises the long-input protocol: a clip past Qwen's 300 s
+    # audio cap, the cap raised, stage 1 chunked, and a context limit low enough
+    # that the uncompressed arm is recorded as over context rather than run.
+    long_mode = os.environ.get("H2H_SMOKE_LONG") == "1"
+    duration = 400 if long_mode else 150
+
     out = smoke_cpu.VIDS / f"videomme-{smoke_cpu.VIDEO_ID}.mp4"
     subprocess.run(
         [
@@ -46,11 +52,11 @@ def main() -> int:
             "-f",
             "lavfi",
             "-i",
-            "testsrc2=size=640x360:rate=5:duration=150",
+            f"testsrc2=size=640x360:rate=5:duration={duration}",
             "-f",
             "lavfi",
             "-i",
-            "sine=frequency=300:beep_factor=4:duration=150",
+            f"sine=frequency=300:beep_factor=4:duration={duration}",
             "-c:v",
             "libx264",
             "-pix_fmt",
@@ -75,6 +81,15 @@ def main() -> int:
         H2H_SCORER_DEVICE="cpu",
         H2H_COUNT_FLOPS=os.environ.get("H2H_COUNT_FLOPS", "0"),
     )
+    if long_mode:
+        os.environ.update(
+            H2H_AUDIO_CAP_SECONDS="600",
+            H2H_STAGE1_CHUNK_SECONDS="120",
+            H2H_MAX_CONTEXT="8000",
+            H2H_RATIOS="0.25,0.04",
+            H2H_VERIFY="0",
+            H2H_PRODUCT_WHISPER="0",
+        )
     sys.argv = ["h2h.py", str(smoke_cpu.QFILE)]
     sys.path.insert(0, str(HERE))
     import h2h

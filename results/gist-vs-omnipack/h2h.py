@@ -64,7 +64,7 @@ sys.path.insert(0, str(HERE.parent / "efficiency-measured"))
 sys.path.insert(0, str(HERE.parents[1] / "src"))
 
 import omnipack_h2h as op  # noqa: E402
-from omnipack import stage1_compress  # noqa: E402
+from omnipack import Stage1Result, stage1_compress  # noqa: E402
 
 from gist.eval.profiling import DeviceInfo, MeasurementLog, idle_power_w  # noqa: E402
 
@@ -78,6 +78,15 @@ MAX_VIDEOS = int(os.environ.get("H2H_MAX_VIDEOS", "0")) or None
 PRODUCT_WHISPER = os.environ.get("H2H_PRODUCT_WHISPER", "1") == "1"
 VERIFY_CONTROL = os.environ.get("H2H_VERIFY", "1") == "1"
 SCORER_DEVICE = os.environ.get("H2H_SCORER_DEVICE", op.DEVICE)
+# Long-input protocol (RUN.md, "Follow-up"). Qwen's feature extractor stops at 300 s
+# of audio; a positive cap raises that so every arm can choose from the whole track.
+AUDIO_CAP_SECONDS = int(os.environ.get("H2H_AUDIO_CAP_SECONDS", "0"))
+# ASSUMPTION A8: OmniPack's stage 1 builds N x N matrices over a modality, which an
+# hour of audio (~87k tokens) cannot fit on a 24 GB card. A positive value applies
+# stage 1 to consecutive chunks of this many seconds of audio, at the same ratio.
+STAGE1_CHUNK_SECONDS = int(os.environ.get("H2H_STAGE1_CHUNK_SECONDS", "0"))
+# Arms whose prefill would exceed the language model's context are recorded, not run.
+MAX_CONTEXT_OVERRIDE = int(os.environ.get("H2H_MAX_CONTEXT", "0"))
 
 # Gist's selection exactly as in every earlier Gist result (efficiency_bench.py).
 FRAME_BUDGET, AUDIO_BUDGET = 8, 4
@@ -131,6 +140,25 @@ def encode_units(thinker, inputs, patches: list[int], segments: list[int], audio
     hidden = thinker.get_input_embeddings().weight.shape[1]
     empty = torch.empty(0, hidden, device=device, dtype=op.DTYPE)
     return (torch.cat(visual) if visual else empty), (torch.cat(audio) if audio else empty)
+
+
+def stage1_audio(audio, centrality, ratio: float, chunk_tokens: int):
+    """OmniPack stage 1 on the audio tokens, whole or chunk by chunk (A8)."""
+    if chunk_tokens <= 0 or audio.shape[0] <= chunk_tokens:
+        return stage1_compress(audio.float(), centrality, modality="audio", retention=ratio)
+    embeds, kept, before, after = [], [], 0, 0
+    for start in range(0, audio.shape[0], chunk_tokens):
+        out = stage1_compress(
+            audio[start : start + chunk_tokens].float(),
+            centrality[start : start + chunk_tokens],
+            modality="audio",
+            retention=ratio,
+        )
+        embeds.append(out.embeds)
+        kept.append(out.kept_index + start)
+        before += out.n_before
+        after += out.n_after
+    return Stage1Result(torch.cat(embeds), torch.cat(kept), before, after)
 
 
 def keep_index(units: list[int], sizes: list[int]) -> torch.Tensor:
@@ -410,6 +438,15 @@ def main() -> int:
 
     with log.measure("load_qwen", scope="setup"):
         model, processor = op.load_model()
+    if AUDIO_CAP_SECONDS:
+        fe = processor.feature_extractor
+        fe.chunk_length = AUDIO_CAP_SECONDS
+        fe.n_samples = AUDIO_CAP_SECONDS * fe.sampling_rate
+        fe.nb_max_frames = fe.n_samples // fe.hop_length
+        log.note("audio_cap", seconds=AUDIO_CAP_SECONDS)
+    text_cfg = getattr(model.thinker.config, "text_config", model.thinker.config)
+    max_context = MAX_CONTEXT_OVERRIDE or int(getattr(text_cfg, "max_position_embeddings", 32768))
+    log.note("max_context", tokens=max_context, stage1_chunk_seconds=STAGE1_CHUNK_SECONDS)
     if torch.cuda.is_available():
         torch.cuda.synchronize()
         log.note("resident_qwen", gb=round(torch.cuda.memory_allocated() / 1e9, 3))
@@ -492,6 +529,8 @@ def main() -> int:
             log_line(f"{vid} prepare: ERR {type(exc).__name__}: {exc}"[:400])
             continue
 
+        tokens_per_second = sum(audio_sizes) / max(feature_length / 100.0, 1e-9)
+        chunk_tokens = int(round(STAGE1_CHUNK_SECONDS * tokens_per_second))
         compressed = {}
         for ratio in RATIOS:
             with log.measure(
@@ -506,9 +545,7 @@ def main() -> int:
                     patches=info["patches"],
                     grid_w=info["grid_w"],
                 )
-                a_out = stage1_compress(
-                    audio.float(), info["audio_centrality"], modality="audio", retention=ratio
-                )
+                a_out = stage1_audio(audio, info["audio_centrality"], ratio, chunk_tokens)
                 rec.extra.update(visual_after=v_out.n_after, audio_after=a_out.n_after)
             compressed[ratio] = (v_out, a_out)
 
@@ -627,6 +664,19 @@ def main() -> int:
                             vk.to(layout.video.device),
                             ak.to(layout.audio.device),
                         )
+                    if seq.embeds.shape[1] > max_context:
+                        log.note(
+                            "over_context",
+                            qid=qid,
+                            arm=arm,
+                            tokens=int(seq.embeds.shape[1]),
+                            max_context=max_context,
+                        )
+                        log_line(
+                            f"{qid} {arm}: {seq.embeds.shape[1]} tokens > {max_context}; not run"
+                        )
+                        del seq
+                        continue
                     with log.measure("answer", method=arm, count_flops=COUNT_FLOPS, **qtag) as rec:
                         text, tokens = op.generate(model, processor, seq, stats)
                         answer = op.letter(text)

@@ -93,3 +93,42 @@ Then, at home:
 - **Gist's candidate pool is restricted to the 32 frames Qwen is given.** This
   keeps the input identical across arms. In normal use Gist scores a larger
   pool.
+
+## Follow-up: whole-video input
+
+The first run inherited two limits from Qwen's own preprocessing. Its feature
+extractor stops at 300 s of audio, so every arm heard only the first five
+minutes of 32 to 58-minute videos. Every arm also chose from 32 frames. Gist is
+built to choose moments from a whole recording, so the first run did not test
+that setting. The follow-up keeps everything above fixed and changes only the
+input every arm chooses from.
+
+- **128 frames** (`OMNIPACK_FRAMES=128`).
+- **The whole audio track.** `H2H_AUDIO_CAP_SECONDS=4000` raises the feature
+  extractor's 300 s cap.
+- **Uncompressed input is not run.** The whole video is about 90,000 tokens,
+  past Qwen2.5-Omni's 32,768-token context. It is recorded as an `over_context`
+  note, not a result.
+- **A8: OmniPack's stage 1 runs per 300 s of audio.** Stage 1 builds N x N
+  matrices over a modality. For an hour of audio (~87,000 tokens) that needs
+  about 30 GB, which a 24 GB card cannot hold.
+  `H2H_STAGE1_CHUNK_SECONDS=300` applies stage 1, at the same ratio, to
+  consecutive 300 s chunks, the longest audio the model takes in one input.
+  The visual tokens (9,216) are compressed whole, as before.
+- **A ratio matched to Gist's budget.** The ratios are 0.25, 0.10 and 0.04;
+  0.04 is close to Gist's token budget.
+- **Product Whisper sensitivity is not repeated.** The control check is not
+  repeated either: its reference arm is the uncompressed one, and the decode
+  path is unchanged from the first run.
+
+On the pod:
+
+    bash results/pod_session.sh h2h_long_plumb
+    bash results/pod_session.sh h2h_long
+    bash results/pod_session.sh h2h_long_flops
+
+The results go to `results/gist-vs-omnipack-long/`. Analyse them the same way:
+
+    python results/gist-vs-omnipack/analyze.py results/gist-vs-omnipack-long
+
+CPU check: `H2H_SMOKE_LONG=1 python results/gist-vs-omnipack/smoke.py`.

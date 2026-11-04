@@ -9,6 +9,8 @@
 #   bash results/pod_session.sh h2h_plumb    # ~5 min: the Gist-vs-OmniPack runner on one video
 #   bash results/pod_session.sh h2h          # results/gist-vs-omnipack/: timed run of record
 #   bash results/pod_session.sh h2h_flops    # FLOP-counting pass, two videos
+#   bash results/pod_session.sh h2h_long_plumb / h2h_long / h2h_long_flops
+#                                            # the same on whole-video input (RUN.md, follow-up)
 #   bash results/pod_session.sh collect      # tar everything worth keeping
 #
 # Run each step under nohup (see POD_SESSION.md) so a dropped web terminal does
@@ -181,6 +183,28 @@ h2h_flops() {
   cp /root/h2h_flops/measurements_flops.jsonl /root/h2h_flops/answers_flops.jsonl results/gist-vs-omnipack/
 }
 
+# Whole-video input: 128 frames, the whole audio track (Qwen's 300 s cap raised),
+# OmniPack's stage 1 per 300 s of audio (A8), and a ratio matched to Gist's budget.
+LONG_ENV=(OMNIPACK_FRAMES=128 H2H_AUDIO_CAP_SECONDS=4000 H2H_STAGE1_CHUNK_SECONDS=300
+          H2H_RATIOS=0.25,0.10,0.04 H2H_VERIFY=0 H2H_PRODUCT_WHISPER=0)
+
+h2h_long_plumb() {
+  h2h_run /root/h2h_long_plumb "${LONG_ENV[@]}" H2H_MAX_VIDEOS=1 2>&1 | tee "$LOGS/h2h_long_plumb.log"
+  grep -h "exactness\\|not run\\|FATAL\\|ERR\\|OOM\\|H2H_DONE" "$LOGS/h2h_long_plumb.log" || true
+}
+
+h2h_long() {
+  h2h_run /root/h2h_long "${LONG_ENV[@]}" 2>&1 | tee "$LOGS/h2h_long.log"
+  mkdir -p results/gist-vs-omnipack-long
+  cp /root/h2h_long/measurements.jsonl /root/h2h_long/answers.jsonl results/gist-vs-omnipack-long/
+}
+
+h2h_long_flops() {
+  h2h_run /root/h2h_long_flops "${LONG_ENV[@]}" H2H_COUNT_FLOPS=1 H2H_MAX_VIDEOS=2 2>&1 | tee "$LOGS/h2h_long_flops.log"
+  mkdir -p results/gist-vs-omnipack-long
+  cp /root/h2h_long_flops/measurements_flops.jsonl /root/h2h_long_flops/answers_flops.jsonl results/gist-vs-omnipack-long/
+}
+
 fetch() {
   # Fallback only. The bundle from the Mac is the primary route, because
   # YouTube may refuse a datacenter address.
@@ -191,7 +215,7 @@ fetch() {
 collect() {
   cd "$REPO"
   tar czf /root/results.tgz \
-    results/efficiency-measured results/omnipack-replication results/gist-vs-omnipack "$LOGS" 2>/dev/null || true
+    results/efficiency-measured results/omnipack-replication results/gist-vs-omnipack results/gist-vs-omnipack-long "$LOGS" 2>/dev/null || true
   ls -lh /root/results.tgz
   echo "Send it home:  runpodctl send /root/results.tgz"
 }
@@ -205,6 +229,9 @@ case "${1:-}" in
   h2h_plumb) h2h_plumb ;;
   h2h) h2h ;;
   h2h_flops) h2h_flops ;;
+  h2h_long_plumb) h2h_long_plumb ;;
+  h2h_long) h2h_long ;;
+  h2h_long_flops) h2h_long_flops ;;
   collect) collect ;;
-  *) echo "usage: $0 {setup|fetch|plumb|efficiency|omnipack|h2h_plumb|h2h|h2h_flops|collect}"; exit 2 ;;
+  *) echo "usage: $0 {setup|fetch|plumb|efficiency|omnipack|h2h_plumb|h2h|h2h_flops|h2h_long_plumb|h2h_long|h2h_long_flops|collect}"; exit 2 ;;
 esac
