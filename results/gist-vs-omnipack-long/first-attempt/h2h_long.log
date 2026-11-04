@@ -1,0 +1,268 @@
+51 questions across 18 videos; ratios=[0.25, 0.1, 0.04]; flops=False
+device: NVIDIA GeForce RTX 4090 25 GB, torch 2.6.0+cu124, CUDA 12.4
+idle power: 26.41 W
+You have video processor config saved in `preprocessor.json` file which is deprecated. Video processor configs should be saved in their own `video_preprocessor.json` file. You can rename the file or load and save the processor back which renames it automatically. Loading from `preprocessor.json` will be removed in v5.0.
+Unrecognized keys in `rope_scaling` for 'rope_type'='default': {'mrope_section'}
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards:  20%|██        | 1/5 [00:04<00:19,  4.99s/it]Loading checkpoint shards:  40%|████      | 2/5 [00:07<00:11,  3.81s/it]Loading checkpoint shards:  60%|██████    | 3/5 [00:11<00:06,  3.49s/it]Loading checkpoint shards:  80%|████████  | 4/5 [00:12<00:02,  2.72s/it]Loading checkpoint shards: 100%|██████████| 5/5 [00:12<00:00,  2.53s/it]
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+qwen-vl-utils using decord to read video.
+[h264 @ 0xf6728780] mmco: unref short failure
+[h264 @ 0xf6728780] mmco: unref short failure
+[h264 @ 0xf6728780] mmco: unref short failure
+[h264 @ 0xf6728780] mmco: unref short failure
+[h264 @ 0xf6728780] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Token indices sequence length is longer than the specified maximum sequence length for this model (78534 > 32768). Running this sequence through the model will result in indexing errors
+Unused or unrecognized kwargs: return_tensors, images.
+867-3 full: 78602 tokens > 32768; not run
+867-3 omnipack_r0.25: OOM in answer
+867-3 gold=B omnipack_r0.1=BY omnipack_r0.04=BY gist=An uniform=BY
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xb89c94c0] mmco: unref short failure
+[h264 @ 0xb89c94c0] mmco: unref short failure
+[h264 @ 0xb89c94c0] mmco: unref short failure
+[h264 @ 0xb89c94c0] mmco: unref short failure
+[h264 @ 0xb89c94c0] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+exactness (gist): unit vs full encoding, max |diff| visual=1.17 audio=0
+868-1 full: 89897 tokens > 32768; not run
+868-1 omnipack_r0.25: OOM in answer
+868-1 gold=A omnipack_r0.1=Cn omnipack_r0.04=Cn gist=Cn uniform=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+868-2 full: 89896 tokens > 32768; not run
+868-2 omnipack_r0.25: OOM in answer
+868-2 gold=B omnipack_r0.1=An omnipack_r0.04=An gist=An uniform=An
+Unused or unrecognized kwargs: return_tensors, images.
+868-3 full: 89888 tokens > 32768; not run
+868-3 omnipack_r0.25: OOM in answer
+868-3 gold=C omnipack_r0.1=Bn omnipack_r0.04=Bn gist=Bn uniform=Bn
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+[h264 @ 0xedfa3cc0] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+869-1 full: 96192 tokens > 32768; not run
+869-1 omnipack_r0.25: OOM in answer
+869-1 gold=C omnipack_r0.1=An omnipack_r0.04=An gist=An uniform=An
+Unused or unrecognized kwargs: return_tensors, images.
+869-2 full: 96207 tokens > 32768; not run
+869-2 omnipack_r0.25: OOM in answer
+869-2 gold=D omnipack_r0.1=Cn omnipack_r0.04=Cn gist=Bn uniform=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+869-3 full: 96187 tokens > 32768; not run
+869-3 omnipack_r0.25: OOM in answer
+869-3 gold=A omnipack_r0.1=AY omnipack_r0.04=Dn gist=Dn uniform=Dn
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xf1257c80] mmco: unref short failure
+[h264 @ 0xf1257c80] mmco: unref short failure
+[h264 @ 0xf1257c80] mmco: unref short failure
+[h264 @ 0xf1257c80] mmco: unref short failure
+[h264 @ 0xf1257c80] mmco: unref short failure
+[h264 @ 0xf1257c80] mmco: unref short failure
+[h264 @ 0xf1257c80] mmco: unref short failure
+[h264 @ 0xf1257c80] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+870-1 full: 97011 tokens > 32768; not run
+870-1 omnipack_r0.25: OOM in answer
+870-1 gold=B omnipack_r0.1=An omnipack_r0.04=Dn gist=An uniform=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+870-2 full: 97057 tokens > 32768; not run
+870-2 omnipack_r0.25: OOM in answer
+870-2 gold=C omnipack_r0.1=An omnipack_r0.04=An gist=An uniform=An
+Unused or unrecognized kwargs: return_tensors, images.
+870-3 full: 97014 tokens > 32768; not run
+870-3 omnipack_r0.25: OOM in answer
+870-3 gold=D omnipack_r0.1=Bn omnipack_r0.04=DY gist=DY uniform=DY
+SKIP ZkhAbUGoD18 (no video)
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xfcd43040] mmco: unref short failure
+[h264 @ 0xfcd43040] mmco: unref short failure
+[h264 @ 0xfcd43040] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+872-1 full: 57646 tokens > 32768; not run
+872-1 gold=D omnipack_r0.25=Cn omnipack_r0.1=Cn omnipack_r0.04=Cn gist=Cn uniform=Cn
+Unused or unrecognized kwargs: return_tensors, images.
+872-2 full: 57642 tokens > 32768; not run
+872-2 gold=A omnipack_r0.25=AY omnipack_r0.1=AY omnipack_r0.04=AY gist=AY uniform=AY
+Unused or unrecognized kwargs: return_tensors, images.
+872-3 full: 57642 tokens > 32768; not run
+872-3 gold=C omnipack_r0.25=An omnipack_r0.1=An omnipack_r0.04=An gist=An uniform=An
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+873-1 full: 68627 tokens > 32768; not run
+873-1 gold=A omnipack_r0.25=AY omnipack_r0.1=AY omnipack_r0.04=AY gist=AY uniform=AY
+Unused or unrecognized kwargs: return_tensors, images.
+873-2 full: 68620 tokens > 32768; not run
+873-2 gold=D omnipack_r0.25=DY omnipack_r0.1=DY omnipack_r0.04=DY gist=DY uniform=DY
+Unused or unrecognized kwargs: return_tensors, images.
+873-3 full: 68629 tokens > 32768; not run
+873-3 gold=C omnipack_r0.25=Bn omnipack_r0.1=Bn omnipack_r0.04=Bn gist=An uniform=Bn
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+875-1 full: 84911 tokens > 32768; not run
+875-1 omnipack_r0.25: OOM in answer
+875-1 gold=B omnipack_r0.1=BY omnipack_r0.04=BY gist=BY uniform=BY
+Unused or unrecognized kwargs: return_tensors, images.
+875-2 full: 84934 tokens > 32768; not run
+875-2 omnipack_r0.25: OOM in answer
+875-2 gold=A omnipack_r0.1=Dn omnipack_r0.04=Bn gist=Bn uniform=Bn
+Unused or unrecognized kwargs: return_tensors, images.
+875-3 full: 84934 tokens > 32768; not run
+875-3 omnipack_r0.25: OOM in answer
+875-3 gold=D omnipack_r0.1=DY omnipack_r0.04=DY gist=Cn uniform=Cn
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xf124f9c0] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+877-1 full: 75963 tokens > 32768; not run
+877-1 omnipack_r0.25: OOM in answer
+877-1 omnipack_r0.1: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 216.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 974.61 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=
+877-1 omnipack_r0.04: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 216.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 974.61 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF
+877-1 gist: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 216.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 974.59 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandabl
+877-1 uniform: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 216.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 974.60 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expand
+877-1 gold=A 
+Unused or unrecognized kwargs: return_tensors, images.
+877-2 full: 75960 tokens > 32768; not run
+877-2 omnipack_r0.25: OOM in answer
+877-2 omnipack_r0.1: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.89 GiB is allocated by PyTorch, and 967.41 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=
+877-2 omnipack_r0.04: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.89 GiB is allocated by PyTorch, and 967.41 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF
+877-2 gist: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.89 GiB is allocated by PyTorch, and 967.39 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandabl
+877-2 uniform: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.89 GiB is allocated by PyTorch, and 967.40 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expand
+877-2 gold=D 
+Unused or unrecognized kwargs: return_tensors, images.
+877-3 full: 75952 tokens > 32768; not run
+877-3 omnipack_r0.25: OOM in answer
+877-3 omnipack_r0.1: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 969.29 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=
+877-3 omnipack_r0.04: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 969.29 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF
+877-3 gist: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 969.27 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandabl
+877-3 uniform: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 520.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 218.81 MiB is free. Process 501017 has 23.42 GiB memory in use. Of the allocated memory 21.88 GiB is allocated by PyTorch, and 969.27 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expand
+877-3 gold=B 
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xf13ef680] mmco: unref short failure
+[h264 @ 0xf13ef680] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+879-1 full: 75953 tokens > 32768; not run
+879-1 gold=A omnipack_r0.25=Bn omnipack_r0.1=Bn omnipack_r0.04=Dn gist=Bn uniform=Dn
+Unused or unrecognized kwargs: return_tensors, images.
+879-2 full: 75957 tokens > 32768; not run
+879-2 gold=C omnipack_r0.25=CY omnipack_r0.1=CY omnipack_r0.04=CY gist=CY uniform=CY
+Unused or unrecognized kwargs: return_tensors, images.
+879-3 full: 75938 tokens > 32768; not run
+879-3 gold=D omnipack_r0.25=DY omnipack_r0.1=DY omnipack_r0.04=DY gist=DY uniform=DY
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xc341ed00] mmco: unref short failure
+[h264 @ 0xc341ed00] mmco: unref short failure
+[h264 @ 0xc341ed00] mmco: unref short failure
+[h264 @ 0xc341ed00] mmco: unref short failure
+[h264 @ 0xc341ed00] mmco: unref short failure
+[h264 @ 0xc341ed00] mmco: unref short failure
+[h264 @ 0xc341ed00] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+880-1 full: 77462 tokens > 32768; not run
+880-1 omnipack_r0.25: OOM in answer
+880-1 gold=B omnipack_r0.1=BY omnipack_r0.04=BY gist=BY uniform=BY
+Unused or unrecognized kwargs: return_tensors, images.
+880-2 full: 77443 tokens > 32768; not run
+880-2 omnipack_r0.25: OOM in answer
+880-2 omnipack_r0.1: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 530.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 490.81 MiB is free. Process 501017 has 23.16 GiB memory in use. Of the allocated memory 21.98 GiB is allocated by PyTorch, and 595.36 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=
+880-2 omnipack_r0.04: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 530.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 490.81 MiB is free. Process 501017 has 23.16 GiB memory in use. Of the allocated memory 21.98 GiB is allocated by PyTorch, and 595.36 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF
+880-2 gist: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 530.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 490.81 MiB is free. Process 501017 has 23.16 GiB memory in use. Of the allocated memory 21.98 GiB is allocated by PyTorch, and 595.35 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandabl
+880-2 uniform: ERR OutOfMemoryError: CUDA out of memory. Tried to allocate 530.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 490.81 MiB is free. Process 501017 has 23.16 GiB memory in use. Of the allocated memory 21.98 GiB is allocated by PyTorch, and 595.35 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expand
+880-2 gold=A 
+Unused or unrecognized kwargs: return_tensors, images.
+880-3 full: 77442 tokens > 32768; not run
+880-3 omnipack_r0.25: OOM in answer
+880-3 gold=B omnipack_r0.1=BY omnipack_r0.04=BY gist=BY uniform=BY
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xf119cc80] mmco: unref short failure
+[h264 @ 0xf119cc80] mmco: unref short failure
+[h264 @ 0xf119cc80] mmco: unref short failure
+[h264 @ 0xf119cc80] mmco: unref short failure
+[h264 @ 0xf119cc80] mmco: unref short failure
+[h264 @ 0xf119cc80] mmco: unref short failure
+[h264 @ 0xf119cc80] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+881-1 full: 61082 tokens > 32768; not run
+881-1 gold=B omnipack_r0.25=BY omnipack_r0.1=BY omnipack_r0.04=Dn gist=Dn uniform=Dn
+Unused or unrecognized kwargs: return_tensors, images.
+881-2 full: 61142 tokens > 32768; not run
+881-2 gold=C omnipack_r0.25=CY omnipack_r0.1=Dn omnipack_r0.04=Dn gist=CY uniform=CY
+Unused or unrecognized kwargs: return_tensors, images.
+881-3 full: 61283 tokens > 32768; not run
+881-3 gold=A omnipack_r0.25=Dn omnipack_r0.1=AY omnipack_r0.04=Dn gist=Dn uniform=Dn
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xc4da5c00] mmco: unref short failure
+[h264 @ 0xc4da5c00] mmco: unref short failure
+[h264 @ 0xc4da5c00] mmco: unref short failure
+[h264 @ 0xc4da5c00] mmco: unref short failure
+[h264 @ 0xc4da5c00] mmco: unref short failure
+[h264 @ 0xc4da5c00] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.
+Unused or unrecognized kwargs: return_tensors, images.
+882-1 full: 65462 tokens > 32768; not run
+882-1 gold=D omnipack_r0.25=Bn omnipack_r0.1=Bn omnipack_r0.04=Bn gist=Bn uniform=Bn
+Unused or unrecognized kwargs: return_tensors, images.
+882-2 full: 65442 tokens > 32768; not run
+882-2 gold=B omnipack_r0.25=BY omnipack_r0.1=Cn omnipack_r0.04=An gist=BY uniform=An
+Unused or unrecognized kwargs: return_tensors, images.
+882-3 full: 65523 tokens > 32768; not run
+882-3 gold=C omnipack_r0.25=CY omnipack_r0.1=CY omnipack_r0.04=CY gist=CY uniform=CY
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+[h264 @ 0xeeecb600] mmco: unref short failure
+[h264 @ 0xeeecb600] mmco: unref short failure
+Unused or unrecognized kwargs: return_tensors, images.

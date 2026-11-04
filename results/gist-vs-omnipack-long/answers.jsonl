@@ -1,0 +1,48 @@
+{"qid": "867-3", "video": "ZLRyTFIZOIs", "gold": "B", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "A", "uniform": "B", "gist_units": [[0, 1, 5, 8, 16, 25, 32], []]}
+{"qid": "868-1", "video": "eZ5lFBPpRkM", "gold": "A", "omnipack_r0.04": "C", "gist": "C", "uniform": "C", "gist_units": [[2, 3, 38], [0, 54, 129]]}
+{"qid": "868-2", "video": "eZ5lFBPpRkM", "gold": "B", "omnipack_r0.04": "C", "gist": "A", "uniform": "A", "gist_units": [[52, 56], [109, 111, 121]]}
+{"qid": "868-3", "video": "eZ5lFBPpRkM", "gold": "C", "omnipack_r0.04": "B", "gist": "B", "uniform": "B", "gist_units": [[38], [0, 15, 32, 82]]}
+{"qid": "869-1", "video": "NagvWwLvRik", "gold": "C", "omnipack_r0.1": "A", "omnipack_r0.04": "A", "gist": "A", "uniform": "A", "gist_units": [[2, 45, 47], [57, 104, 108]]}
+{"qid": "869-2", "video": "NagvWwLvRik", "gold": "D", "omnipack_r0.1": "C", "omnipack_r0.04": "C", "gist": "B", "uniform": "C", "gist_units": [[0, 28, 40, 63], [30, 95]]}
+{"qid": "869-3", "video": "NagvWwLvRik", "gold": "A", "omnipack_r0.1": "A", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[47, 63], [25, 125, 134, 143]]}
+{"qid": "870-1", "video": "Fibq4aA-GVc", "gold": "B", "omnipack_r0.1": "A", "omnipack_r0.04": "D", "gist": "A", "uniform": "C", "gist_units": [[18, 28, 33], [2, 4, 9, 33]]}
+{"qid": "870-2", "video": "Fibq4aA-GVc", "gold": "C", "omnipack_r0.1": "A", "omnipack_r0.04": "A", "gist": "A", "uniform": "A", "gist_units": [[31, 45], [36, 66, 105]]}
+{"qid": "870-3", "video": "Fibq4aA-GVc", "gold": "D", "omnipack_r0.1": "B", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[32, 56, 61], [14, 78, 104]]}
+{"qid": "872-1", "video": "ZP-Y2S750KY", "gold": "D", "omnipack_r0.25": "C", "omnipack_r0.1": "C", "omnipack_r0.04": "C", "gist": "D", "uniform": "C", "gist_units": [[4, 37, 53, 63], [67, 80]]}
+{"qid": "872-2", "video": "ZP-Y2S750KY", "gold": "A", "omnipack_r0.25": "A", "omnipack_r0.1": "A", "omnipack_r0.04": "A", "gist": "A", "uniform": "A", "gist_units": [[10, 12, 31], [0, 39]]}
+{"qid": "872-3", "video": "ZP-Y2S750KY", "gold": "C", "omnipack_r0.25": "A", "omnipack_r0.1": "A", "omnipack_r0.04": "A", "gist": "A", "uniform": "A", "gist_units": [[7, 22, 50], [9, 54]]}
+{"qid": "873-1", "video": "t23Zi0DBSiI", "gold": "A", "omnipack_r0.25": "A", "omnipack_r0.1": "A", "omnipack_r0.04": "A", "gist": "A", "uniform": "A", "gist_units": [[19, 20, 59, 62], [92, 96]]}
+{"qid": "873-2", "video": "t23Zi0DBSiI", "gold": "D", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[8, 9, 28, 47, 54], [7]]}
+{"qid": "873-3", "video": "t23Zi0DBSiI", "gold": "C", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "A", "uniform": "B", "gist_units": [[1, 28, 48], [13, 31, 44]]}
+{"qid": "875-1", "video": "4IenX7OHumk", "gold": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "B", "uniform": "B", "gist_units": [[6, 16, 25, 35, 37, 42, 45], []]}
+{"qid": "875-2", "video": "4IenX7OHumk", "gold": "A", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "B", "gist": "B", "uniform": "B", "gist_units": [[21, 28, 45], [42, 43, 50]]}
+{"qid": "875-3", "video": "4IenX7OHumk", "gold": "D", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "C", "uniform": "C", "gist_units": [[37, 46, 60], [15, 35, 71]]}
+{"qid": "877-1", "video": "5WIdIs3A9Ok", "gold": "A", "omnipack_r0.25": "A", "omnipack_r0.1": "A", "omnipack_r0.04": "A", "gist": "D", "uniform": "A", "gist_units": [[2, 18, 54, 61], [9, 27]]}
+{"qid": "877-2", "video": "5WIdIs3A9Ok", "gold": "D", "omnipack_r0.25": "C", "omnipack_r0.1": "C", "omnipack_r0.04": "A", "gist": "A", "uniform": "C", "gist_units": [[21, 26, 27], [73, 82, 86]]}
+{"qid": "877-3", "video": "5WIdIs3A9Ok", "gold": "B", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "A", "uniform": "B", "gist_units": [[34, 46, 63], [25, 72, 83]]}
+{"qid": "879-1", "video": "zAXbdzvCeV8", "gold": "A", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "D", "gist": "B", "uniform": "D", "gist_units": [[10, 18], [18, 20, 91]]}
+{"qid": "879-2", "video": "zAXbdzvCeV8", "gold": "C", "omnipack_r0.25": "C", "omnipack_r0.1": "C", "omnipack_r0.04": "C", "gist": "C", "uniform": "C", "gist_units": [[26, 28, 29], [46, 50]]}
+{"qid": "879-3", "video": "zAXbdzvCeV8", "gold": "D", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[49, 61, 63], [11, 61, 80]]}
+{"qid": "880-1", "video": "eZ2Rt2DVGdU", "gold": "B", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "B", "uniform": "B", "gist_units": [[1, 62], [2, 3, 5, 31]]}
+{"qid": "880-2", "video": "eZ2Rt2DVGdU", "gold": "A", "omnipack_r0.25": "A", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "A", "uniform": "B", "gist_units": [[22, 25, 62], [43, 44]]}
+{"qid": "880-3", "video": "eZ2Rt2DVGdU", "gold": "B", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "B", "uniform": "B", "gist_units": [[5, 8, 9, 15, 18, 31, 37], []]}
+{"qid": "881-1", "video": "goyWFUzCqF4", "gold": "B", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[2, 9, 28, 40], [32, 66]]}
+{"qid": "881-2", "video": "goyWFUzCqF4", "gold": "C", "omnipack_r0.25": "C", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "C", "uniform": "C", "gist_units": [[2, 49, 53, 57], [32, 66]]}
+{"qid": "881-3", "video": "goyWFUzCqF4", "gold": "A", "omnipack_r0.25": "D", "omnipack_r0.1": "A", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[2, 28, 40, 49], [38, 77]]}
+{"qid": "882-1", "video": "qVZOKel-gpE", "gold": "D", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "B", "uniform": "B", "gist_units": [[4, 17, 25], [1, 64, 66]]}
+{"qid": "882-2", "video": "qVZOKel-gpE", "gold": "B", "omnipack_r0.25": "B", "omnipack_r0.1": "C", "omnipack_r0.04": "A", "gist": "B", "uniform": "A", "gist_units": [[38, 44, 53], [0, 64, 93]]}
+{"qid": "882-3", "video": "qVZOKel-gpE", "gold": "C", "omnipack_r0.25": "C", "omnipack_r0.1": "C", "omnipack_r0.04": "C", "gist": "C", "uniform": "C", "gist_units": [[14, 38, 52], [22, 73, 91]]}
+{"qid": "883-1", "video": "2LDriAWltwM", "gold": "A", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "A", "uniform": "B", "gist_units": [[3, 30, 47], [2, 34, 129]]}
+{"qid": "883-2", "video": "2LDriAWltwM", "gold": "D", "omnipack_r0.1": "C", "omnipack_r0.04": "C", "gist": "C", "uniform": "D", "gist_units": [[40, 57], [59, 95, 129, 131]]}
+{"qid": "883-3", "video": "2LDriAWltwM", "gold": "B", "omnipack_r0.04": "A", "gist": "A", "uniform": "D", "gist_units": [[8, 9, 21], [15, 18]]}
+{"qid": "884-1", "video": "0kRsiSdDFYg", "gold": "C", "omnipack_r0.25": "B", "omnipack_r0.1": "C", "omnipack_r0.04": "C", "gist": "B", "uniform": "B", "gist_units": [[7, 26, 46, 61], [41, 47]]}
+{"qid": "884-2", "video": "0kRsiSdDFYg", "gold": "A", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "A", "gist": "B", "uniform": "B", "gist_units": [[7, 32, 58], [20, 41, 82]]}
+{"qid": "884-3", "video": "0kRsiSdDFYg", "gold": "D", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[25, 46, 61], [5, 39, 82]]}
+{"qid": "885-1", "video": "EhLOdDfaC7Y", "gold": "B", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "B", "uniform": "?", "gist_units": [[31, 42, 47, 55], [27, 95]]}
+{"qid": "885-2", "video": "EhLOdDfaC7Y", "gold": "C", "omnipack_r0.25": "C", "omnipack_r0.1": "C", "omnipack_r0.04": "C", "gist": "C", "uniform": "C", "gist_units": [[22, 37, 48], [58, 108, 110]]}
+{"qid": "885-3", "video": "EhLOdDfaC7Y", "gold": "A", "omnipack_r0.25": "B", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[42, 55], [11, 52, 82, 110]]}
+{"qid": "886-1", "video": "elprD1hnDyU", "gold": "D", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[11, 12, 16, 25], [29, 37]]}
+{"qid": "886-2", "video": "elprD1hnDyU", "gold": "B", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "D", "uniform": "D", "gist_units": [[20, 28, 33], [2, 3, 112]]}
+{"qid": "886-3", "video": "elprD1hnDyU", "gold": "C", "omnipack_r0.25": "D", "omnipack_r0.1": "D", "omnipack_r0.04": "D", "gist": "A", "uniform": "D", "gist_units": [[0, 42], [1, 94, 109, 112]]}
+{"qid": "887-1", "video": "proINILL4X4", "gold": "A", "omnipack_r0.25": "A", "omnipack_r0.1": "A", "omnipack_r0.04": "A", "gist": "A", "uniform": "A", "gist_units": [[0, 2, 49, 62], [2, 52]]}
+{"qid": "887-2", "video": "proINILL4X4", "gold": "D", "omnipack_r0.25": "B", "omnipack_r0.1": "B", "omnipack_r0.04": "B", "gist": "B", "uniform": "B", "gist_units": [[0, 3, 7, 19, 24, 37, 38, 40], []]}

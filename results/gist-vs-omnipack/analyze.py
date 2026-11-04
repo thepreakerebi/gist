@@ -173,7 +173,7 @@ def fit_rates(fstages):
         rates[k] = float(np.mean(rates[k]))
     answers = defaultdict(list)
     for r in fstages:
-        if r["stage"] == "answer" and r["flops"] is not None:
+        if r["stage"] == "answer" and r["flops"] is not None and not r.get("error"):
             family = method_of(r) if method_of(r).startswith("omnipack") else "plain"
             answers[family].append((r["extra"]["prefill_tokens"], r["flops"]))
     rates["answer"] = {}
@@ -235,16 +235,56 @@ def main() -> int:
         if line.strip()
     ]
 
-    arms = (
-        [k for k in answers[0] if k not in ("qid", "video", "gold", "gist_units")]
-        if answers
-        else []
-    )
-    complete = [a for a in answers if all(arm in a for arm in arms)]
-    outcomes = {arm: [a[arm] == a["gold"] for a in complete] for arm in arms}
+    # Answers an arm could not give in the run of record (out of memory) may be
+    # supplied by a rerun of just those cases with Gist's scorers unloaded.
+    supplement_dir = DIR / "omnipack-only-rerun"
+    filled = defaultdict(int)
+    supp_stages = []
+    if (supplement_dir / "answers.jsonl").exists():
+        supp = {
+            a["qid"]: a
+            for a in map(json.loads, (supplement_dir / "answers.jsonl").read_text().splitlines())
+        }
+        supp_stages, _ = load(supplement_dir / "measurements.jsonl")
+        for a in answers:
+            for k, v in supp.get(a["qid"], {}).items():
+                if k not in ("qid", "video", "gold", "gist_units") and k not in a:
+                    a[k] = v
+                    filled[k] += 1
+
+    skip = ("qid", "video", "gold", "gist_units")
+    order = [
+        "full",
+        "omnipack_r0.25",
+        "omnipack_r0.2",
+        "omnipack_r0.15",
+        "omnipack_r0.1",
+        "omnipack_r0.04",
+        "gist",
+        "uniform",
+    ]
+    present = {k for a in answers for k in a if k not in skip}
+    arms = [a for a in order if a in present] + sorted(present - set(order))
+    outcomes = {arm: [a[arm] == a["gold"] for a in answers if arm in a] for arm in arms}
+
+    def paired(arm):
+        both = [a for a in answers if "gist" in a and arm in a]
+        return (
+            [a["gist"] == a["gold"] for a in both],
+            [a[arm] == a["gold"] for a in both],
+        )
+
+    ooms = defaultdict(int)
+    for r in stages:
+        if r["stage"] == "answer" and r.get("oom"):
+            ooms[method_of(r)] += 1
+    still = defaultdict(int)
+    for r in supp_stages:
+        if r["stage"] == "answer" and r.get("oom"):
+            still[method_of(r)] += 1
 
     media_tokens = defaultdict(list)
-    for r in stages:
+    for r in stages + supp_stages:
         if r["stage"] == "answer" and not r.get("error"):
             media_tokens[method_of(r)].append(r["extra"]["media_tokens"])
     full_tokens = statistics.median(media_tokens["full"]) if media_tokens["full"] else None
@@ -341,11 +381,26 @@ def main() -> int:
         "",
     ]
     lines += [
-        f"Questions answered by every arm: {len(complete)} over "
-        f"{len({a['video'] for a in complete})} videos. "
+        f"Questions: {len(answers)} over {len({a['video'] for a in answers})} videos. "
         f"Idle board power: {idle} W.",
         "",
     ]
+    if ooms:
+        parts = []
+        for arm in arms:
+            if ooms.get(arm):
+                part = f"{arm} {ooms[arm]}"
+                if filled.get(arm) is not None and arm in filled or still.get(arm):
+                    part += (
+                        f" (rerun without Gist's scorers on the card: {filled.get(arm, 0)} "
+                        f"answered, {still.get(arm, 0)} still out of memory)"
+                    )
+                parts.append(part)
+        lines += [
+            "Out of memory in the run of record, on a 24 GB card with Gist's scorers (1.3 GB) "
+            "also loaded: " + "; ".join(parts) + ".",
+            "",
+        ]
     vnotes = notes.get("video") or []
     if vnotes:
         lines += [
@@ -369,8 +424,8 @@ def main() -> int:
     lines += [
         "## Accuracy",
         "",
-        "| Arm | Correct | 95% CI | Media tokens to the LLM (median) | Share of full "
-        "| Gist minus arm [95% CI] |",
+        "| Arm | Correct / answered | 95% CI | Media tokens to the LLM (median) | Share of full "
+        "| Gist minus arm, paired [95% CI] |",
         "| :-- | --: | :-- | --: | --: | :-- |",
     ]
     for arm in arms:
@@ -378,14 +433,14 @@ def main() -> int:
         ci = proportion_interval(o)
         tok = statistics.median(media_tokens[arm]) if media_tokens[arm] else None
         share = f"{tok / full_tokens:.1%}" if tok and full_tokens else ""
-        diff = (
-            ""
-            if arm == "gist" or "gist" not in outcomes
-            else paired_difference(outcomes["gist"], o).as_points()
-        )
+        diff = ""
+        if arm != "gist" and "gist" in outcomes:
+            g, x = paired(arm)
+            diff = f"{paired_difference(g, x).as_points()} (n={len(g)})"
+        tok_s = f"{tok:,.0f}" if tok else "n/a"
         lines.append(
             f"| {arm} | {sum(o)}/{len(o)} | [{ci.low:.1%}, {ci.high:.1%}] | "
-            f"{tok:,.0f} | {share} | {diff} |"
+            f"{tok_s} | {share} | {diff} |"
         )
     lines.append("")
 
@@ -487,7 +542,10 @@ def main() -> int:
         json.dumps(
             {
                 "idle_w": idle,
-                "n_complete": len(complete),
+                "n_questions": len(answers),
+                "out_of_memory": dict(ooms),
+                "filled_by_rerun": dict(filled),
+                "still_out_of_memory": dict(still),
                 "accuracy": {a: {"correct": sum(o), "n": len(o)} for a, o in outcomes.items()},
                 "median_media_tokens": {
                     a: statistics.median(v) for a, v in media_tokens.items() if v

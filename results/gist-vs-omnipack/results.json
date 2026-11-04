@@ -1,6 +1,9 @@
 {
   "idle_w": 27.06,
-  "n_complete": 48,
+  "n_questions": 48,
+  "out_of_memory": {},
+  "filled_by_rerun": {},
+  "still_out_of_memory": {},
   "accuracy": {
     "full": {
       "correct": 22,

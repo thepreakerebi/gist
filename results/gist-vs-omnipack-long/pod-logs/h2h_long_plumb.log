@@ -1,0 +1,25 @@
+51 questions across 18 videos; ratios=[0.25, 0.1, 0.04]; flops=False
+device: NVIDIA GeForce RTX 4090 25 GB, torch 2.6.0+cu124, CUDA 12.4
+idle power: 18.61 W
+You have video processor config saved in `preprocessor.json` file which is deprecated. Video processor configs should be saved in their own `video_preprocessor.json` file. You can rename the file or load and save the processor back which renames it automatically. Loading from `preprocessor.json` will be removed in v5.0.
+Unrecognized keys in `rope_scaling` for 'rope_type'='default': {'mrope_section'}
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards:  20%|██        | 1/5 [00:04<00:18,  4.57s/it]Loading checkpoint shards:  40%|████      | 2/5 [00:07<00:10,  3.58s/it]Loading checkpoint shards:  60%|██████    | 3/5 [00:10<00:06,  3.28s/it]Loading checkpoint shards:  80%|████████  | 4/5 [00:11<00:02,  2.56s/it]Loading checkpoint shards: 100%|██████████| 5/5 [00:11<00:00,  2.37s/it]
+Using a slow image processor as `use_fast` is unset and a slow processor was saved with this model. `use_fast=True` will be the default behavior in v4.52, even if the model was saved with a slow processor. This will result in minor differences in outputs. You'll still be able to use a slow processor with `use_fast=False`.
+/root/op452/lib/python3.11/site-packages/librosa/core/audio.py:172: FutureWarning: librosa.core.audio.__audioread_load
+	Deprecated as of librosa version 0.10.0.
+	It will be removed in librosa version 1.0.
+  y, sr_native = __audioread_load(path, offset, duration, dtype)
+qwen-vl-utils using decord to read video.
+[h264 @ 0xf277ca00] mmco: unref short failure
+[h264 @ 0xf277ca00] mmco: unref short failure
+[h264 @ 0xf277ca00] mmco: unref short failure
+[h264 @ 0xf277ca00] mmco: unref short failure
+[h264 @ 0xf277ca00] mmco: unref short failure
+Unused or unrecognized kwargs: images, return_tensors.
+Token indices sequence length is longer than the specified maximum sequence length for this model (78534 > 32768). Running this sequence through the model will result in indexing errors
+Unused or unrecognized kwargs: images, return_tensors.
+867-3 full: 78602 tokens > 32768; not run
+867-3 omnipack_r0.25: OOM in answer
+867-3 gold=B omnipack_r0.1=BY omnipack_r0.04=BY gist=An uniform=BY
+MEASUREMENTS: /root/h2h_long_plumb/measurements.jsonl
+H2H_DONE

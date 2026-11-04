@@ -2,21 +2,21 @@
 
 Device: NVIDIA GeForce RTX 4090, torch 2.6.0+cu124, CUDA 12.4.
 
-Questions answered by every arm: 48 over 17 videos. Idle board power: 27.06 W.
+Questions: 48 over 17 videos. Idle board power: 27.06 W.
 
 Audio heard by every arm: 300 to 300 s of videos lasting 32 to 58 min; the 32 frames span the whole video.
 
 ## Accuracy
 
-| Arm | Correct | 95% CI | Media tokens to the LLM (median) | Share of full | Gist minus arm [95% CI] |
+| Arm | Correct / answered | 95% CI | Media tokens to the LLM (median) | Share of full | Gist minus arm, paired [95% CI] |
 | :-- | --: | :-- | --: | --: | :-- |
-| full | 22/48 | [31.2%, 60.4%] | 9,804 | 100.0% | -6.2% [-16.7%, +2.1%] |
-| omnipack_r0.25 | 22/48 | [31.2%, 60.4%] | 2,451 | 25.0% | -6.2% [-14.6%, +0.0%] |
-| omnipack_r0.2 | 22/48 | [31.2%, 60.4%] | 1,961 | 20.0% | -6.2% [-14.6%, +0.0%] |
-| omnipack_r0.15 | 23/48 | [33.3%, 62.5%] | 1,471 | 15.0% | -8.3% [-16.7%, -2.1%] |
-| omnipack_r0.1 | 20/48 | [27.1%, 56.2%] | 980 | 10.0% | -2.1% [-8.3%, +4.2%] |
+| full | 22/48 | [31.2%, 60.4%] | 9,804 | 100.0% | -6.2% [-16.7%, +2.1%] (n=48) |
+| omnipack_r0.25 | 22/48 | [31.2%, 60.4%] | 2,451 | 25.0% | -6.2% [-14.6%, +0.0%] (n=48) |
+| omnipack_r0.2 | 22/48 | [31.2%, 60.4%] | 1,961 | 20.0% | -6.2% [-14.6%, +0.0%] (n=48) |
+| omnipack_r0.15 | 23/48 | [33.3%, 62.5%] | 1,471 | 15.0% | -8.3% [-16.7%, -2.1%] (n=48) |
+| omnipack_r0.1 | 20/48 | [27.1%, 56.2%] | 980 | 10.0% | -2.1% [-8.3%, +4.2%] (n=48) |
 | gist | 19/48 | [25.0%, 54.2%] | 1,776 | 18.1% |  |
-| uniform | 20/48 | [27.1%, 56.2%] | 1,476 | 15.1% | -2.1% [-10.4%, +6.2%] |
+| uniform | 20/48 | [27.1%, 56.2%] | 1,476 | 15.1% | -2.1% [-10.4%, +6.2%] (n=48) |
 
 ## Cost on the same GPU
 
