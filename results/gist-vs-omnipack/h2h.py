@@ -87,6 +87,11 @@ AUDIO_CAP_SECONDS = int(os.environ.get("H2H_AUDIO_CAP_SECONDS", "0"))
 STAGE1_CHUNK_SECONDS = int(os.environ.get("H2H_STAGE1_CHUNK_SECONDS", "0"))
 # Arms whose prefill would exceed the language model's context are recorded, not run.
 MAX_CONTEXT_OVERRIDE = int(os.environ.get("H2H_MAX_CONTEXT", "0"))
+# Restrict a run to some arms and questions, e.g. to rerun OmniPack's out-of-memory
+# cases with Gist's scorers not loaded (their weights would otherwise share the card).
+ARMS_FILTER = [a for a in os.environ.get("H2H_ARMS", "").split(",") if a]
+QIDS_FILTER = {q for q in os.environ.get("H2H_QIDS", "").split(",") if q}
+NEED_GIST = not ARMS_FILTER or any(a in ("gist", "uniform") for a in ARMS_FILTER)
 # Smoke tests only: check the memory-light assemble against op.assemble on every call.
 CHECK_ASSEMBLE = os.environ.get("H2H_CHECK_ASSEMBLE") == "1"
 
@@ -497,20 +502,29 @@ def main() -> int:
     layers = op.decoder_layers(model)
     if len(layers) <= op.INNER_LAYER:
         op.die(f"insertion layer {op.INNER_LAYER} beyond {len(layers)} decoder layers")
-    with log.measure("load_gist_scorers", scope="setup"):
-        gist = GistSide()
+    gist = None
+    if NEED_GIST:
+        with log.measure("load_gist_scorers", scope="setup"):
+            gist = GistSide()
     if torch.cuda.is_available():
         torch.cuda.synchronize()
         log.note("resident", gb=round(torch.cuda.memory_allocated() / 1e9, 3))
     thinker = model.thinker
 
     arms = ["full"] + [f"omnipack_r{r:g}" for r in RATIOS] + ["gist", "uniform"]
+    if ARMS_FILTER:
+        arms = [a for a in arms if a in ARMS_FILTER]
+    log.note("arms", arms=arms, qids=sorted(QIDS_FILTER), gist_loaded=NEED_GIST)
     verified = not VERIFY_CONTROL
     exactness_checked = False
     warmed = False
     done_videos = 0
 
     for vid, questions in by_vid.items():
+        if QIDS_FILTER:
+            questions = [q for q in questions if q["question_id"] in QIDS_FILTER]
+            if not questions:
+                continue
         if MAX_VIDEOS and done_videos >= MAX_VIDEOS:
             break
         source = f"{VIDDIR}/videomme-{vid}.mp4"
@@ -568,7 +582,11 @@ def main() -> int:
                     f"{visual.shape[0]}/{audio.shape[0]}; the token accounting is wrong"
                 )
 
-            index = gist.ingest(log, vid, media, first, audio_plan, frame_times, COUNT_FLOPS)
+            index = (
+                gist.ingest(log, vid, media, first, audio_plan, frame_times, COUNT_FLOPS)
+                if gist is not None
+                else None
+            )
         except Exception as exc:  # noqa: BLE001 - logged, then the video is skipped
             log_line(f"{vid} prepare: ERR {type(exc).__name__}: {exc}"[:400])
             continue
@@ -616,76 +634,100 @@ def main() -> int:
             layout = op.locate(model, processor, inputs)
             qtag = dict(scope="per_question", qid=qid, video=vid)
 
-            with log.measure("gist_select", method="gist", count_flops=COUNT_FLOPS, **qtag) as rec:
-                chosen_frames, chosen_windows = gist.select(index, item["question"])
-                patches = sorted({f // 2 for f in chosen_frames})
-                segments = sorted(set(chosen_windows))
-                rec.extra.update(
-                    frames=chosen_frames, windows=chosen_windows, patches=patches, segments=segments
-                )
-            uni_patches = evenly(n_patches, len(patches))
-            uni_segments = evenly(len(audio_plan), len(segments))
-
-            unit_choice = {"gist": (patches, segments), "uniform": (uni_patches, uni_segments)}
-            unit_tokens = {}
-            for arm, (pp, ss) in unit_choice.items():
+            if gist is None:
+                if not warmed:
+                    v_out, a_out = compressed[min(RATIOS)]
+                    op.generate(
+                        model,
+                        processor,
+                        assemble(
+                            model,
+                            layout,
+                            v_out.embeds,
+                            a_out.embeds,
+                            v_out.kept_index,
+                            a_out.kept_index,
+                        ),
+                        op.Stage2Stats() if op.USE_STAGE2 else None,
+                    )
+                    warmed = True
+                unit_choice, unit_tokens = {}, {}
+            if gist is not None:
                 with log.measure(
-                    "encode_units", method=arm, count_flops=COUNT_FLOPS, **qtag
+                    "gist_select", method="gist", count_flops=COUNT_FLOPS, **qtag
                 ) as rec:
-                    v_sel, a_sel = encode_units(thinker, inputs, pp, ss, audio_plan)
+                    chosen_frames, chosen_windows = gist.select(index, item["question"])
+                    patches = sorted({f // 2 for f in chosen_frames})
+                    segments = sorted(set(chosen_windows))
                     rec.extra.update(
+                        frames=chosen_frames,
+                        windows=chosen_windows,
+                        patches=patches,
+                        segments=segments,
+                    )
+                uni_patches = evenly(n_patches, len(patches))
+                uni_segments = evenly(len(audio_plan), len(segments))
+
+                unit_choice = {"gist": (patches, segments), "uniform": (uni_patches, uni_segments)}
+                unit_tokens = {}
+                for arm, (pp, ss) in unit_choice.items():
+                    with log.measure(
+                        "encode_units", method=arm, count_flops=COUNT_FLOPS, **qtag
+                    ) as rec:
+                        v_sel, a_sel = encode_units(thinker, inputs, pp, ss, audio_plan)
+                        rec.extra.update(
+                            patches=len(pp),
+                            segments=len(ss),
+                            mel_frames=sum(audio_plan[i][1] - audio_plan[i][0] for i in ss),
+                            visual_tokens=int(v_sel.shape[0]),
+                            audio_tokens=int(a_sel.shape[0]),
+                        )
+                    unit_tokens[arm] = (
+                        v_sel,
+                        a_sel,
+                        keep_index(pp, visual_sizes),
+                        keep_index(ss, audio_sizes),
+                    )
+
+                for arm, (pp, ss) in unit_choice.items():
+                    if exactness_checked or not (pp and ss):
+                        continue
+                    v_sel, a_sel, vk, ak = unit_tokens[arm]
+                    vdiff = float(
+                        (v_sel.float().to(visual.device) - visual[vk.to(visual.device)].float())
+                        .abs()
+                        .max()
+                    )
+                    adiff = float(
+                        (a_sel.float().to(audio.device) - audio[ak.to(audio.device)].float())
+                        .abs()
+                        .max()
+                    )
+                    log.note(
+                        "exactness",
+                        video=vid,
+                        qid=qid,
+                        arm=arm,
                         patches=len(pp),
                         segments=len(ss),
-                        mel_frames=sum(audio_plan[i][1] - audio_plan[i][0] for i in ss),
-                        visual_tokens=int(v_sel.shape[0]),
-                        audio_tokens=int(a_sel.shape[0]),
+                        visual_max_abs_diff=vdiff,
+                        audio_max_abs_diff=adiff,
                     )
-                unit_tokens[arm] = (
-                    v_sel,
-                    a_sel,
-                    keep_index(pp, visual_sizes),
-                    keep_index(ss, audio_sizes),
-                )
+                    log_line(
+                        f"exactness ({arm}): unit vs full encoding, max |diff| "
+                        f"visual={vdiff:.3g} audio={adiff:.3g}"
+                    )
+                    exactness_checked = True
 
-            for arm, (pp, ss) in unit_choice.items():
-                if exactness_checked or not (pp and ss):
-                    continue
-                v_sel, a_sel, vk, ak = unit_tokens[arm]
-                vdiff = float(
-                    (v_sel.float().to(visual.device) - visual[vk.to(visual.device)].float())
-                    .abs()
-                    .max()
-                )
-                adiff = float(
-                    (a_sel.float().to(audio.device) - audio[ak.to(audio.device)].float())
-                    .abs()
-                    .max()
-                )
-                log.note(
-                    "exactness",
-                    video=vid,
-                    qid=qid,
-                    arm=arm,
-                    patches=len(pp),
-                    segments=len(ss),
-                    visual_max_abs_diff=vdiff,
-                    audio_max_abs_diff=adiff,
-                )
-                log_line(
-                    f"exactness ({arm}): unit vs full encoding, max |diff| "
-                    f"visual={vdiff:.3g} audio={adiff:.3g}"
-                )
-                exactness_checked = True
-
-            if not warmed:
-                v_sel, a_sel, vk, ak = unit_tokens["uniform"]
-                op.generate(
-                    model,
-                    processor,
-                    assemble(model, layout, v_sel, a_sel, vk, ak),
-                    None,
-                )
-                warmed = True
+                if not warmed:
+                    v_sel, a_sel, vk, ak = unit_tokens["uniform"]
+                    op.generate(
+                        model,
+                        processor,
+                        assemble(model, layout, v_sel, a_sel, vk, ak),
+                        None,
+                    )
+                    warmed = True
 
             answers: dict[str, str] = {}
             for arm in arms:
@@ -764,7 +806,7 @@ def main() -> int:
                             "video": vid,
                             "gold": gold,
                             **answers,
-                            "gist_units": [patches, segments],
+                            "gist_units": list(unit_choice.get("gist", ())),
                         }
                     )
                     + "\n"
