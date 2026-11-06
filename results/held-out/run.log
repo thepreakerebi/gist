@@ -1,0 +1,34 @@
+[1/12] paul-graham-startup-killer
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 69799.84it/s]
+[2/12] paul-graham-yc-support
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 39771.59it/s]
+[3/12] kinect-opening-title
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 40736.30it/s]
+[4/12] kinect-person-demo
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 92926.57it/s]
+[5/12] kinect-post-interface-title
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 62707.37it/s]
+[6/12] paul-graham-startup-ideas-unconsciously
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 41851.56it/s]
+[7/12] night-of-the-living-dead-nasa-conference
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 53523.13it/s]
+[8/12] night-of-the-living-dead-killings-locations
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 101584.19it/s]
+[9/12] nasa-sts115-p3p4-truss-newest-element
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 42594.80it/s]
+[10/12] nasa-sts115-solar-wing-dimensions
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 76072.41it/s]
+[11/12] history-augustus-birthplace-palatine
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 65343.60it/s]
+[12/12] art-history-high-renaissance-big-three
+Loading weights:   0%|          | 0/398 [00:00<?, ?it/s]Loading weights: 100%|██████████| 398/398 [00:00<00:00, 43610.77it/s]
+cases=12
+full_gist: pass_rate=58% (7/12), answer_recall=0.67, evidence_relevance=0.88, timestamp_hit=0.83, grounded=0.75, token_reduction=99.89%
+full_gist_no_heuristics: pass_rate=58% (7/12), answer_recall=0.67, evidence_relevance=0.88, timestamp_hit=0.83, grounded=0.75, token_reduction=99.89%
+visual_only: pass_rate=8% (1/12), answer_recall=0.17, evidence_relevance=0.47, timestamp_hit=0.42, grounded=0.42, token_reduction=99.41%
+transcript_only: pass_rate=58% (7/12), answer_recall=0.66, evidence_relevance=0.75, timestamp_hit=0.58, grounded=0.83, token_reduction=99.98%
+score_topk: pass_rate=0% (0/12), answer_recall=0.00, evidence_relevance=0.25, timestamp_hit=0.25, grounded=0.92, token_reduction=99.77%
+split_even: pass_rate=0% (0/12), answer_recall=0.00, evidence_relevance=0.25, timestamp_hit=0.25, grounded=1.00, token_reduction=99.79%
+split_intent: pass_rate=67% (8/12), answer_recall=0.69, evidence_relevance=0.75, timestamp_hit=0.67, grounded=1.00, token_reduction=99.93%
+split_intent_sep: pass_rate=67% (8/12), answer_recall=0.69, evidence_relevance=0.75, timestamp_hit=0.67, grounded=1.00, token_reduction=99.93%
+uniform: pass_rate=17% (2/12), answer_recall=0.22, evidence_relevance=0.50, timestamp_hit=0.42, grounded=0.75, token_reduction=99.83%

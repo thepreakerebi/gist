@@ -100,7 +100,7 @@ gist/
 
 ### Scope alignment
 
-Of the proposal's planned features, the five ablatable compression components, the evaluation harness, the uniform and single-modality baselines, the OmniZip head-to-head and single-GPU execution are complete. Measured wall-clock and peak memory, the OmniScope head-to-head, the held-out split and the full-size corpus are partial. VideoLLaMA2 as a second answering model and the SigLIP scorer comparison were not implemented. The full table, with the evidence and the justification for each change, is in [`docs/scope-alignment.md`](docs/scope-alignment.md).
+Of the proposal's planned features, the five ablatable compression components, the evaluation harness, the uniform and single-modality baselines, the OmniZip head-to-head and single-GPU execution are complete. Measured wall-clock and peak memory and the one execution of the held-out split are complete; the OmniScope head-to-head and the full-size corpus are partial. VideoLLaMA2 as a second answering model and the SigLIP scorer comparison were not implemented. The full table, with the evidence and the justification for each change, is in [`docs/scope-alignment.md`](docs/scope-alignment.md).
 
 ### Designs — application interfaces
 
@@ -159,6 +159,7 @@ Against the uniform 8-frame input that reached the same accuracy, Gist needed 36
 | Web performance and network | Lighthouse and the user flow under emulated slow networks ([`results/web-performance/`](results/web-performance/README.md)) | accessibility, best practices, SEO 100; flow completes on Slow 3G; video page LCP was 3.2 s on a throttled phone, 1.58 s after the fix |
 | Edge cases | 11 unusual videos and questions through the real library path ([`results/edge-cases/`](results/edge-cases/README.md)) | all complete or are rejected with a clear message; one silent defect found and fixed; Gist never abstains, documented |
 | Performance, tail latency | P50, P95, P99 and error rate per stage against stated budgets ([`results/efficiency-measured/latency.md`](results/efficiency-measured/latency.md)) | answer stage and ingestion within budget; cached selection P95 and the answer-stage error rate over budget, both explained there |
+| Validation, unseen data | the frozen 12-case held-out split, run once ([`results/held-out/`](results/held-out/README.md)) | full Gist 58.3% [33.3, 83.3] against 82.6% on dev; still ahead of uniform, visual-only and top-k |
 | Validation / performance | benchmark runs against pre-registered thresholds of the proposal's Objective 3 | accuracy parity, 96.8% fewer encoded items than dense input, 86% timestamp hit rate, unquantised 7B on one 24 GB GPU |
 
 Details, environments and the failures found are in the [technical report](https://drive.google.com/file/d/1R2R95hpZR54pH9dWlRwwmzN0IdNpY0zU/view?usp=sharing).

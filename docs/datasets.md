@@ -219,8 +219,10 @@ sides.
 
 **The held-out side is untouched.** All four withdrawn cases were dev cases, so
 held-out is the same 12 cases over the same 6 recordings frozen on 5 September,
-with the same fingerprint `6568af1cd5cfc5d1`. It has still never been executed.
-Only `corpus_fingerprint` was recut, because the corpus itself changed.
+with the same fingerprint `6568af1cd5cfc5d1`. Only `corpus_fingerprint` was recut,
+because the corpus itself changed. The held-out split was executed once, on
+2026-11-06, after verifying both fingerprints; the result is in
+[`results/held-out/`](../results/held-out/README.md).
 
 **One requirement is not met, and is recorded rather than hidden.** The corpus now
 holds exactly one `mixed_av` case and it sits in held-out, so the dev side cannot
