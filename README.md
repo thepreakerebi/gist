@@ -164,6 +164,8 @@ Against the uniform 8-frame input that reached the same accuracy, Gist needed 36
 
 Details, environments and the failures found are in the [technical report](https://drive.google.com/file/d/1R2R95hpZR54pH9dWlRwwmzN0IdNpY0zU/view?usp=sharing).
 
+The technical report is the version submitted on 22 October 2026 and is kept unchanged as that record. System testing added since then is documented in the repository: functional test cases with evidence ([`docs/testing/functional-tests.md`](docs/testing/functional-tests.md)), load ([`results/load-test/`](results/load-test/README.md)), web performance and network conditions ([`results/web-performance/`](results/web-performance/README.md)), edge cases ([`results/edge-cases/`](results/edge-cases/README.md)), tail latency ([`results/efficiency-measured/latency.md`](results/efficiency-measured/latency.md)) and the held-out cases reported separately ([`results/held-out/`](results/held-out/README.md)). Two figures in the report have changed since: the suite is now 550 passed and 8 skipped (558 with the model tests), and the held-out split, listed there as not yet run, had in fact been run inside the 35-case ablation; it is now reported separately.
+
 ### Deployment plan
 
 The application is fully environment-configurable already (`DATABASE_URL`, `TWELVELABS_API_KEY`, `GIST_CORS_ORIGINS`, `NEXT_PUBLIC_GIST_API`); no code changes are required to deploy. Because a hosted multimodal model answers in the demo, **Qwen2.5-Omni-7B is never deployed** — it stays offline for the measured research runs. The server needs only CLIP (1.1 GB), CLAP (1.1 GB), faster-whisper base int8 (141 MB) and the torch venv (1.1 GB): about **4 GB RAM**, plus roughly 50–100 MB of disk per ingested video at 360p.
