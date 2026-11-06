@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 from gist.media.models import ExtractedFrame
+from gist.model_revisions import pinned_revision
 from gist.vision.errors import VisualScoringError
 from gist.vision.scene import FrameEmbedding
 
@@ -38,6 +39,7 @@ class HuggingFaceClipFrameScorer:
             raise ValueError("batch_size must be greater than zero")
 
         self.model_name = model_name
+        self.revision = pinned_revision(model_name)
         self.device = device
         self.batch_size = batch_size
         self._model: Any | None = None
@@ -176,15 +178,18 @@ class HuggingFaceClipFrameScorer:
         try:
             self._processor = CLIPProcessor.from_pretrained(
                 self.model_name,
+                revision=self.revision,
                 local_files_only=True,
             )
         except OSError:
             image_processor = CLIPImageProcessor.from_pretrained(
                 self.model_name,
+                revision=self.revision,
                 local_files_only=True,
             )
             tokenizer = CLIPTokenizer.from_pretrained(
                 self.model_name,
+                revision=self.revision,
                 local_files_only=True,
             )
             self._processor = _ClipProcessorCompat(
@@ -194,10 +199,13 @@ class HuggingFaceClipFrameScorer:
         try:
             self._model = CLIPModel.from_pretrained(
                 self.model_name,
+                revision=self.revision,
                 local_files_only=True,
             ).to(selected_device)
         except OSError:
-            self._model = CLIPModel.from_pretrained(self.model_name).to(selected_device)
+            self._model = CLIPModel.from_pretrained(
+                self.model_name, revision=self.revision
+            ).to(selected_device)
         self._model.eval()
 
     def _load_image(self, path: Path) -> Any:

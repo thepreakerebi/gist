@@ -25,6 +25,7 @@ from typing import Any
 
 from gist.audio.errors import AudioTranscriptionError
 from gist.media.models import AudioWindow
+from gist.model_revisions import pinned_revision
 
 # ClapFeatureExtractor for the *unfused* checkpoint defaults to
 # truncation="rand_trunc": any window longer than 10 s is reduced to a RANDOM
@@ -70,6 +71,7 @@ class HuggingFaceClapAudioScorer:
             raise ValueError("batch_size must be greater than zero")
 
         self.model_name = model_name
+        self.revision = pinned_revision(model_name)
         self.device = device
         self.batch_size = batch_size
         self._model: Any | None = None
@@ -215,12 +217,14 @@ class HuggingFaceClapAudioScorer:
         selected_device = self.device or ("cuda" if torch.cuda.is_available() else "cpu")
         self._numpy = numpy
         self._torch = torch
-        self._processor = ClapProcessor.from_pretrained(self.model_name)
+        self._processor = ClapProcessor.from_pretrained(self.model_name, revision=self.revision)
         # transformers 5 calls the argument `audio`; 4.x, the pin the OmniPack
         # harness shares, calls it `audios` and silently drops `audio`.
         params = inspect.signature(self._processor.__call__).parameters
         self._audio_kwarg = "audios" if "audios" in params else "audio"
-        self._model = ClapModel.from_pretrained(self.model_name).to(selected_device)
+        self._model = ClapModel.from_pretrained(self.model_name, revision=self.revision).to(
+            selected_device
+        )
         self._model.eval()
 
     def _resample_48k(self, audio: Any, orig_sr: int = 16000) -> Any:

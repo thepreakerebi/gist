@@ -23,6 +23,7 @@ from gist.audio.clap import HuggingFaceClapAudioScorer
 from gist.audio.errors import AudioTranscriptionError
 from gist.audio.whisper import FasterWhisperTranscriber
 from gist.media.models import AudioWindow
+from gist.model_revisions import pinned_revision
 
 _SPEECH_PROBE = "a voice speaking"
 _AMBIENT_PROBE = "ambient sound"
@@ -50,7 +51,9 @@ class SentenceTransformerEmbedder:
                 "The speech dispatcher needs sentence embeddings. "
                 "Install with: pip install -e '.[audio]'"
             ) from exc
-        self._model = SentenceTransformer(self.model_name)
+        self._model = SentenceTransformer(
+            self.model_name, revision=pinned_revision(self.model_name)
+        )
 
     def encode(self, texts: list[str]) -> Any:
         self._load()

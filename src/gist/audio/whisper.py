@@ -17,6 +17,7 @@ from typing import Any
 
 from gist.audio.errors import AudioTranscriptionError
 from gist.media.models import AudioWindow
+from gist.model_revisions import pinned_revision, whisper_repo
 
 _TRANSCRIPT_CACHE: dict[tuple[str, str, str, str, str, int, int], str] = {}
 
@@ -154,6 +155,9 @@ class FasterWhisperTranscriber:
             self.model_size,
             device=self.device,
             compute_type=self.compute_type,
+            # A size name resolves to a Systran repository; a local path has no
+            # repository, so pinned_revision returns None and the path loads as is.
+            revision=pinned_revision(whisper_repo(self.model_size)),
         )
 
     def _cache_key(self, path: Path) -> tuple[str, str, str, str, str, int, int]:

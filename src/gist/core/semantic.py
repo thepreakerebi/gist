@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from gist.core.schemas import Candidate
+from gist.model_revisions import pinned_revision
 
 
 class SentenceEmbedder(Protocol):
@@ -39,7 +40,9 @@ class SentenceTransformerEmbedder:
                 "Semantic span selection needs sentence embeddings. "
                 "Install with: pip install -e '.[audio]'"
             ) from exc
-        self._model = SentenceTransformer(self.model_name)
+        self._model = SentenceTransformer(
+            self.model_name, revision=pinned_revision(self.model_name)
+        )
 
     def encode(self, texts: list[str]) -> Any:
         self._load()
