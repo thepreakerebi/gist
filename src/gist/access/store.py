@@ -9,7 +9,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from gist.access.codes import generate_code, generate_session_token, hash_secret, normalize_code
-from gist.db.connection import cursor
+from gist.db.connection import connection, cursor
 
 SESSION_LIFETIME = timedelta(days=1)
 # Questions a non-admin code may ask per day.
@@ -136,6 +136,52 @@ def transfer_videos(from_code_id: str, to_code_id: str) -> int:
             {"from": from_code_id, "to": to_code_id},
         )
         return cur.rowcount
+
+
+def replace_code(old_code_id: str) -> tuple[str, str, int]:
+    """Replace a lost code: issue a new one, move the videos to it, revoke the old one.
+
+    The new code keeps the old one's label, role and expiry date, so a 30-day
+    code does not become permanent by being replaced. Returns
+    ``(display_code, new_code_id, videos_moved)``. All three steps happen in one
+    transaction: either the person has a working new code holding their
+    videos, or nothing changed.
+    """
+
+    code = generate_code()
+    with connection() as conn, conn.transaction(), conn.cursor() as cur:
+        cur.execute(
+            "select label, is_admin, expires_at from access_codes where id = %s",
+            (old_code_id,),
+        )
+        old = cur.fetchone()
+        if old is None:
+            raise LookupError(f"no code with id {old_code_id}")
+
+        cur.execute(
+            """
+            insert into access_codes (code_hash, label, is_admin, expires_at)
+            values (%s, %s, %s, %s) returning id
+            """,
+            (
+                hash_secret(normalize_code(code) or ""),
+                old["label"],
+                old["is_admin"],
+                old["expires_at"],
+            ),
+        )
+        new_code_id = str(cur.fetchone()["id"])
+        cur.execute(
+            "update videos set owner_code_id = %s where owner_code_id = %s",
+            (new_code_id, old_code_id),
+        )
+        moved = cur.rowcount
+        cur.execute(
+            "update access_codes set revoked_at = coalesce(revoked_at, now()) where id = %s",
+            (old_code_id,),
+        )
+        cur.execute("delete from sessions where code_id = %s", (old_code_id,))
+    return code, new_code_id, moved
 
 
 def claim_unowned_videos(code_id: str) -> int:

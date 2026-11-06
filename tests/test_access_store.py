@@ -113,6 +113,30 @@ def test_videos_are_per_owner_and_transfer_to_a_replacement_code() -> None:
     assert repo.get_video(a.id).owner_code_id == replacement
 
 
+def test_replacing_a_lost_code_keeps_the_videos_and_revokes_the_old_one() -> None:
+    expires = datetime.now(UTC) + timedelta(days=30)
+    old_code, old_id = store.create_code("Marvin", expires_at=expires)
+    token, _ = store.login(old_code) or ("", None)
+    video = _add("https://lost", old_id)
+
+    new_code, new_id, moved = store.replace_code(old_id)
+
+    assert moved == 1 and new_code != old_code
+    assert repo.get_video(video.id).owner_code_id == new_id
+    assert store.login(old_code) is None
+    assert store.principal_for_token(token) is None
+    signed_in = store.login(new_code)
+    assert signed_in and signed_in[1] == store.Principal(new_id, "Marvin", False)
+    replaced = next(row for row in store.list_codes() if row.id == new_id)
+    assert replaced.expires_at == expires  # replacing does not extend a code's life
+
+
+def test_replacing_an_unknown_code_changes_nothing() -> None:
+    with pytest.raises(LookupError):
+        store.replace_code("00000000-0000-0000-0000-000000000000")
+    assert store.list_codes() == []
+
+
 def test_an_admin_claims_videos_from_before_codes_existed() -> None:
     with db.cursor() as cur:
         cur.execute(

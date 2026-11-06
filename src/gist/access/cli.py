@@ -1,14 +1,16 @@
-"""``gist-access``: issue, list, revoke and transfer access codes.
+"""``gist-access``: issue, list, revoke, transfer and replace access codes.
 
     gist-access create --label "Marvin" [--expires-days 30]
     gist-access create --label "Elvis" --admin
     gist-access list
     gist-access revoke <code id>
     gist-access transfer <from code id> <to code id>
+    gist-access replace <code id>
 
 A code is printed once, at creation, and cannot be shown again: only its hash
-is stored. A lost code is replaced by creating a new one and transferring the
-old one's videos to it. Code ids may be shortened to any unique prefix, as
+is stored. A lost code is therefore replaced rather than recovered: ``replace``
+issues a new code with the same label, role and expiry, moves every video to
+it and revokes the old one. Code ids may be shortened to any unique prefix, as
 ``list`` prints them.
 """
 
@@ -81,6 +83,15 @@ def _transfer(args: argparse.Namespace) -> int:
     return 0
 
 
+def _replace(args: argparse.Namespace) -> int:
+    old_id = store.resolve_code_id(args.code_id)
+    code, new_id, moved = store.replace_code(old_id)
+    print(f"New code, replacing {old_id[:8]}:\n\n    {code}\n")
+    print("Hand this over directly. It is not stored and cannot be shown again.")
+    print(f"id {new_id[:8]}. Moved {moved} video(s); the old code is revoked and signed out.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="gist-access", description=__doc__.split("\n")[0])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -101,6 +112,12 @@ def main(argv: list[str] | None = None) -> int:
     transfer.add_argument("from_code_id")
     transfer.add_argument("to_code_id")
     transfer.set_defaults(run=_transfer)
+
+    replace = commands.add_parser(
+        "replace", help="replace a lost code: new code, same videos, old one revoked"
+    )
+    replace.add_argument("code_id")
+    replace.set_defaults(run=_replace)
 
     args = parser.parse_args(argv)
     load_dotenv()

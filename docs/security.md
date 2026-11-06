@@ -13,7 +13,8 @@ uv run gist-access create --label "Me" --admin   # admin: sees every video, no d
 uv run gist-access create --label "Marvin" --expires-days 30
 uv run gist-access list
 uv run gist-access revoke <id>                   # ends its sessions at once; videos are kept
-uv run gist-access transfer <old id> <new id>    # replace a lost code, keeping its videos
+uv run gist-access replace <id>                  # lost code: new code, same videos, old one revoked
+uv run gist-access transfer <old id> <new id>    # move videos between two existing codes
 ```
 
 A code looks like `GIST-7K3M-QX9P-R2TA-H8WD`: 16 characters from Crockford's
@@ -23,7 +24,10 @@ ownership of any videos added before access codes existed.
 
 Only SHA-256 digests of codes and session tokens are stored
 (`src/gist/access/codes.py`), so a copy of the database does not let anyone
-sign in, and a lost code cannot be recovered, only replaced.
+sign in, and a lost code cannot be recovered, only replaced. `replace` does that
+in one transaction: a new code with the same label, role and expiry date, every
+video moved to it, and the old code revoked with its sessions ended. The new
+code starts the day with a fresh question count.
 
 ## Sessions
 
