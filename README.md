@@ -51,8 +51,8 @@ cp .env.example .env                 # fill in DATABASE_URL and TWELVELABS_API_K
 ./scripts/sync-dev.sh                # uv sync with every model extra; a bare `uv sync` prunes torch/transformers
 brew install ffmpeg                  # or the platform equivalent
 
-uv run pytest                        # 538 passed, 8 skipped (model-loading tests)
-GIST_RUN_SLOW_MODEL_TESTS=1 uv run pytest   # also loads real CLIP, CLAP and Whisper: 546 passed
+uv run pytest                        # 550 passed, 8 skipped (model-loading tests)
+GIST_RUN_SLOW_MODEL_TESTS=1 uv run pytest   # also loads real CLIP, CLAP and Whisper: 558 passed
 ```
 
 ### Running
@@ -151,8 +151,8 @@ Against the uniform 8-frame input that reached the same accuracy, Gist needed 36
 
 | Strategy | What it covers | Result |
 | :------- | :------------- | :----- |
-| Unit | selection logic, scoring, budget ladder, tail merging, decomposition, presets (`tests/`) | 538 passed, 8 skipped, 77% line coverage |
-| Integration | FastAPI endpoints via the test client; real CLIP, CLAP and Whisper loaded (`GIST_RUN_SLOW_MODEL_TESTS=1`); stored-embedding scores equal live scores to 1e-5 | 546 passed |
+| Unit | selection logic, scoring, budget ladder, tail merging, decomposition, presets (`tests/`) | 550 passed, 8 skipped, 77% line coverage |
+| Integration | FastAPI endpoints via the test client; real CLIP, CLAP and Whisper loaded (`GIST_RUN_SLOW_MODEL_TESTS=1`); stored-embedding scores equal live scores to 1e-5 | 558 passed |
 | Functional / system | end-to-end ingestion and question answering in the web app on 36- and 49-minute recordings | grounded answers, adaptive escalation, one documented selection failure |
 | Functional, automated | 17 Playwright cases from user stories: library, ingestion, questions, evidence and clips, history, removal, error messages, offline fallback ([`docs/testing/functional-tests.md`](docs/testing/functional-tests.md)) | 17 passed after fixing the 2 defects the suite found |
 | Load | k6, concurrent users against the library API on a laptop ([`results/load-test/`](results/load-test/README.md)) | 0% errors at every level; within budget up to 25 users asking different questions, breaking point 50; one defect found and fixed |
