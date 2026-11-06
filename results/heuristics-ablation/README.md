@@ -134,10 +134,10 @@ These numbers are **development** numbers. A grouped held-out split
 (`data/eval/splits/held-out.json`) was frozen on 2026-09-05: 12 cases across six
 recordings that appear nowhere in the dev split, weighted toward
 `speech_semantic` because that is the stratum where cross-modal arbitration is
-load-bearing. It is deliberately **not executed here**; it was run once, after
-development was complete, on 2026-11-06. Result in
-[`../held-out/`](../held-out/README.md): full Gist 58.3% (7/12) against 82.6% on
-the 23 dev cases.
+load-bearing. It was meant not to be executed here, but this ablation runs all 35
+cases, so the 12 held-out cases are inside the figures above (7 of 12 pass under
+full Gist). Reported separately in [`../held-out/`](../held-out/README.md): full
+Gist 58.3% (7/12) on the held-out recordings against 82.6% on the 23 dev cases.
 
 Restricting the ablation to the 27 dev cases gives the same picture
 (`reports/bootstrap-dev.md`): full Gist 74.1%, heuristics-off 70.4% (−3.7 pp,

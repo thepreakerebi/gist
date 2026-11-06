@@ -19,7 +19,7 @@ table row whose raw data existed only on one laptop.
 | `load-test/` | k6 load test of the library API, laptop CPU: browsing holds 200 users, 40 different questions hold 25 users and break at 50 (P95 5.5 s). Found and fixed the encoders reloading on every question | yes |
 | `web-performance/` | Lighthouse on both pages and the main flow under emulated Fast 4G, Slow 4G and Slow 3G: every flow completes on Slow 3G; the video page missed the 2.5 s LCP target on a throttled phone (3.2 s); server-rendering it brought that to 1.58 s | yes |
 | `edge-cases/` | Silent, no-audio, music-only, French, 3-second and static videos, and unanswerable, Chinese, emoji, very long and blank questions, through the real library path. Nothing crashed; one silent defect found and fixed (long questions dropped every audio score) | yes |
-| `held-out/` | The frozen 12-case held-out split, executed once (2026-11-06): full Gist 58.3% [33.3, 83.3] against 82.6% on dev; ahead of uniform, visual-only and top-k; tied with transcript-only | yes |
+| `held-out/` | The 12 cases held out by recording, reported separately (2026-11-06): full Gist 58.3% [33.3, 83.3] against 82.6% on dev; ahead of uniform, visual-only and top-k; tied with transcript-only. Not a clean unseen test: these cases were also run inside both 35-case ablations | yes |
 | `fetch_videos.py` | Shared video fetcher for every runner above | — |
 
 ## Suggested order on a fresh pod

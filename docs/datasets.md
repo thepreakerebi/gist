@@ -220,8 +220,10 @@ sides.
 **The held-out side is untouched.** All four withdrawn cases were dev cases, so
 held-out is the same 12 cases over the same 6 recordings frozen on 5 September,
 with the same fingerprint `6568af1cd5cfc5d1`. Only `corpus_fingerprint` was recut,
-because the corpus itself changed. The held-out split was executed once, on
-2026-11-06, after verifying both fingerprints; the result is in
+because the corpus itself changed. The split was documented here as never
+executed, which was not accurate: both full-corpus ablations (2026-09-05, n=39;
+2026-09-22, n=35) ran all cases, held-out included. Its separate report, and
+what that means for reading it, is in
 [`results/held-out/`](../results/held-out/README.md).
 
 **One requirement is not met, and is recorded rather than hidden.** The corpus now

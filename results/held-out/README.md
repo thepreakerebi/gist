@@ -1,12 +1,29 @@
-# Held-out split: the one execution
+# Held-out split, reported separately
 
 The frozen held-out split (`data/eval/splits/held-out.json`, frozen 2026-09-05)
-run once, on 2026-11-06, at commit `da0661e`. Twelve cases over six recordings
-that appear nowhere in the dev split, so no part of Gist was tuned on them. The
+run on its own on 2026-11-06, at commit `da0661e`. Twelve cases over six
+recordings that appear nowhere in the dev split. The
 measure is the same as the dev ablation in `../heuristics-ablation/`: whether the
 selected evidence passes each case's thresholds (answer and evidence terms,
 relevance, reference timestamp window, grounding, budget). No answering model is
 involved, and the run used a laptop CPU.
+
+## These cases were not unseen
+
+The split was documented as never executed. That was not true. Both full-corpus
+ablations, on 2026-09-05 (n=39, the day the split was frozen, commit `c8bbf61`)
+and on 2026-09-22 (n=35, commit `054e118`), ran all 35 cases, these 12 included,
+and their outcomes have been in the committed results since. The 74.3% headline
+(26/35) is 19 of 23 dev cases plus these 7 of 12. This run reproduces those 7 of
+12 exactly.
+
+So this is a split held out **by recording** and reported separately, not a test
+on data no one had seen. The repository does not record whether any design
+decision after 2026-09-05 was influenced by these cases' outcomes; the
+documented changes since then (CLAP determinism, withdrawing the looped
+recording, the split-budget ablation) were made for reasons stated in their own
+commits. Read the numbers below as a by-recording breakdown with that caveat,
+not as a clean generalisation estimate.
 
 ## Checks before the run
 
@@ -36,14 +53,14 @@ output in `ablation-held-out.json`.
 
 ## Reading it
 
-**Full Gist passes 7 of 12 unseen cases, against 19 of 23 on the dev split.**
+**Full Gist passes 7 of 12 held-out cases, against 19 of 23 on the dev split.**
 The drop of about 24 points is large, and with 12 cases the interval is wide:
 33% to 83%. The dev figure lies inside that interval, so the data cannot say how
 much of the drop is overfitting to the dev cases and how much is these six
 recordings being harder. It does say the dev figure should not be quoted as
 Gist's expected performance on new video.
 
-**What holds on unseen data.** Full Gist beats uniform sampling by 41.7 points,
+**What holds on the held-out recordings.** Full Gist beats uniform sampling by 41.7 points,
 visual-only by 50 and relevance-only top-k by 58.3, and none of those intervals
 reaches zero. The coverage heuristics again change nothing (100% agreement), as
 on the dev split.
@@ -69,8 +86,8 @@ On a talking-head recording, a CLIP frame of the people speaking can outscore
 the speech window at the same moment, and when the budget is one item the
 arbitration picks the picture. Gist found the moment and then kept the wrong
 modality of it. This is the clearest target for future work, but it is not
-changed here: tuning the arbitration now would be tuning on the held-out split,
-and this split cannot be run a second time as an unseen test.
+changed here: tuning the arbitration on these cases would make them dev cases.
+A clean test of any such change needs recordings that have never been run.
 
 ## Reproduce
 
