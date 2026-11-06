@@ -115,7 +115,7 @@ class HuggingFaceClapAudioScorer:
             audio_arrays = [self._resample_48k(self._read_wav(window.path)) for window in batch]
             with _deterministic_truncation(self._numpy, self._torch):
                 inputs = self._processor(
-                    text=list(prompts),
+                    text=[self._fit_prompt(prompt) for prompt in prompts],
                     **{self._audio_kwarg: audio_arrays},
                     sampling_rate=48000,
                     return_tensors="pt",
@@ -175,6 +175,30 @@ class HuggingFaceClapAudioScorer:
 
         return embeddings
 
+    def _fit_prompt(self, prompt: str) -> str:
+        """Shorten a prompt that exceeds CLAP's text encoder, leave any other untouched.
+
+        The RoBERTa text tower has 512 positions. A longer prompt raised an index
+        error inside the model; ``embed_query`` caught it and the question was
+        answered with every audio candidate unscored, silently, on lexical overlap
+        alone. Found by the edge-case run (results/edge-cases/) with a question of
+        about 2,000 characters.
+
+        Truncation happens here rather than through ``truncation=True`` on the
+        processor call, because in ``score_windows`` the processor also receives
+        audio, and its feature extractor has its own ``truncation`` setting that
+        decides which excerpt of a long window is heard. A prompt within the limit
+        is returned byte-identical, so no existing score changes.
+        """
+        assert self._processor is not None
+        tokenizer = self._processor.tokenizer
+        limit = min(int(tokenizer.model_max_length), 512)
+        ids = tokenizer(prompt, add_special_tokens=True)["input_ids"]
+        if len(ids) <= limit:
+            return prompt
+        body = tokenizer(prompt, add_special_tokens=False)["input_ids"]
+        return tokenizer.decode(body[: limit - 2])
+
     def embed_text(self, text: str) -> list[float]:
         """Embed a query into CLAP's shared space, for comparison with stored windows."""
 
@@ -188,7 +212,7 @@ class HuggingFaceClapAudioScorer:
 
         # Same prompt template score_windows uses, so a stored-embedding score is
         # numerically comparable with a live one.
-        prompt = f"the sound of: {text.strip()}"
+        prompt = self._fit_prompt(f"the sound of: {text.strip()}")
         inputs = self._processor(text=[prompt], return_tensors="pt", padding=True)
         inputs = {key: value.to(self._model.device) for key, value in inputs.items()}
 
