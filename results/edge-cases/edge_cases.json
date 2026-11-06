@@ -1,0 +1,813 @@
+{
+  "generated": "2026-11-06T09:50:39",
+  "cases": [
+    {
+      "case": "silent",
+      "label": "Silent audio track",
+      "ingestion": {
+        "video_id": "f4d1fe71-343a-49ef-81ef-525a834f2df1",
+        "status": "ready",
+        "error": null,
+        "duration_seconds": 60.0,
+        "frames": 128,
+        "audio_windows": 2,
+        "ingest_seconds": 54.2
+      },
+      "answers": [
+        {
+          "query": "What does the speaker say?",
+          "seconds": 4.85,
+          "completed": true,
+          "error": null,
+          "candidates": 130,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 30.0,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 2
+        },
+        {
+          "query": "What is shown on screen?",
+          "seconds": 0.67,
+          "completed": true,
+          "error": null,
+          "candidates": 130,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.28125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 11.71875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 15.0,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 27.1875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 28.59375,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 30.0,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 35.15625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 38.90625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 39.84375,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 40.78125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 47.8125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 51.09375,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "no_audio_stream",
+      "label": "No audio stream",
+      "ingestion": {
+        "video_id": "9be8209d-af5c-42a4-b32d-73261e59d6ef",
+        "status": "ready",
+        "error": null,
+        "duration_seconds": 60.0,
+        "frames": 128,
+        "audio_windows": 0,
+        "ingest_seconds": 42.2
+      },
+      "answers": [
+        {
+          "query": "What is shown on screen?",
+          "seconds": 1.77,
+          "completed": true,
+          "error": null,
+          "candidates": 128,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.28125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 11.71875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 15.0,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 27.1875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 28.59375,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 30.0,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 35.15625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 38.90625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 39.84375,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 40.78125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 47.8125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 51.09375,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "music_only",
+      "label": "Music, no speech",
+      "ingestion": {
+        "video_id": "bd9cd6fd-59c5-48df-a3ee-a710cd9c4390",
+        "status": "ready",
+        "error": null,
+        "duration_seconds": 60.0,
+        "frames": 128,
+        "audio_windows": 2,
+        "ingest_seconds": 48.2
+      },
+      "answers": [
+        {
+          "query": "When does the music change?",
+          "seconds": 1.59,
+          "completed": true,
+          "error": null,
+          "candidates": 130,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 30.0,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 2
+        },
+        {
+          "query": "What does the speaker say?",
+          "seconds": 0.44,
+          "completed": true,
+          "error": null,
+          "candidates": 130,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 30.0,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 2
+        }
+      ]
+    },
+    {
+      "case": "french_speech",
+      "label": "French speech",
+      "ingestion": {
+        "video_id": "3b2ca94a-2138-45b6-8f23-d8e23c25e238",
+        "status": "ready",
+        "error": null,
+        "duration_seconds": 13.44,
+        "frames": 128,
+        "audio_windows": 1,
+        "ingest_seconds": 66.3
+      },
+      "answers": [
+        {
+          "query": "What does the speaker say about the market?",
+          "seconds": 2.15,
+          "completed": true,
+          "error": null,
+          "candidates": 129,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": "Bonjour, aujourd'hui il fait très beau à Kigali, le marché ouvre à 9h15h, les bananes coupent 500 francs le kilo, demain, il va pleuvoir sur le lac qui vue."
+            }
+          ],
+          "answer": "",
+          "clips": 1
+        },
+        {
+          "query": "Que dit-il sur le marché ?",
+          "seconds": 0.95,
+          "completed": true,
+          "error": null,
+          "candidates": 129,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": "Bonjour, aujourd'hui il fait très beau à Kigali, le marché ouvre à 9h15h, les bananes coupent 500 francs le kilo, demain, il va pleuvoir sur le lac qui vue."
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.94,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.045,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.255,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.36,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 4.515,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 4.62,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 4.725,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 4.83,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 9.135,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 9.764999999999999,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        },
+        {
+          "query": "How much do the bananas cost?",
+          "seconds": 0.91,
+          "completed": true,
+          "error": null,
+          "candidates": 129,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": "Bonjour, aujourd'hui il fait très beau à Kigali, le marché ouvre à 9h15h, les bananes coupent 500 francs le kilo, demain, il va pleuvoir sur le lac qui vue."
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.94,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.045,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.255,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.36,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3.57,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 4.515,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 5.5649999999999995,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 9.135,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 9.555,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 9.66,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 9.764999999999999,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "three_seconds",
+      "label": "Three-second clip",
+      "ingestion": {
+        "video_id": "2b9608a4-de86-4432-8d0d-b5a05e09d2c1",
+        "status": "ready",
+        "error": null,
+        "duration_seconds": 3.0,
+        "frames": 127,
+        "audio_windows": 1,
+        "ingest_seconds": 81.5
+      },
+      "answers": [
+        {
+          "query": "What is shown?",
+          "seconds": 2.12,
+          "completed": true,
+          "error": null,
+          "candidates": 128,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.6015625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.765625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.7890625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.8125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.8359375,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.859375,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.8828125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.90625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.9296875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2.953125,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "static_ten_minutes",
+      "label": "One still image for ten minutes",
+      "ingestion": {
+        "video_id": "d320db44-2fe1-4751-9554-89eb854a19bf",
+        "status": "ready",
+        "error": null,
+        "duration_seconds": 600.0,
+        "frames": 128,
+        "audio_windows": 20,
+        "ingest_seconds": 111.7
+      },
+      "answers": [
+        {
+          "query": "What is shown on screen?",
+          "seconds": 3.16,
+          "completed": true,
+          "error": null,
+          "candidates": 148,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "visual",
+              "timestamp_seconds": 253.125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 271.875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 295.3125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 314.0625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 337.5,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 356.25,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 379.6875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 421.875,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 464.0625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 506.25,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 548.4375,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 590.625,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "unanswerable",
+      "label": "Question the video cannot answer",
+      "answers": [
+        {
+          "query": "What is the capital of Canada?",
+          "seconds": 2.22,
+          "completed": true,
+          "error": null,
+          "candidates": 236,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "visual",
+              "timestamp_seconds": 0.0,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 0.0,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 755.05306125,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2818.864762,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 2820.0,
+              "text": "Next stop is a very special one because they place some statues here on the water for the coral to grow on so it can create some new life. And the statues thems"
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 3171.2228572500003,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "non_latin",
+      "label": "Question in Chinese",
+      "answers": [
+        {
+          "query": "他们在哪里看日落？",
+          "seconds": 2.43,
+          "completed": true,
+          "error": null,
+          "candidates": 236,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "visual",
+              "timestamp_seconds": 0.0,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 100.6737415,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 176.179047625,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 360.0,
+              "text": "Stopped high"
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 402.694966,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 420.0,
+              "text": "and the beautiful waterfalls. This behind me is Vallumala."
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "emoji_only",
+      "label": "Question made only of emoji",
+      "answers": [
+        {
+          "query": "🐢🐢🌅",
+          "seconds": 3.33,
+          "completed": true,
+          "error": null,
+          "candidates": 236,
+          "unscored_candidates": 0,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 780.0,
+              "text": "Back on Lemongan, we chill at one of the many hip bars with fantastic views over the ocean."
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 1837.295782375,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 2220.0,
+              "text": "Then we sail on to Manta Point, in a cold current in the middle of the sea we see dozens of Manta rays passing by."
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2642.6857143750003,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2869.20163275,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2894.370068125,
+              "text": ""
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "very_long",
+      "label": "Question of about 2,000 characters",
+      "answers": [
+        {
+          "query": "Where do they go snorkelling? Where do they go snorkelling? Where do they go sno…",
+          "seconds": 3.57,
+          "completed": true,
+          "error": null,
+          "candidates": 236,
+          "unscored_candidates": 108,
+          "selected": [
+            {
+              "modality": "audio",
+              "timestamp_seconds": 1800.0,
+              "text": "and now we went to the hotel. Very nice hotel where we stayed for two nights and in between those two nights we go to Komodo National Park by boat to see some i"
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 2100.0,
+              "text": "Komodo dragons rarely attack humans, but they are deadly. They bite their prey which is then poisoned or they bleed to death. They wait patiently to go to work "
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2617.517279,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2793.696326625,
+              "text": ""
+            },
+            {
+              "modality": "visual",
+              "timestamp_seconds": 2844.0331973750003,
+              "text": ""
+            },
+            {
+              "modality": "audio",
+              "timestamp_seconds": 3060.0,
+              "text": "A small beach with big rocks and some surfing. On the way down to the beach we go through this temple and it's full of monkeys everywhere. I think they're nice "
+            }
+          ],
+          "answer": "",
+          "clips": 4
+        }
+      ]
+    },
+    {
+      "case": "whitespace",
+      "label": "Question of spaces only",
+      "answers": [
+        {
+          "query": "     ",
+          "http_status": 422,
+          "error": "{\"detail\":[{\"type\":\"value_error\",\"loc\":[\"body\",\"query\"],\"msg\":\"Value error, query must not be blank\",\"input\":\"     \",\"ctx\":{\"error\":{}}}]}"
+        }
+      ]
+    }
+  ]
+}
