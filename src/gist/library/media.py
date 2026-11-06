@@ -9,8 +9,16 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+# yt-dlp is a Python dependency of this package, so run it through the same
+# interpreter rather than looking for a `yt-dlp` executable on PATH. A server
+# started by its absolute venv path (a systemd unit, for one) does not have the
+# venv's bin directory on PATH, and every ingestion then failed with "yt-dlp is
+# not installed" although it was. Found by the live end-to-end suite.
+YT_DLP = (sys.executable, "-m", "yt_dlp")
 
 _YOUTUBE_ID = re.compile(
     r"(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/|live/))([A-Za-z0-9_-]{11})"
@@ -39,7 +47,14 @@ def probe_remote(url: str, *, timeout: int = 60) -> RemoteVideoInfo:
 
     try:
         completed = subprocess.run(
-            ["yt-dlp", "--no-warnings", "--skip-download", "--dump-single-json", "--no-playlist", url],
+            [
+                *YT_DLP,
+                "--no-warnings",
+                "--skip-download",
+                "--dump-single-json",
+                "--no-playlist",
+                url,
+            ],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -83,7 +98,7 @@ def download(url: str, output_dir: Path, *, max_height: int = 360) -> Path:
     template = output_path.with_suffix(".%(ext)s")
     completed = subprocess.run(
         [
-            "yt-dlp",
+            *YT_DLP,
             "--no-playlist",
             "-f",
             (

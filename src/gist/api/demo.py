@@ -23,6 +23,7 @@ from pydantic import Field, model_validator
 from gist.api.schemas import LocalVideoCompressionRequest
 from gist.gateway.hosted_answerer import answer_with_hosted_llm
 from gist.gateway.schemas import GatewayRequest
+from gist.library.media import YT_DLP
 from gist.pipeline import LocalCompressionPipeline
 
 demo_router = APIRouter(prefix="/v1/demo", tags=["demo"])
@@ -211,7 +212,7 @@ def _probe_url_duration_seconds(url: str) -> float | None:
     """Fetch a remote video's duration via yt-dlp without downloading it."""
     try:
         completed = subprocess.run(
-            ["yt-dlp", "--no-warnings", "--skip-download", "--print", "%(duration)s", url],
+            [*YT_DLP, "--no-warnings", "--skip-download", "--print", "%(duration)s", url],
             capture_output=True,
             text=True,
             timeout=60,
@@ -231,7 +232,7 @@ def _download_video(url: str, output_dir: Path) -> Path:
     output_path = output_dir / "video.mp4"
     template = output_path.with_suffix(".%(ext)s")
     command = [
-        "yt-dlp",
+        *YT_DLP,
         "--no-playlist",
         "-f",
         "bv*[height<=360]+ba/b[height<=360]/best[height<=360]/best",
