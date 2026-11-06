@@ -51,6 +51,31 @@ and OmniScope shipped working implementations. This belongs in the paper as a st
 fact, because "the SOTA has not released its code" is checkable, and it is a much
 better sentence than any hedge about compute budgets.
 
+## Run index
+
+One row per measured run: what produced it, on what, and the commit that added its raw
+output as it stands now. Every row's scorer models (CLIP, CLAP, MiniLM, faster-whisper) are the commits
+pinned in `src/gist/model_revisions.py`, and every row that answers questions uses
+Qwen2.5-Omni-7B at commit `ae9e169`. Run dates are taken from each directory's own
+README; where none is stated, the column gives the date the raw output was committed.
+
+| Run | n | Answering model | Hardware | Run date | Raw output | Raw output commit |
+| :-- | --: | :-- | :-- | :-- | :-- | :-- |
+| `runpod-fp16/` | 18 | Qwen2.5-Omni-7B fp16 | RTX 4090 24 GB | committed 2026-07-06 | `av7bfp16_results.jsonl` | `c70f7c0` |
+| `runpod-omnizip-h2h/` | 18 | Qwen2.5-Omni-7B fp16 | RTX 4090 24 GB | committed 2026-07-06 | `omnizip_h2h_results.jsonl` | `da6cea1` |
+| `n51-4bit/` | 51 | Qwen2.5-Omni-7B 4-bit | not recorded | promoted 2026-09-22 | `av7b_51q_results.jsonl` | `2d1bf7f` |
+| `heuristics-ablation/` | 35 | none, selection scored against reference timestamps | not recorded | re-run 2026-09-22 | `ablation-heuristics-ab.json` | `054e118` |
+| `split-budget-ablation/` | 35 | none, selection scored against reference timestamps | not recorded | re-run 2026-09-22 | `split-budget-ablation.json` | `054e118` |
+| `efficiency-measured/` | 18 | Qwen2.5-Omni-7B fp16 | RTX 4090 24 GB; cached selection on a laptop CPU | 2026-10-28 | `efficiency_measurements.jsonl`, `cached_selection.jsonl` | `f074be4`, `984b7ae` |
+| `omnipack-replication/` | 48 | Qwen2.5-Omni-7B fp16 | RTX 4090 24 GB | 2026-10-28 | `omnipack_h2h_results.jsonl` | `f074be4` |
+| `gist-vs-omnipack/` | 48 | Qwen2.5-Omni-7B fp16 | RTX 4090 24 GB | committed 2026-11-04 | `answers.jsonl`, `measurements.jsonl` | `e909b65` |
+| `gist-vs-omnipack-long/` | 48 | Qwen2.5-Omni-7B fp16 | RTX 4090 24 GB | committed 2026-11-04 | `answers.jsonl`, `measurements.jsonl` | `9eda2cd` |
+
+Gist trains nothing, so there are no loss or accuracy curves to track. The equivalent
+record is the per-question output above, the frozen split in `data/eval/splits/`, and
+the pinned model commits. A run is reproduced by checking out its commit and running
+the script named in its directory.
+
 ## Rules this directory follows
 
 - **Raw per-question output, not just summaries.** Two of Table II's four rows have
