@@ -14,7 +14,10 @@ import { defineConfig, devices } from "@playwright/test";
  * pass/fail evidence the functional test table in docs/testing/ points to.
  */
 
-export const API = "http://127.0.0.1:8100";
+// localhost, matching the frontend's host: the API's session cookie is only
+// sent when the page and the API share a site, and 127.0.0.1 is a different
+// site from localhost.
+export const API = "http://localhost:8100";
 const PORT = 3100;
 const live = process.env.GIST_E2E_LIVE === "1";
 

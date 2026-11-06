@@ -8,7 +8,7 @@ final screenshot is committed under [`evidence/`](evidence/).
 
 How to run both suites: [`web/e2e/README.md`](../../web/e2e/README.md).
 
-**Latest run:** 2026-11-06, 17 of 17 passed in 77 s, after the two defects below were fixed.
+**Latest run:** 2026-11-06, 22 of 22 passed in 84 s, after access codes were added (FT-18 to FT-22). The earlier run of FT-01 to FT-17 was 17 of 17, after the two defects below were fixed.
 
 ## Environments
 
@@ -28,6 +28,7 @@ How to run both suites: [`web/e2e/README.md`](../../web/e2e/README.md).
 | US-5 | As a viewer, I remove a video I no longer want. |
 | US-6 | As a viewer, when something goes wrong, I am told what happened in words I can act on. |
 | US-7 | As a presenter, the demonstration still works when the API or network is down. |
+| US-8 | As the operator, only people I gave a code to can use Gist, each sees only their own videos, and each can ask five questions a day. |
 
 ## Cases
 
@@ -50,6 +51,11 @@ How to run both suites: [`web/e2e/README.md`](../../web/e2e/README.md).
 | FT-15 | US-4 | Press Clear once, then again; reload | First press asks "Clear?" and keeps the history; second removes it; it stays gone after reload | live | Pass | [FT-15](evidence/FT-15.png) |
 | FT-16 | US-6 | Add the text "not a link" | An alert explains what is wrong with the link, not only the HTTP status | live | Pass after fix 2 | [FT-16](evidence/FT-16.png) |
 | FT-17 | US-5 | Remove the video; reload | The video disappears and the library is empty after reload | live | Pass | [FT-17](evidence/FT-17.png) |
+| FT-18 | US-8 | Open a video page in a browser with no session; call the API directly | Sent to `/login?next=…`; the API answers 401 | live | Pass | [FT-18](evidence/FT-18.png) |
+| FT-19 | US-8, US-6 | Sign in with a code that was never issued | "That code is not valid." and still on the sign-in page | live | Pass | [FT-19](evidence/FT-19.png) |
+| FT-20 | US-8 | Sign in with the suite's code in a fresh browser | The code's library, "4 of 5 questions left today" (one asked in FT-13), and a Log out button | live | Pass | [FT-20](evidence/FT-20.png) |
+| FT-21 | US-8 | Ask questions until the sixth of the day | Questions 2 to 5 are answered; the sixth shows "You have used all 5 questions for today…"; the header shows 0 of 5 | live | Pass | [FT-21](evidence/FT-21.png) |
+| FT-22 | US-8 | With the code signed in on two browsers, press Log out on one; sign in again | Both browsers lose the session; signing in again shows the same library and still 0 of 5 | live | Pass | [FT-22](evidence/FT-22.png) |
 
 ## Defects found and fixed
 
@@ -59,6 +65,12 @@ How to run both suites: [`web/e2e/README.md`](../../web/e2e/README.md).
 | 2 | FT-16 | Adding "not a link" showed only "422 Unprocessable Entity" | FastAPI returns validation errors as a list of `{loc, msg}`; the library client read `detail` only when it was a string | `errorDetail` in `web/lib/library.ts` reads both forms; the user now sees "provide a full http(s) video URL" |
 
 Before these fixes the latest run was 15 of 17: FT-11 failed (defect 1), and once it was fixed FT-16 failed (defect 2).
+
+The first run after access codes were added was 20 of 22. FT-09 and FT-10 failed
+because of the tests, not the app: they replace only the library response, and the
+new session check reached the real API left running on the port, which answered
+401 and sent the page to sign in. Those cases now refuse every API call they do not
+answer and answer the session check as a signed-in code.
 
 ## What these cases do not cover
 
@@ -72,3 +84,5 @@ Before these fixes the latest run was 15 of 17: FT-11 failed (defect 1), and onc
 - **Answer quality.** Whether the selected evidence answers the question is
   measured by the benchmark runs in `results/`, not here.
 - **Browsers other than Chrome, and mobile widths.**
+- **Code expiry and revocation in the browser.** They are covered at the database level
+  in `tests/test_access_store.py`; see [`docs/security.md`](../security.md).

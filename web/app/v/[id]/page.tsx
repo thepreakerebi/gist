@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+
 import { VideoWorkspace } from "@/components/video-workspace";
 import type { VideoDetail } from "@/lib/library";
 import { apiUrl } from "@/lib/library";
@@ -20,9 +22,15 @@ const SERVER_FETCH_TIMEOUT_MS = 1500;
  * moment the fallback exists for.
  */
 async function initialDetail(id: string): Promise<VideoDetail | null> {
+  // The API only answers for a signed-in code, so pass the visitor's session
+  // cookie on. It reaches this server only when the frontend and the API share
+  // a cookie domain (GIST_COOKIE_DOMAIN in deployment, plain localhost in
+  // development); otherwise the API says 401 and the client loads the page.
+  const session = (await cookies()).get("gist_session");
   try {
     const response = await fetch(apiUrl(`/v1/library/videos/${id}`), {
       cache: "no-store",
+      headers: session ? { Cookie: `gist_session=${session.value}` } : undefined,
       signal: AbortSignal.timeout(SERVER_FETCH_TIMEOUT_MS),
     });
     return response.ok ? ((await response.json()) as VideoDetail) : null;

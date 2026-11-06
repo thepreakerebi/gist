@@ -53,6 +53,13 @@ docker rm -f gist-e2e-pg
 `answerer` to `extractive` in flight, so it tests Gist's own selection and spends
 no TwelveLabs credits; the empty key is a second guard against a hosted call.
 
+The live suite issues itself a fresh, non-admin access code with
+`python -m gist.access.cli create` against `GIST_E2E_DATABASE_URL` (default: the
+container above), so its library starts empty and the daily cap of five applies.
+Sign-in is limited to five attempts a minute per address, so wait a minute between
+back-to-back runs. Both suites reach the API as `localhost`, not `127.0.0.1`: the
+session cookie is only sent when the page and the API share a site.
+
 The API is started by its absolute path, without activating the venv. That is how
 a systemd unit starts it, and it is the condition under which ingestion used to
 fail (see FT-11 in the functional test table).

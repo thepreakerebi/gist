@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 // Must match CONSENT_VERSION in src/gist/api/library.py: the API stores this
 // value with every consent, so a stored agreement can be traced to this text.
-const VERSION = "2026-10-25.2";
+const VERSION = "2026-11-06.1";
 
 /**
  * The privacy notice and terms of use, in one page.
@@ -68,10 +68,16 @@ export default function PrivacyPage() {
             <li>Number codes that describe each picture and sound. Gist uses them to search the video.</li>
             <li>Your questions, the answers, and the clips used.</li>
             <li>The time you ticked the box under the link, and which version of this page you agreed to.</li>
+            <li>
+              Which access code added each video. Gist keeps only a scrambled form of the code,
+              not the code itself.
+            </li>
           </ul>
+          {/* src/gist/access/, src/gist/api/auth.py */}
           <p className="mt-3">
-            Gist has no accounts. It never asks for your name or email. It has no tracking cookies
-            and no analytics. Its database is on Neon, in Frankfurt, Germany.
+            Gist has no accounts. You sign in with an access code you were given. It never asks
+            for your name or email. It sets one cookie to keep you signed in for a day. It has no
+            tracking cookies and no analytics. Its database is on Neon, in Frankfurt, Germany.
           </p>
         </section>
 
@@ -135,6 +141,7 @@ export default function PrivacyPage() {
         <section>
           <h2>Limits you should know about</h2>
           <ul>
+            <li>Each code can ask five questions a day. The count starts again at midnight in Kigali.</li>
             <li>
               Answers can be wrong. Check the clips Gist shows you. Do not use Gist for health,
               legal, money or safety decisions.

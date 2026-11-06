@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUp, Eraser, Loader2, Square } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { AccountBar } from "@/components/account-bar";
 import { CollapseField } from "@/components/collapse-field";
 import { EvidencePanel } from "@/components/evidence-panel";
 import type {
@@ -15,6 +16,7 @@ import type {
   VideoDetail,
 } from "@/lib/library";
 import {
+  SignInRequiredError,
   clearConversation,
   formatDuration,
   getVideo,
@@ -102,7 +104,11 @@ export function VideoWorkspace({
         setDetail(loaded);
         setTurns(turnsFromMessages(loaded.messages));
       })
-      .catch(() => !cancelled && setLoadError("Could not load this video."));
+      .catch((err) => {
+        if (!cancelled && !(err instanceof SignInRequiredError)) {
+          setLoadError("Could not load this video.");
+        }
+      });
     return () => {
       cancelled = true;
     };
@@ -275,6 +281,7 @@ export function VideoWorkspace({
               )}
             </button>
           )}
+          <AccountBar className="shrink-0" />
         </div>
       </header>
 

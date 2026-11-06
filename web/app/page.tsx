@@ -3,10 +3,17 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { AccountBar } from "@/components/account-bar";
 import { AddVideo } from "@/components/add-video";
 import { VideoRow } from "@/components/video-row";
 import type { Video } from "@/lib/library";
-import { addVideo, deleteVideo, listVideos, streamIngestion } from "@/lib/library";
+import {
+  SignInRequiredError,
+  addVideo,
+  deleteVideo,
+  listVideos,
+  streamIngestion,
+} from "@/lib/library";
 
 export default function LibraryPage() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -77,7 +84,10 @@ export default function LibraryPage() {
           .filter((item) => item.status === "ingesting" || item.status === "pending")
           .forEach((item) => watch(item.id));
       })
-      .catch((err: Error) => !cancelled && setError(err.message))
+      .catch((err: Error) => {
+        // Already on the way to the sign-in page; an error flash would only confuse.
+        if (!cancelled && !(err instanceof SignInRequiredError)) setError(err.message);
+      })
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
@@ -90,9 +100,12 @@ export default function LibraryPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 pb-24 pt-16 sm:pt-24">
       <header className="mb-12">
-        <Link href="/" className="text-sm font-semibold tracking-tight">
-          Gist
-        </Link>
+        <div className="flex items-center justify-between gap-4">
+          <Link href="/" className="text-sm font-semibold tracking-tight">
+            Gist
+          </Link>
+          <AccountBar />
+        </div>
         <h1 className="mt-8 max-w-xl text-balance text-3xl font-semibold leading-[1.15] tracking-tight sm:text-4xl">
           Ask questions about hours of video.
         </h1>

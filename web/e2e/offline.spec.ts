@@ -8,7 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
  * Case IDs (FT-xx) match docs/testing/functional-tests.md.
  */
 
-const API = "http://127.0.0.1:8100";
+const API = "http://localhost:8100";
 const VIDEO_ID = "98c05bae-0303-488e-8bfc-db6a40f825b7"; // "Me at the zoo", baked snapshot
 const CACHED_QUESTION = "What does he say is cool about the elephants?";
 
@@ -112,6 +112,28 @@ test.describe("Input validation", () => {
 });
 
 test.describe("Server errors are shown, not hidden", () => {
+  // These cases stand for a signed-in visitor whose API answers with an error.
+  // Every API call is refused unless a test answers it, and the session check
+  // answers as a signed-in code, so a real API left running on the port cannot
+  // leak into the result (it would answer 401 and send the page to sign in).
+  test.beforeEach(async ({ page }) => {
+    await apiUnreachable(page);
+    await page.route(`${API}/v1/auth/me`, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          label: "test",
+          is_admin: false,
+          questions_used_today: 0,
+          daily_question_limit: 5,
+          questions_left_today: 5,
+          limit_resets_at: "2026-11-07T00:00:00+02:00",
+        }),
+      }),
+    );
+  });
+
   test("FT-09 the API's rejection of a link is shown to the user", async ({ page }) => {
     await page.route(`${API}/v1/library/videos`, (route) => {
       if (route.request().method() === "POST") {

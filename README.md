@@ -51,8 +51,8 @@ cp .env.example .env                 # fill in DATABASE_URL and TWELVELABS_API_K
 ./scripts/sync-dev.sh                # uv sync with every model extra; a bare `uv sync` prunes torch/transformers
 brew install ffmpeg                  # or the platform equivalent
 
-uv run pytest                        # 550 passed, 8 skipped (model-loading tests)
-GIST_RUN_SLOW_MODEL_TESTS=1 uv run pytest   # also loads real CLIP, CLAP and Whisper: 558 passed
+uv run pytest                        # 577 passed, 15 skipped (model-loading and database tests)
+GIST_RUN_SLOW_MODEL_TESTS=1 uv run pytest   # also loads real CLIP, CLAP and Whisper: 585 passed
 ```
 
 ### Running
@@ -61,14 +61,17 @@ GIST_RUN_SLOW_MODEL_TESTS=1 uv run pytest   # also loads real CLIP, CLAP and Whi
 # 1. API (CPU is fine; all scoring falls back to CPU automatically)
 uv run uvicorn gist.api.app:app --port 8000     # http://localhost:8000/docs
 
-# 2. Frontend
-cd web && bun install && bun dev                # http://localhost:3000
+# 2. An access code to sign in with (needs DATABASE_URL); printed once
+uv run gist-access create --label "Me" --admin
+
+# 3. Frontend
+cd web && bun install && bun dev                # http://localhost:3000, sign in with the code
 
 # Command line, no database or keys required
 uv run gist /absolute/path/to/video.mp4 --query "what does the speaker say about pricing?" --profile gist
 ```
 
-If the API is unreachable the frontend replays a baked cached run — see [Cached-run safety net](#cached-run-safety-net). The first query after start-up loads CLIP and CLAP weights on CPU, which takes about two minutes.
+The library is reachable only with an access code; codes, sessions, the daily cap of five questions per code, rate limits and the deployment requirements are described in [`docs/security.md`](docs/security.md). If the API is unreachable the frontend replays a baked cached run — see [Cached-run safety net](#cached-run-safety-net). The first query after start-up loads CLIP and CLAP weights on CPU, which takes about two minutes.
 
 ### Repository structure
 
@@ -83,18 +86,19 @@ gist/
 │   ├── candidates/    candidate generation (baseline, hierarchical, moment fusion)
 │   ├── library/       once-per-video ingestion and stored-embedding query for the web app
 │   ├── db/            Postgres + pgvector schema and repository
+│   ├── access/        access codes, sessions, daily question cap, rate limits, `gist-access` command
 │   ├── api/           FastAPI app, routes and request/response schemas
 │   ├── gateway/       answering-model adapters (TwelveLabs, OpenAI, Claude, Hugging Face, Ollama) and evidence packages
 │   ├── eval/          benchmark runners, ablations, bootstrap intervals, efficiency and failure analysis
 │   ├── reports/       HTML and structured report rendering
 │   └── cli.py, pipeline.py, label*.py   command-line entry points
-├── tests/             74 test files: unit, API, integration and gated slow model tests
+├── tests/             80 test files: unit, API, integration and gated slow model tests
 ├── web/               Next.js + shadcn frontend (library, chat, evidence timeline, clips)
 ├── scripts/           benchmark, GPU-pod and data-preparation scripts
 ├── results/           committed raw per-question output for every reported run
 ├── data/              evaluation cases, frozen splits, extraction schemas
 ├── notebooks/         dataset EDA notebook rendered from scripts/
-├── docs/              technical report, scope alignment, dataset description, screenshots
+├── docs/              technical report, scope alignment, dataset description, security, screenshots
 └── pyproject.toml, uv.lock
 ```
 
@@ -151,10 +155,11 @@ Against the uniform 8-frame input that reached the same accuracy, Gist needed 36
 
 | Strategy | What it covers | Result |
 | :------- | :------------- | :----- |
-| Unit | selection logic, scoring, budget ladder, tail merging, decomposition, presets (`tests/`) | 550 passed, 8 skipped, 77% line coverage |
-| Integration | FastAPI endpoints via the test client; real CLIP, CLAP and Whisper loaded (`GIST_RUN_SLOW_MODEL_TESTS=1`); stored-embedding scores equal live scores to 1e-5 | 558 passed |
+| Unit | selection logic, scoring, budget ladder, tail merging, decomposition, presets (`tests/`) | 577 passed, 15 skipped, 77% line coverage |
+| Integration | FastAPI endpoints via the test client; real CLIP, CLAP and Whisper loaded (`GIST_RUN_SLOW_MODEL_TESTS=1`); stored-embedding scores equal live scores to 1e-5 | 585 passed |
 | Functional / system | end-to-end ingestion and question answering in the web app on 36- and 49-minute recordings | grounded answers, adaptive escalation, one documented selection failure |
-| Functional, automated | 17 Playwright cases from user stories: library, ingestion, questions, evidence and clips, history, removal, error messages, offline fallback ([`docs/testing/functional-tests.md`](docs/testing/functional-tests.md)) | 17 passed after fixing the 2 defects the suite found |
+| Functional, automated | 22 Playwright cases from user stories: library, ingestion, questions, evidence and clips, history, removal, error messages, offline fallback, sign-in, the daily cap and Log out ([`docs/testing/functional-tests.md`](docs/testing/functional-tests.md)) | 22 passed after fixing the 2 defects the suite found |
+| Security | access codes, sessions, per-code ownership, rate limits and the daily cap; research endpoints off by default ([`docs/security.md`](docs/security.md)); unit tests without a database plus the SQL against Postgres (`GIST_TEST_DATABASE_URL`) | 27 passed; 7 passed against Postgres 16 |
 | Load | k6, concurrent users against the library API on a laptop ([`results/load-test/`](results/load-test/README.md)) | 0% errors at every level; within budget up to 25 users asking different questions, breaking point 50; one defect found and fixed |
 | Web performance and network | Lighthouse and the user flow under emulated slow networks ([`results/web-performance/`](results/web-performance/README.md)) | accessibility, best practices, SEO 100; flow completes on Slow 3G; video page LCP was 3.2 s on a throttled phone, 1.58 s after the fix |
 | Edge cases | 11 unusual videos and questions through the real library path ([`results/edge-cases/`](results/edge-cases/README.md)) | all complete or are rejected with a clear message; one silent defect found and fixed; Gist never abstains, documented |
@@ -450,6 +455,10 @@ brew install ffmpeg
 ```
 
 ## Example Request
+
+The research endpoints in this and the next two sections read paths on the
+server's own disk, so the API mounts them only when started with
+`GIST_ENABLE_RESEARCH_ROUTES=1`. Use that for local experiments only.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/v1/compressions \

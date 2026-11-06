@@ -7,9 +7,12 @@
  * asymmetry.
  */
 
+// localhost, not 127.0.0.1: the session cookie is set by the API, and the
+// browser only sends it to the API if both share a site. Cookies ignore ports,
+// so localhost:3000 and localhost:8000 do; 127.0.0.1 and localhost do not.
 const API_BASE =
   process.env.NEXT_PUBLIC_GIST_API?.replace(/\/$/, "") ??
-  "http://127.0.0.1:8000";
+  "http://localhost:8000";
 
 export type VideoStatus = "pending" | "ingesting" | "ready" | "failed";
 
@@ -100,6 +103,50 @@ export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
+/** The request had no valid session; the person has been sent to /login. */
+export class SignInRequiredError extends Error {
+  constructor() {
+    super("Sign in with your access code.");
+    this.name = "SignInRequiredError";
+  }
+}
+
+/**
+ * Every API call goes through here so the session cookie is always sent, and a
+ * 401 always ends at the sign-in page rather than in a misleading error or the
+ * offline snapshot.
+ */
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const response = await fetch(apiUrl(path), { ...init, credentials: "include" });
+  if (response.status === 401) {
+    redirectToSignIn();
+    throw new SignInRequiredError();
+  }
+  return response;
+}
+
+export function redirectToSignIn(): void {
+  if (typeof window === "undefined" || window.location.pathname === "/login") return;
+  const next = window.location.pathname + window.location.search;
+  window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+}
+
+/** Only an unreachable or failing API falls back to the snapshot, never a refusal. */
+function shouldUseSnapshot(error: unknown): boolean {
+  return !(error instanceof SignInRequiredError) && !(error instanceof ApiRefusal);
+}
+
+/** The API answered and said no (4xx): show its reason, do not hide it behind cached data. */
+export class ApiRefusal extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiRefusal";
+  }
+}
+
 /**
  * The readable part of a FastAPI error body. A request that fails validation
  * returns `detail` as a list of `{loc, msg}` objects rather than a string; read
@@ -128,6 +175,9 @@ async function jsonOrThrow<T>(response: Response): Promise<T> {
     } catch {
       // Non-JSON error body; the status line is the best we have.
     }
+    if (response.status >= 400 && response.status < 500) {
+      throw new ApiRefusal(detail, response.status);
+    }
     throw new Error(detail);
   }
   return response.json() as Promise<T>;
@@ -135,12 +185,13 @@ async function jsonOrThrow<T>(response: Response): Promise<T> {
 
 export async function listVideos(): Promise<Sourced<Video[]>> {
   try {
-    const response = await fetch(apiUrl("/v1/library/videos"), {
+    const response = await apiFetch("/v1/library/videos", {
       cache: "no-store",
     });
     const body = await jsonOrThrow<{ videos: Video[] }>(response);
     return { data: body.videos, cached: false };
   } catch (error) {
+    if (!shouldUseSnapshot(error)) throw error;
     // The API being down is the case the snapshot exists for. Only fall back
     // when there is actually something baked; otherwise surface the failure.
     const { cachedVideos } = await import("@/lib/cached");
@@ -152,11 +203,12 @@ export async function listVideos(): Promise<Sourced<Video[]>> {
 
 export async function getVideo(id: string): Promise<VideoDetail> {
   try {
-    const response = await fetch(apiUrl(`/v1/library/videos/${id}`), {
+    const response = await apiFetch(`/v1/library/videos/${id}`, {
       cache: "no-store",
     });
     return await jsonOrThrow<VideoDetail>(response);
   } catch (error) {
+    if (!shouldUseSnapshot(error)) throw error;
     const { cachedVideoDetail } = await import("@/lib/cached");
     const fallback = await cachedVideoDetail(id);
     if (fallback) return fallback;
@@ -173,7 +225,7 @@ export async function addVideo(
   url: string,
   consent: boolean,
 ): Promise<{ video: Video; started: boolean }> {
-  const response = await fetch(apiUrl("/v1/library/videos"), {
+  const response = await apiFetch("/v1/library/videos", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url, consent }),
@@ -182,7 +234,7 @@ export async function addVideo(
 }
 
 export async function deleteVideo(id: string): Promise<void> {
-  const response = await fetch(apiUrl(`/v1/library/videos/${id}`), {
+  const response = await apiFetch(`/v1/library/videos/${id}`, {
     method: "DELETE",
   });
   if (!response.ok && response.status !== 404) {
@@ -192,7 +244,7 @@ export async function deleteVideo(id: string): Promise<void> {
 
 /** Clear a video's chat history. The video and its artifacts are untouched. */
 export async function clearConversation(id: string): Promise<void> {
-  const response = await fetch(apiUrl(`/v1/library/videos/${id}/conversation`), {
+  const response = await apiFetch(`/v1/library/videos/${id}/conversation`, {
     method: "DELETE",
   });
   if (!response.ok && response.status !== 404) {
@@ -257,7 +309,7 @@ export async function streamIngestion(
   handlers: IngestionHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(apiUrl(`/v1/library/videos/${id}/events`), {
+  const response = await apiFetch(`/v1/library/videos/${id}/events`, {
     signal,
   });
   for await (const { event, data } of readEvents(response, signal)) {
@@ -303,7 +355,7 @@ export async function streamQuery(
 ): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(apiUrl(`/v1/library/videos/${id}/query`), {
+    response = await apiFetch(`/v1/library/videos/${id}/query`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -314,7 +366,7 @@ export async function streamQuery(
       signal,
     });
   } catch (error) {
-    if (signal?.aborted) return;
+    if (signal?.aborted || error instanceof SignInRequiredError) return;
     if (await replayFromCache(id, query, handlers)) return;
     throw error;
   }
@@ -326,10 +378,14 @@ export async function streamQuery(
     } catch {
       // keep the status-line message
     }
-    if (await replayFromCache(id, query, handlers)) return;
+    // A refusal (daily limit, too fast, not ready) is the answer: replaying a
+    // cached run instead would hide it. Only a failing API falls back.
+    if (response.status >= 500 && (await replayFromCache(id, query, handlers))) return;
     handlers.onError?.(detail);
     return;
   }
+
+  notifyAccountChanged();
 
   for await (const { event, data } of readEvents(response, signal)) {
     switch (event) {
@@ -369,6 +425,11 @@ export async function streamQuery(
         break;
     }
   }
+}
+
+/** Tell the account bar to refresh its count of questions left today. */
+export function notifyAccountChanged(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("gist:account"));
 }
 
 export function formatDuration(seconds: number): string {
