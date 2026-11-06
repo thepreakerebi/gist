@@ -42,9 +42,12 @@ function SignInForm() {
       <label htmlFor="access-code" className="text-sm font-medium">
         Access code
       </label>
+      <p id="access-code-help" className="mt-1 text-sm text-muted-foreground">
+        It starts with GIST, like GIST-7K3M-QX9P-R2TA-H8WD. Capitals and dashes are optional.
+      </p>
       <div
         className={cn(
-          "mt-2 flex items-center gap-2 rounded-lg border bg-card pl-4 pr-2 transition-colors",
+          "mt-3 flex items-center gap-2 rounded-lg border bg-card pl-4 pr-2 transition-colors",
           "focus-within:border-ring/60 focus-within:ring-[3px] focus-within:ring-ring/15",
           error ? "border-destructive/50" : "border-border",
         )}
@@ -53,14 +56,13 @@ function SignInForm() {
           id="access-code"
           value={code}
           onChange={(event) => setCode(event.target.value)}
-          placeholder="GIST-XXXX-XXXX-XXXX-XXXX"
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
           autoFocus
           disabled={busy}
           aria-invalid={Boolean(error)}
-          aria-describedby={error ? "access-code-error" : undefined}
+          aria-describedby={error ? "access-code-help access-code-error" : "access-code-help"}
           className="tabular h-12 min-w-0 flex-1 bg-transparent font-mono text-[15px] tracking-wide outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
         />
         <button
