@@ -16,7 +16,8 @@ generated from the committed JSON by `summarize.py`.
 | Machine | Apple M4 laptop; frontend, API and browser on the same machine |
 
 Lighthouse ran on the library page and on a video page as a person first sees
-it, with no questions asked yet. The mobile preset was run twice: with
+it, with no questions asked yet. The video page was re-measured after the fix
+below, on the same video ingested again (id changed, content identical). The mobile preset was run twice: with
 Lighthouse's default simulated throttling, which loads the page at full speed
 and estimates a slow phone, and with `--throttling-method=devtools`, which
 applies the slow-4G network and 4x CPU slowdown and measures.
@@ -40,16 +41,20 @@ few kilobytes of events; the first page load moves about 690 KB of JavaScript.
 1.58 s median on slow 4G. The simulated 3.03 s is an estimate that the applied
 run does not reproduce.
 
-**The video page misses the LCP target on a slow phone: 3.20 s median against
-2.5 s, with throttling applied.** On this page LCP equals FCP: nothing
-contentful is painted until the JavaScript has loaded and the API has returned
-the video. The page renders entirely in the browser (`web/app/v/[id]/page.tsx`
-explains why: the offline fallback reads a static manifest that a server-side
-fetch cannot reach), and the server-rendered HTML holds only a pulsing,
-non-text placeholder. Not fixed. The direct fix is to put contentful text in
-that placeholder, such as a "Loading video" label, so the first paint counts.
-Rendering the title on the server would also work, but it would bring back the
-404 that the client-only design avoids when the API is down.
+**The video page missed the LCP target on a slow phone, and was fixed.** Before:
+3.20 s median against 2.5 s with throttling applied, performance 84 to 87 (raw
+reports in `lighthouse/before-server-render/`). LCP equalled FCP: the page
+rendered entirely in the browser, so nothing contentful painted until the
+JavaScript had loaded and its own request to the API had returned. A small
+loading label would not have helped, because LCP is the largest paint and the
+real content arriving later would replace it.
+
+The fix (`web/app/v/[id]/page.tsx`) fetches the video on the server when the API
+answers within 1.5 s, so the first HTML already holds the page; on any failure
+it hands over to the client exactly as before, which keeps the offline snapshot
+working. After: 1.58 s median, performance 99 to 100. With the API stopped, the
+page still returned in about 0.1 s and replayed the cached run, and all 17
+functional tests pass.
 
 **A video page with a conversation cannot be scored for LCP at all.** On load it
 scrolls smoothly to the latest question, and Chrome stops recording LCP once a

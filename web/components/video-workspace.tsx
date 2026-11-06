@@ -69,10 +69,19 @@ function turnsFromMessages(messages: Message[]): Turn[] {
   return turns;
 }
 
-export function VideoWorkspace({ videoId }: { videoId: string }) {
-  const [detail, setDetail] = useState<VideoDetail | null>(null);
+export function VideoWorkspace({
+  videoId,
+  initialDetail = null,
+}: {
+  videoId: string;
+  /** Rendered on the server when the API answered; null leaves loading to the client. */
+  initialDetail?: VideoDetail | null;
+}) {
+  const [detail, setDetail] = useState<VideoDetail | null>(initialDetail);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [turns, setTurns] = useState<Turn[]>([]);
+  const [turns, setTurns] = useState<Turn[]>(() =>
+    initialDetail ? turnsFromMessages(initialDetail.messages) : [],
+  );
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   // Two-step rather than a confirm() dialog: clearing cannot be undone, but a
@@ -84,6 +93,8 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
   const textarea = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
+    // Already rendered from the server's copy; no second request needed.
+    if (initialDetail) return;
     let cancelled = false;
     getVideo(videoId)
       .then((loaded) => {
@@ -95,7 +106,7 @@ export function VideoWorkspace({ videoId }: { videoId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [videoId]);
+  }, [videoId, initialDetail]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
