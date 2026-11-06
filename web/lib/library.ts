@@ -100,13 +100,31 @@ export function apiUrl(path: string): string {
   return `${API_BASE}${path}`;
 }
 
+/**
+ * The readable part of a FastAPI error body. A request that fails validation
+ * returns `detail` as a list of `{loc, msg}` objects rather than a string; read
+ * as a string, the person saw only "422 Unprocessable Entity" and never the
+ * reason (found by the live end-to-end suite, case FT-16).
+ */
+export function errorDetail(body: unknown): string | null {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item: { msg?: unknown }) =>
+        typeof item?.msg === "string" ? item.msg.replace(/^Value error, /, "") : null,
+      )
+      .filter((message): message is string => Boolean(message));
+    if (messages.length > 0) return messages.join("; ");
+  }
+  return null;
+}
+
 async function jsonOrThrow<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`;
     try {
-      const body = await response.json();
-      if (body?.detail)
-        detail = typeof body.detail === "string" ? body.detail : detail;
+      detail = errorDetail(await response.json()) ?? detail;
     } catch {
       // Non-JSON error body; the status line is the best we have.
     }
@@ -304,8 +322,7 @@ export async function streamQuery(
   if (!response.ok) {
     let detail = `request failed (${response.status})`;
     try {
-      const body = await response.json();
-      if (typeof body?.detail === "string") detail = body.detail;
+      detail = errorDetail(await response.json()) ?? detail;
     } catch {
       // keep the status-line message
     }
