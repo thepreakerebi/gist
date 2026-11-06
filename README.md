@@ -155,6 +155,7 @@ Against the uniform 8-frame input that reached the same accuracy, Gist needed 36
 | Integration | FastAPI endpoints via the test client; real CLIP, CLAP and Whisper loaded (`GIST_RUN_SLOW_MODEL_TESTS=1`); stored-embedding scores equal live scores to 1e-5 | 546 passed |
 | Functional / system | end-to-end ingestion and question answering in the web app on 36- and 49-minute recordings | grounded answers, adaptive escalation, one documented selection failure |
 | Functional, automated | 17 Playwright cases from user stories: library, ingestion, questions, evidence and clips, history, removal, error messages, offline fallback ([`docs/testing/functional-tests.md`](docs/testing/functional-tests.md)) | 17 passed after fixing the 2 defects the suite found |
+| Load | k6, concurrent users against the library API on a laptop ([`results/load-test/`](results/load-test/README.md)) | 0% errors at every level; within budget up to 25 users asking different questions, breaking point 50; one defect found and fixed |
 | Performance, tail latency | P50, P95, P99 and error rate per stage against stated budgets ([`results/efficiency-measured/latency.md`](results/efficiency-measured/latency.md)) | answer stage and ingestion within budget; cached selection P95 and the answer-stage error rate over budget, both explained there |
 | Validation / performance | benchmark runs against pre-registered thresholds of the proposal's Objective 3 | accuracy parity, 96.8% fewer encoded items than dense input, 86% timestamp hit rate, unquantised 7B on one 24 GB GPU |
 

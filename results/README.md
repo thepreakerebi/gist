@@ -16,6 +16,7 @@ table row whose raw data existed only on one laptop.
 | `efficiency-measured/` | Wall clock and peak GPU memory, RTX 4090, n=18. Answer stage 1.37x faster and 29.4% less activation memory than uniform. Selection costs a median 88 s per video to ingest, then 1.26 s per question from cached embeddings (`cached_selection.py`). Tail latency, error rate and budgets in `latency.md`. Outcome in `POD_SESSION.md` | yes |
 | `runpod-omniscope-h2h/` | Head to head against OmniScope, the closest published method to Gist | **no** |
 | `omnipack-replication/` | A reimplementation of OmniPack, written because the authors released no code. Ratio sweep at n=48: 22/22/24/20 correct against 22 uncompressed | yes |
+| `load-test/` | k6 load test of the library API, laptop CPU: browsing holds 200 users, 40 different questions hold 25 users and break at 50 (P95 5.5 s). Found and fixed the encoders reloading on every question | yes |
 | `fetch_videos.py` | Shared video fetcher for every runner above | — |
 
 ## Suggested order on a fresh pod
