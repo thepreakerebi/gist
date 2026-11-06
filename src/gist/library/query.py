@@ -14,6 +14,7 @@ the measured pipeline rather than a second implementation of it.
 from __future__ import annotations
 
 import subprocess
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -51,20 +52,56 @@ def embed_query(query: str) -> QueryEmbeddings:
     return QueryEmbeddings(visual=_embed_visual(query), audio=_embed_audio(query))
 
 
+# One instance of each text encoder per process, loaded on first use and reused.
+# Constructing a scorer per question reloaded CLIP and CLAP from disk every time,
+# about 4 to 5 s on a laptop CPU, which made a question cost seconds instead of
+# the milliseconds the stored-embedding design allows. Under concurrent questions
+# the parallel reloads exhausted CPU and memory: the k6 load test
+# (results/load-test/) measured a P95 of 59 s at 50 users before this change.
+# ``_SCORER_LOCK`` stops two first questions from loading the same model twice.
+# Each encoder also has its own inference lock: a Hugging Face fast tokenizer
+# raises "Already borrowed" when two threads use one instance at once, and that
+# error would be swallowed below and silently drop the question to lexical
+# scoring. A text embedding takes milliseconds, so serialising it costs little.
+_SCORER_LOCK = threading.Lock()
+_SCORERS: dict[str, Any] = {}
+_INFERENCE_LOCKS = {"visual": threading.Lock(), "audio": threading.Lock()}
+
+
+def _scorer(kind: str) -> Any:
+    scorer = _SCORERS.get(kind)
+    if scorer is not None:
+        return scorer
+    with _SCORER_LOCK:
+        scorer = _SCORERS.get(kind)
+        if scorer is None:
+            if kind == "visual":
+                from gist.vision.clip import HuggingFaceClipFrameScorer
+
+                scorer = HuggingFaceClipFrameScorer()
+            else:
+                from gist.audio.clap import HuggingFaceClapAudioScorer
+
+                scorer = HuggingFaceClapAudioScorer()
+            scorer._load()
+            _SCORERS[kind] = scorer
+    return scorer
+
+
 def _embed_visual(query: str) -> list[float] | None:
     try:
-        from gist.vision.clip import HuggingFaceClipFrameScorer
-
-        return HuggingFaceClipFrameScorer().embed_text(query)
+        scorer = _scorer("visual")
+        with _INFERENCE_LOCKS["visual"]:
+            return scorer.embed_text(query)
     except Exception:  # noqa: BLE001
         return None
 
 
 def _embed_audio(query: str) -> list[float] | None:
     try:
-        from gist.audio.clap import HuggingFaceClapAudioScorer
-
-        return HuggingFaceClapAudioScorer().embed_text(query)
+        scorer = _scorer("audio")
+        with _INFERENCE_LOCKS["audio"]:
+            return scorer.embed_text(query)
     except Exception:  # noqa: BLE001
         return None
 
