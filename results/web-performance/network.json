@@ -1,0 +1,126 @@
+{
+  "generated": "2026-11-06T07:22:42.586Z",
+  "video": "0b992ba2-813e-4315-b1a2-c5c28c9b5d8c",
+  "results": [
+    {
+      "profile": "unthrottled",
+      "run": 1,
+      "question": "Where do they watch the sunset?",
+      "ok": true,
+      "library_listed_s": 0.085,
+      "video_ready_s": 0.064,
+      "evidence_shown_s": 0.119,
+      "clip_playable_s": 0.048
+    },
+    {
+      "profile": "unthrottled",
+      "run": 2,
+      "question": "What does he say about the monkeys?",
+      "ok": true,
+      "library_listed_s": 0.136,
+      "video_ready_s": 0.052,
+      "evidence_shown_s": 0.124,
+      "clip_playable_s": 0.042
+    },
+    {
+      "profile": "unthrottled",
+      "run": 3,
+      "question": "Which island has no cars?",
+      "ok": true,
+      "library_listed_s": 0.41,
+      "video_ready_s": 0.055,
+      "evidence_shown_s": 0.12,
+      "clip_playable_s": 0.046
+    },
+    {
+      "profile": "Fast 4G",
+      "run": 1,
+      "question": "Where do they watch the sunset?",
+      "ok": true,
+      "library_listed_s": 0.997,
+      "video_ready_s": 0.469,
+      "evidence_shown_s": 0.242,
+      "clip_playable_s": 0.127
+    },
+    {
+      "profile": "Fast 4G",
+      "run": 2,
+      "question": "What does he say about the monkeys?",
+      "ok": true,
+      "library_listed_s": 0.428,
+      "video_ready_s": 0.557,
+      "evidence_shown_s": 0.59,
+      "clip_playable_s": 0.413
+    },
+    {
+      "profile": "Fast 4G",
+      "run": 3,
+      "question": "Which island has no cars?",
+      "ok": true,
+      "library_listed_s": 0.44,
+      "video_ready_s": 1.187,
+      "evidence_shown_s": 1.395,
+      "clip_playable_s": 0.052
+    },
+    {
+      "profile": "Slow 4G",
+      "run": 1,
+      "question": "Where do they watch the sunset?",
+      "ok": true,
+      "library_listed_s": 1.615,
+      "video_ready_s": 1.608,
+      "evidence_shown_s": 0.846,
+      "clip_playable_s": 0.538
+    },
+    {
+      "profile": "Slow 4G",
+      "run": 2,
+      "question": "What does he say about the monkeys?",
+      "ok": true,
+      "library_listed_s": 1.607,
+      "video_ready_s": 1.586,
+      "evidence_shown_s": 0.845,
+      "clip_playable_s": 1.245
+    },
+    {
+      "profile": "Slow 4G",
+      "run": 3,
+      "question": "Which island has no cars?",
+      "ok": true,
+      "library_listed_s": 1.61,
+      "video_ready_s": 1.602,
+      "evidence_shown_s": 0.866,
+      "clip_playable_s": 0.538
+    },
+    {
+      "profile": "Slow 3G",
+      "run": 1,
+      "question": "Where do they watch the sunset?",
+      "ok": true,
+      "library_listed_s": 5.961,
+      "video_ready_s": 5.985,
+      "evidence_shown_s": 2.349,
+      "clip_playable_s": 2.645
+    },
+    {
+      "profile": "Slow 3G",
+      "run": 2,
+      "question": "What does he say about the monkeys?",
+      "ok": true,
+      "library_listed_s": 6.015,
+      "video_ready_s": 6,
+      "evidence_shown_s": 2.369,
+      "clip_playable_s": 5.406
+    },
+    {
+      "profile": "Slow 3G",
+      "run": 3,
+      "question": "Which island has no cars?",
+      "ok": true,
+      "library_listed_s": 5.963,
+      "video_ready_s": 5.987,
+      "evidence_shown_s": 2.386,
+      "clip_playable_s": 2.635
+    }
+  ]
+}
