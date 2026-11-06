@@ -15,11 +15,50 @@
 
 create extension if not exists vector;
 
+-- ----------------------------------------------------------- access ----
+--
+-- Access is by code: the operator issues a code from the `gist-access` command
+-- and hands it over in person. No email address or password is ever stored.
+-- Only the SHA-256 of a code or a session token is kept, so a copy of this
+-- database does not let anyone sign in. A plain hash is enough because both are
+-- long random strings; slow password hashes exist for guessable human input.
+
+create table if not exists access_codes (
+    id         uuid primary key default gen_random_uuid(),
+    code_hash  text        not null unique,
+    -- Who the code was given to, for the operator's own records.
+    label      text        not null,
+    -- Admin codes see and manage every video and have no daily question cap.
+    is_admin   boolean     not null default false,
+    created_at timestamptz not null default now(),
+    expires_at timestamptz,
+    revoked_at timestamptz
+);
+
+create table if not exists sessions (
+    id         uuid primary key default gen_random_uuid(),
+    code_id    uuid        not null references access_codes (id) on delete cascade,
+    token_hash text        not null unique,
+    created_at timestamptz not null default now(),
+    expires_at timestamptz not null
+);
+
+create index if not exists sessions_code_idx on sessions (code_id);
+
+-- Questions asked per code per day, kept apart from the chat history so that
+-- clearing a chat or deleting a video cannot reset the daily cap.
+create table if not exists question_usage (
+    code_id uuid    not null references access_codes (id) on delete cascade,
+    day     date    not null,
+    count   integer not null default 0,
+    primary key (code_id, day)
+);
+
 -- ---------------------------------------------------------------- videos ----
 
 create table if not exists videos (
     id                  uuid primary key default gen_random_uuid(),
-    youtube_url         text        not null unique,
+    youtube_url         text        not null,
     youtube_id          text,
     title               text        not null,
     duration_seconds    double precision not null,
@@ -47,6 +86,15 @@ create table if not exists videos (
 -- Databases created before consent was recorded.
 alter table videos add column if not exists consent_given_at timestamptz;
 alter table videos add column if not exists consent_version  text;
+
+-- Each video belongs to the access code that added it. Videos added before
+-- access codes existed have no owner until an admin code claims them
+-- (`gist-access create --admin` does so). A link is unique per owner rather
+-- than globally, so two people adding the same video each get their own copy.
+alter table videos add column if not exists owner_code_id uuid references access_codes (id);
+alter table videos drop constraint if exists videos_youtube_url_key;
+create unique index if not exists videos_owner_url_idx on videos (owner_code_id, youtube_url);
+create index if not exists videos_owner_idx on videos (owner_code_id, created_at desc);
 
 create index if not exists videos_status_idx     on videos (status);
 create index if not exists videos_created_at_idx on videos (created_at desc);

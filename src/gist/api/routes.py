@@ -13,7 +13,13 @@ from gist.media.models import IngestedVideo
 from gist.pipeline import LocalCompressionPipeline
 from gist.vision.errors import VisualScoringError
 
-router = APIRouter(prefix="/v1", tags=["compressions"])
+router = APIRouter(prefix="/v1", tags=["health"])
+
+# The research endpoints below read and write paths on the server's own disk
+# (``video_path``, ``output_root``) and run the full pipeline. They exist for
+# local experiments, so the app mounts them only when
+# GIST_ENABLE_RESEARCH_ROUTES is set; a deployed API must not expose them.
+research_router = APIRouter(prefix="/v1", tags=["compressions"])
 compressor = GistCompressor()
 
 
@@ -22,12 +28,12 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@router.post("/compressions", response_model=CompressionResponse)
+@research_router.post("/compressions", response_model=CompressionResponse)
 def create_compression(request: CompressionRequest) -> CompressionResponse:
     return compressor.compress(request)
 
 
-@router.post("/ingestions", response_model=IngestedVideo, tags=["ingestions"])
+@research_router.post("/ingestions", response_model=IngestedVideo, tags=["ingestions"])
 def create_ingestion(request: MediaIngestionRequest) -> IngestedVideo:
     ingestor = MediaIngestor(output_root=request.output_root)
     return ingestor.ingest(
@@ -38,7 +44,7 @@ def create_ingestion(request: MediaIngestionRequest) -> IngestedVideo:
     )
 
 
-@router.post(
+@research_router.post(
     "/local-video-compressions",
     response_model=LocalVideoCompressionResponse,
     tags=["compressions"],

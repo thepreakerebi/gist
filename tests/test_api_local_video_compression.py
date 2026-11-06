@@ -13,6 +13,12 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(autouse=True)
+def _research_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The path-taking research endpoints are mounted only when enabled.
+    monkeypatch.setenv("GIST_ENABLE_RESEARCH_ROUTES", "1")
+
+
 def test_local_video_compression_endpoint_runs_end_to_end(tmp_path: Path) -> None:
     video_path = tmp_path / "synthetic.mp4"
     subprocess.run(

@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from gist.api.app import create_app
@@ -12,7 +13,8 @@ def test_health_endpoint() -> None:
     assert response.json() == {"status": "ok"}
 
 
-def test_compression_endpoint() -> None:
+def test_compression_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("GIST_ENABLE_RESEARCH_ROUTES", "1")
     client = TestClient(create_app())
 
     response = client.post(

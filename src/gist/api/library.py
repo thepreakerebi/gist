@@ -6,22 +6,34 @@ once; ``POST /v1/library/videos/{id}/query`` then answers questions against the
 stored result. Ingestion of an hour-long video outlives any reasonable request
 timeout, so it runs on a background thread with progress written to the
 database — a client that reloads mid-ingestion still sees the real state.
+
+Every route acts as the access code behind the request's session (see
+:mod:`gist.api.auth`). A video belongs to the code that added it; any other
+code gets a 404 for it, the same answer as for a video that does not exist, so
+ids cannot be probed. Admin codes see and manage every video.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import queue
 import threading
 from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
+from fastapi import Path as PathParam
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
+from gist.access import store as access
+from gist.access.ratelimit import INGEST_LIMITS, QUERY_LIMITS
+from gist.access.store import Principal
+from gist.api.auth import CurrentPrincipal, enforce
 from gist.api.demo import _load_api_key
 from gist.core.presets import CompressionPreset
 from gist.db import connection as db
@@ -40,15 +52,23 @@ library_router = APIRouter(prefix="/v1/library", tags=["library"])
 _active: set[str] = set()
 _active_lock = threading.Lock()
 
+# Ingestions allowed to run at once across every code. Transcription is
+# CPU-bound, so beyond this each extra ingestion only slows all the others.
+MAX_CONCURRENT_INGESTIONS = int(os.getenv("GIST_MAX_CONCURRENT_INGESTIONS", "2"))
+
+# A video id is a UUID. Typing the path parameter rejects anything else,
+# including "..", before it can reach a filesystem path.
+VideoId = Annotated[UUID, PathParam()]
+
 
 # The wording of the privacy notice at /privacy that a consent was given against.
 # Bump it whenever the notice changes what a user agrees to, so every stored
 # consent can still be matched to the text that was on screen at the time.
-CONSENT_VERSION = "2026-10-25.2"
+CONSENT_VERSION = "2026-11-06.1"
 
 
 class AddVideoRequest(BaseModel):
-    url: str = Field(min_length=1)
+    url: str = Field(min_length=1, max_length=2048)
     # Checked here as well as in the browser: the web form is only one client,
     # and a request that skips it must not be able to start an ingestion.
     consent: bool = Field(default=False, validate_default=True)
@@ -79,7 +99,7 @@ DEFAULT_ANSWERER = os.getenv("GIST_ANSWERER", "twelvelabs")
 
 
 class QueryRequest(BaseModel):
-    query: str = Field(min_length=1)
+    query: str = Field(min_length=1, max_length=1000)
     answerer: str = Field(default_factory=lambda: DEFAULT_ANSWERER)
     preset: CompressionPreset = CompressionPreset.BALANCED
     adaptive_budget: bool = True
@@ -101,6 +121,18 @@ def _require_db() -> None:
             status_code=503,
             detail="The video library needs DATABASE_URL set to a Neon connection string.",
         )
+
+
+def _owned_video(video_id: UUID, principal: Principal) -> repo.VideoRecord:
+    """The video if this code may see it, else 404."""
+
+    _require_db()
+    record = repo.get_video(str(video_id))
+    if record is None or not (
+        principal.is_admin or record.owner_code_id == principal.code_id
+    ):
+        raise HTTPException(status_code=404, detail="video not found")
+    return record
 
 
 def _video_payload(record: repo.VideoRecord) -> dict[str, Any]:
@@ -125,19 +157,19 @@ def _video_payload(record: repo.VideoRecord) -> dict[str, Any]:
 
 
 @library_router.get("/videos")
-def list_videos() -> dict[str, Any]:
+def list_videos(principal: CurrentPrincipal) -> dict[str, Any]:
     _require_db()
-    return {"videos": [_video_payload(record) for record in repo.list_videos()]}
+    owner = None if principal.is_admin else principal.code_id
+    return {
+        "videos": [_video_payload(record) for record in repo.list_videos(owner_code_id=owner)]
+    }
 
 
 @library_router.get("/videos/{video_id}")
-def get_video(video_id: str) -> dict[str, Any]:
-    _require_db()
-    record = repo.get_video(video_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail="video not found")
+def get_video(video_id: VideoId, principal: CurrentPrincipal) -> dict[str, Any]:
+    record = _owned_video(video_id, principal)
 
-    conversation_id = repo.latest_conversation(video_id)
+    conversation_id = repo.latest_conversation(record.id)
     messages = repo.list_messages(conversation_id) if conversation_id else []
     return {
         "video": _video_payload(record),
@@ -161,46 +193,59 @@ def _message_payload(message: dict[str, Any]) -> dict[str, Any]:
 
 
 @library_router.post("/videos", status_code=202)
-def add_video(request: AddVideoRequest) -> dict[str, Any]:
-    """Register a video and start ingesting it in the background."""
+def add_video(request: AddVideoRequest, principal: CurrentPrincipal) -> dict[str, Any]:
+    """Register a video under the caller's code and start ingesting it."""
 
     _require_db()
 
-    existing = repo.get_video_by_url(request.url)
+    existing = repo.get_video_by_url(request.url, owner_code_id=principal.code_id)
     if existing is not None and existing.status in {"ready", "ingesting"}:
         return {"video": _video_payload(existing), "started": False}
+
+    with _active_lock:
+        busy = len(_active) >= MAX_CONCURRENT_INGESTIONS
+    if busy:
+        raise HTTPException(
+            status_code=429,
+            detail="Gist is already processing other videos. Try again in a few minutes.",
+            headers={"Retry-After": "120"},
+        )
+    if not principal.is_admin:
+        enforce(
+            f"ingest:{principal.code_id}",
+            INGEST_LIMITS,
+            "You have added several videos this hour. Try again later.",
+        )
 
     record = repo.create_video(
         request.url,
         title=media.youtube_id(request.url) or request.url,
         youtube_id=media.youtube_id(request.url),
         consent_version=CONSENT_VERSION,
+        owner_code_id=principal.code_id,
     )
     _start_ingestion(record.id, request.url)
     return {"video": _video_payload(record), "started": True}
 
 
 @library_router.delete("/videos/{video_id}", status_code=204)
-def delete_video(video_id: str) -> None:
-    _require_db()
-    if repo.get_video(video_id) is None:
-        raise HTTPException(status_code=404, detail="video not found")
-    ingest_service.delete_video_assets(video_id)
-    repo.delete_video(video_id)
+def delete_video(video_id: VideoId, principal: CurrentPrincipal) -> None:
+    record = _owned_video(video_id, principal)
+    ingest_service.delete_video_assets(record.id)
+    repo.delete_video(record.id)
 
 
 @library_router.delete("/videos/{video_id}/conversation", status_code=204)
-def clear_conversation(video_id: str) -> None:
+def clear_conversation(video_id: VideoId, principal: CurrentPrincipal) -> None:
     """Clear the chat history for a video, keeping the video and its artifacts.
 
     Distinct from deleting the video: ingestion is the expensive part and there
-    is no reason to pay it again just to start a fresh conversation.
+    is no reason to pay it again just to start a fresh conversation. The daily
+    question count is kept separately, so clearing does not reset it.
     """
 
-    _require_db()
-    if repo.get_video(video_id) is None:
-        raise HTTPException(status_code=404, detail="video not found")
-    repo.delete_conversations(video_id)
+    record = _owned_video(video_id, principal)
+    repo.delete_conversations(record.id)
 
 
 def _start_ingestion(video_id: str, url: str) -> None:
@@ -222,7 +267,7 @@ def _start_ingestion(video_id: str, url: str) -> None:
 
 
 @library_router.get("/videos/{video_id}/events")
-def ingestion_events(video_id: str) -> StreamingResponse:
+def ingestion_events(video_id: VideoId, principal: CurrentPrincipal) -> StreamingResponse:
     """Stream ingestion progress until the video is ready or failed.
 
     Progress is polled from the database rather than held in memory so that the
@@ -230,16 +275,14 @@ def ingestion_events(video_id: str) -> StreamingResponse:
     worker or before a reload.
     """
 
-    _require_db()
-    if repo.get_video(video_id) is None:
-        raise HTTPException(status_code=404, detail="video not found")
+    video_id_text = _owned_video(video_id, principal).id
 
     def stream() -> Iterator[str]:
         import time
 
         last: tuple[str, str | None, float] | None = None
         while True:
-            record = repo.get_video(video_id)
+            record = repo.get_video(video_id_text)
             if record is None:
                 yield _sse("error", {"message": "video was removed"})
                 return
@@ -265,34 +308,63 @@ def ingestion_events(video_id: str) -> StreamingResponse:
 
 
 @library_router.post("/videos/{video_id}/query")
-def run_query(video_id: str, request: QueryRequest) -> StreamingResponse:
-    """Answer a question about an ingested video, streaming the stages."""
+def run_query(
+    video_id: VideoId, request: QueryRequest, principal: CurrentPrincipal
+) -> StreamingResponse:
+    """Answer a question about an ingested video, streaming the stages.
 
-    _require_db()
-    record = repo.get_video(video_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail="video not found")
+    A question counts against the code's daily cap when it is accepted, and is
+    given back if the pipeline fails before producing an answer.
+    """
+
+    record = _owned_video(video_id, principal)
     if record.status != "ready":
         raise HTTPException(
             status_code=409,
             detail=f"video is {record.status}; wait for ingestion to finish",
         )
 
+    refund = None
+    if not principal.is_admin:
+        enforce(
+            f"query:{principal.code_id}",
+            QUERY_LIMITS,
+            "You are asking questions too quickly. Wait a moment.",
+        )
+        day = access.cap_day()
+        cap = access.DAILY_QUESTION_CAP
+        if cap <= 0 or not access.charge_question(principal.code_id, day=day, cap=cap):
+            resets = access.cap_resets_at()
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    f"You have used all {cap} questions for today. "
+                    f"More are available from {resets.strftime('%H:%M')} Kigali time."
+                ),
+            )
+
+        def refund() -> None:
+            access.refund_question(principal.code_id, day=day)
+
     return StreamingResponse(
-        _query_stream(record, request),
+        _query_stream(record, request, refund),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
-def _query_stream(record: repo.VideoRecord, request: QueryRequest) -> Iterator[str]:
+def _query_stream(
+    record: repo.VideoRecord,
+    request: QueryRequest,
+    refund: Any = None,
+) -> Iterator[str]:
     events: queue.Queue[tuple[str, dict[str, Any]] | None] = queue.Queue()
 
     def emit(event: str, data: dict[str, Any]) -> None:
         events.put((event, data))
 
     worker = threading.Thread(
-        target=_query_worker, args=(record, request, emit), daemon=True
+        target=_query_worker, args=(record, request, emit, refund), daemon=True
     )
     worker.start()
 
@@ -310,6 +382,7 @@ def _query_worker(
     record: repo.VideoRecord,
     request: QueryRequest,
     emit: Any,
+    refund: Any = None,
 ) -> None:
     try:
         conversation_id = repo.ensure_conversation(record.id)
@@ -384,6 +457,10 @@ def _query_worker(
             },
         )
     except Exception as exc:  # noqa: BLE001 - reported to the client
+        if refund is not None:
+            # A failed refund must not hide the error the client needs to see.
+            with contextlib.suppress(Exception):
+                refund()
         emit("error", {"message": str(exc) or exc.__class__.__name__})
     finally:
         emit("__end__", {})
@@ -464,7 +541,7 @@ def _public_clip(clip: dict[str, Any]) -> dict[str, Any]:
 
 
 @library_router.get("/videos/{video_id}/clips/{name}")
-def get_clip(video_id: str, name: str) -> FileResponse:
+def get_clip(video_id: VideoId, name: str, principal: CurrentPrincipal) -> FileResponse:
     """Serve a cut evidence clip.
 
     FileResponse handles HTTP range requests, which is what lets the browser
@@ -475,37 +552,36 @@ def get_clip(video_id: str, name: str) -> FileResponse:
     if "/" in name or "\\" in name or name.startswith("."):
         raise HTTPException(status_code=400, detail="invalid clip name")
 
-    path = ingest_service.video_directory(video_id) / query_service.CLIP_CACHE_DIRNAME / name
+    record = _owned_video(video_id, principal)
+    path = ingest_service.video_directory(record.id) / query_service.CLIP_CACHE_DIRNAME / name
     if not path.exists():
         raise HTTPException(status_code=404, detail="clip not found")
     return FileResponse(path, media_type="video/mp4")
 
 
 @library_router.get("/videos/{video_id}/source")
-def get_source(video_id: str) -> FileResponse:
+def get_source(video_id: VideoId, principal: CurrentPrincipal) -> FileResponse:
     """Serve the retained source video for in-library playback.
 
     FileResponse handles range requests, which is what lets the player scrub a
     long recording instead of downloading it whole before it can start.
     """
 
-    _require_db()
-    record = repo.get_video(video_id)
-    if record is None:
-        raise HTTPException(status_code=404, detail="video not found")
+    record = _owned_video(video_id, principal)
     if not record.source_path or not Path(record.source_path).exists():
         raise HTTPException(status_code=404, detail="source video is no longer on disk")
     return FileResponse(record.source_path, media_type="video/mp4")
 
 
 @library_router.get("/videos/{video_id}/frames/{name}")
-def get_frame(video_id: str, name: str) -> FileResponse:
+def get_frame(video_id: VideoId, name: str, principal: CurrentPrincipal) -> FileResponse:
     """Serve a sampled frame image referenced by selected evidence."""
 
     if "/" in name or "\\" in name or name.startswith("."):
         raise HTTPException(status_code=400, detail="invalid frame name")
 
-    for directory in ingest_service.video_directory(video_id).rglob("frames"):
+    record = _owned_video(video_id, principal)
+    for directory in ingest_service.video_directory(record.id).rglob("frames"):
         candidate = directory / name
         if candidate.exists():
             return FileResponse(candidate, media_type="image/jpeg")

@@ -22,6 +22,7 @@ dependencies = [
 
 [project.scripts]
 gist = "gist.cli:main"
+gist-access = "gist.access.cli:main"
 gist-ablation = "gist.eval.ablation:main"
 gist-benchmark-videomme = "gist.eval.benchmark_videomme:main"
 gist-benchmark-videomme-vision = "gist.eval.benchmark_videomme_vision:main"

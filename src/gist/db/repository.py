@@ -48,6 +48,9 @@ class VideoRecord:
     error: str | None
     created_at: datetime
     ingested_at: datetime | None
+    # The access code that added the video; None for videos added before codes
+    # existed and not yet claimed.
+    owner_code_id: str | None = None
 
     @classmethod
     def from_row(cls, row: dict[str, Any]) -> VideoRecord:
@@ -67,6 +70,7 @@ class VideoRecord:
             error=row.get("error"),
             created_at=row["created_at"],
             ingested_at=row.get("ingested_at"),
+            owner_code_id=str(row["owner_code_id"]) if row.get("owner_code_id") else None,
         )
 
 
@@ -79,27 +83,35 @@ def create_video(
     title: str,
     youtube_id: str | None = None,
     consent_version: str,
+    owner_code_id: str,
 ) -> VideoRecord:
-    """Register a video as pending ingestion, or return the existing row.
+    """Register a video as pending ingestion, or return the owner's existing row.
 
-    Re-submitting a URL already in the library is the common case (a user pastes
-    a link they forgot they had), so this is an upsert rather than an error. The
-    consent is refreshed on a re-submit, because it is the latest agreement that
-    covers the processing about to happen.
+    Re-submitting a URL already in the owner's library is the common case (a
+    user pastes a link they forgot they had), so this is an upsert rather than an
+    error. The consent is refreshed on a re-submit, because it is the latest
+    agreement that covers the processing about to happen. A link is unique per
+    owner, not globally: another code adding the same link gets its own copy.
     """
 
     with cursor() as cur:
         cur.execute(
             """
             insert into videos (youtube_url, youtube_id, title, duration_seconds, status,
-                                consent_given_at, consent_version)
-            values (%(url)s, %(yid)s, %(title)s, 0, 'pending', now(), %(consent)s)
-            on conflict (youtube_url) do update set
+                                consent_given_at, consent_version, owner_code_id)
+            values (%(url)s, %(yid)s, %(title)s, 0, 'pending', now(), %(consent)s, %(owner)s)
+            on conflict (owner_code_id, youtube_url) do update set
                 consent_given_at = excluded.consent_given_at,
                 consent_version  = excluded.consent_version
             returning *
             """,
-            {"url": youtube_url, "yid": youtube_id, "title": title, "consent": consent_version},
+            {
+                "url": youtube_url,
+                "yid": youtube_id,
+                "title": title,
+                "consent": consent_version,
+                "owner": owner_code_id,
+            },
         )
         return VideoRecord.from_row(cur.fetchone())
 
@@ -111,16 +123,27 @@ def get_video(video_id: str) -> VideoRecord | None:
         return VideoRecord.from_row(row) if row else None
 
 
-def get_video_by_url(youtube_url: str) -> VideoRecord | None:
+def get_video_by_url(youtube_url: str, *, owner_code_id: str) -> VideoRecord | None:
     with cursor() as cur:
-        cur.execute("select * from videos where youtube_url = %s", (youtube_url,))
+        cur.execute(
+            "select * from videos where youtube_url = %s and owner_code_id = %s",
+            (youtube_url, owner_code_id),
+        )
         row = cur.fetchone()
         return VideoRecord.from_row(row) if row else None
 
 
-def list_videos(limit: int = 100) -> list[VideoRecord]:
+def list_videos(*, owner_code_id: str | None, limit: int = 100) -> list[VideoRecord]:
+    """One owner's videos, newest first; every video when ``owner_code_id`` is None."""
+
     with cursor() as cur:
-        cur.execute("select * from videos order by created_at desc limit %s", (limit,))
+        if owner_code_id is None:
+            cur.execute("select * from videos order by created_at desc limit %s", (limit,))
+        else:
+            cur.execute(
+                "select * from videos where owner_code_id = %s order by created_at desc limit %s",
+                (owner_code_id, limit),
+            )
         return [VideoRecord.from_row(row) for row in cur.fetchall()]
 
 
