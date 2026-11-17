@@ -1,0 +1,23 @@
+# Caddy terminates TLS for the Gist API and gets its certificate from
+# Let's Encrypt on first request. The frontend is served by Vercel at
+# gist.usesky.io; only the API runs on this server.
+api.gist.usesky.io {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
+		-Server
+	}
+
+	# Ingestion progress streams for minutes and clips are served with byte
+	# ranges, so nothing here buffers or times out early.
+	reverse_proxy 127.0.0.1:8000 {
+		flush_interval -1
+		transport http {
+			read_timeout 30m
+		}
+	}
+}
