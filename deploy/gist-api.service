@@ -10,7 +10,6 @@ Group=gist
 # the API reads its .env from here.
 WorkingDirectory=/srv/gist
 Environment=HF_HOME=/srv/gist/.cache/huggingface
-Environment=OMP_NUM_THREADS=4
 # One worker: the models load once per process and the rate limiter is in
 # memory. --proxy-headers makes each visitor's own address reach the limiter.
 ExecStart=/srv/gist/.venv/bin/uvicorn gist.api.app:app \

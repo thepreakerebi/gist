@@ -9,7 +9,7 @@ cookie requires (see `docs/security.md`):
 | API (`gist.api.app`) | Ubuntu 24.04 server, Caddy in front | `https://api.gist.usesky.io` |
 
 The answering model is TwelveLabs Pegasus, so the server holds only CLIP, CLAP
-and faster-whisper on CPU: about 4 GB of memory, 8 GB recommended. Qwen2.5-Omni
+and faster-whisper on CPU: about 4 GB of memory. A 4 GB server works because `setup.sh` adds 4 GB of swap. Qwen2.5-Omni
 is not deployed.
 
 ## Files
